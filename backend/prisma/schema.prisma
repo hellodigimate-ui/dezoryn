@@ -1,0 +1,403 @@
+// Prisma Schema for Dezoryn Website CMS Backend Foundation
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  firstName     String
+  lastName      String
+  role          Role           @default(ADMIN)
+  isActive      Boolean        @default(true)
+  avatar        String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  refreshTokens RefreshToken[]
+  mediaUploads  Media[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("refresh_tokens")
+}
+
+model Media {
+  id           String   @id @default(cuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  path         String
+  url          String
+  folder       String   @default("General")
+  cloudinaryId String?
+  resourceType String   @default("image")
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("media")
+}
+
+
+model HeroSection {
+  id               String   @id @default("default")
+  badgeText        String   @default("DEZORYN 3.0 ENTERPRISE SUITE")
+  badgeIcon        String   @default("Sparkles")
+  mainHeading      String   @default("Autonomous Operations for")
+  gradientHeading  String   @default("Modern Enterprises")
+  description      String   @default("Dezoryn Technologies unifies ERP, CRM, and AI automation into a single intelligent operating platform. Streamline workflows, scale operations, and boost productivity.")
+  primaryBtnText   String   @default("Explore Solution")
+  primaryBtnLink   String   @default("/products")
+  secondaryBtnText String   @default("Schedule Demo")
+  secondaryBtnLink String   @default("/book-demo")
+  statsCards       Json
+  techTags         Json
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("hero_section")
+}
+
+model NavItem {
+  id          String   @id @default(cuid())
+  label       String
+  route       String
+  order       Int      @default(0)
+  isVisible   Boolean  @default(true)
+  isHighlight Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("nav_items")
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  title         String
+  subtitle      String   @default("")
+  description   String
+  icon          String   @default("Zap")
+  gradient      String   @default("from-blue-600 to-cyan-500")
+  features      Json     @default("[]")
+  image         String?
+  order         Int      @default(0)
+  status        String   @default("active")
+  category      String   @default("core")
+  isEnabled     Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("products")
+}
+
+model PricingPlan {
+  id           String   @id @default(cuid())
+  name         String
+  price        String   @default("0")
+  description  String
+  features     Json     @default("[]")
+  buttonText   String   @default("Get Started")
+  buttonUrl    String   @default("/book-demo")
+  isHighlight  Boolean  @default(false)
+  ribbon       String?
+  colorTheme   String   @default("blue")
+  order        Int      @default(0)
+  isEnabled    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("pricing_plans")
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  name        String
+  company     String   @default("")
+  designation String   @default("")
+  review      String
+  rating      Int      @default(5)
+  photo       String?
+  order       Int      @default(0)
+  isEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("testimonials")
+}
+
+model Faq {
+  id          String   @id @default(cuid())
+  question    String
+  answer      String
+  category    String   @default("General")
+  order       Int      @default(0)
+  status      String   @default("active")
+  isEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("faqs")
+}
+
+model Job {
+  id               String    @id @default(cuid())
+  title            String
+  department       String
+  location         String
+  salary           String    @default("Competitive")
+  experience       String    @default("Mid-Senior")
+  employmentType   String    @default("Full-Time")
+  description      String
+  requirements     Json      @default("[]")
+  responsibilities Json      @default("[]")
+  status           String    @default("active")
+  closingDate      DateTime?
+  order            Int       @default(0)
+  isEnabled        Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@map("jobs")
+}
+
+model ContactSettings {
+  id            String   @id @default("default")
+  phone         String   @default("+91 77778 04850")
+  email         String   @default("support@dezoryn.com")
+  address       String   @default("Indore, Madhya Pradesh, India")
+  googleMap     String   @default("https://maps.google.com/?q=Indore,Madhya+Pradesh,India")
+  socialLinks   Json     @default("{\"twitter\":\"https://twitter.com\",\"linkedin\":\"https://linkedin.com\",\"github\":\"https://github.com\",\"facebook\":\"https://facebook.com\",\"instagram\":\"https://instagram.com\",\"youtube\":\"https://youtube.com\"}")
+  whatsApp      String   @default("+917777804850")
+  businessHours String   @default("Mon - Fri: 9:00 AM - 6:00 PM IST | Sat - Sun: Closed")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("contact_settings")
+}
+
+model FooterSettings {
+  id                 String   @id @default("default")
+  companyDescription String   @default("Dezoryn Technologies Pvt. Ltd. is a global IT solutions provider committed to delivering innovative, reliable and future-ready software products.")
+  footerLogo         String   @default("Dezoryn Technologies")
+  footerLinks        Json     @default("[]")
+  socialLinks        Json     @default("{}")
+  copyrightText      String   @default("Dezoryn Technologies Pvt. Ltd. All Rights Reserved.")
+  legalLinks         Json     @default("[]")
+  supportLinks       Json     @default("[]")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("footer_settings")
+}
+
+model ProductDemo {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  videoUrl     String
+  thumbnailUrl String?
+  category     String?  @default("General")
+  order        Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("product_demos")
+}
+
+model DemoBooking {
+  id                   String   @id @default(cuid())
+  fullName             String
+  email                String
+  phone                String?  @default("")
+  company              String?  @default("")
+  productSelected      String?  @default("")
+  teamSize             String?  @default("")
+  expectedUsers        String?  @default("")
+  notes                String?  @default("")
+  bookingDate          String
+  formattedBookingDate String?  @default("")
+  bookingTimeSlot      String?  @default("")
+  timeZone             String?  @default("")
+  status               String   @default("CONFIRMED")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("demo_bookings")
+}
+
+
+
+model AnalyticsEvent {
+  id          String   @id @default(cuid())
+  eventType   String   // visitor | lead | demo_request | contact_form | page_view | conversion
+  page        String   @default("/")
+  source      String   @default("direct") // direct | google | linkedin | twitter | referral | email
+  sessionId   String?
+  userAgent   String?
+  country     String?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([page])
+  @@map("analytics_events")
+}
+
+model WebsiteSettings {
+  id                  String   @id @default("default")
+  websiteName         String   @default("Dezoryn Technologies")
+  logoUrl             String?
+  faviconUrl          String?
+  domain              String   @default("https://dezoryn.com")
+  maintenanceMode     Boolean  @default(false)
+  announcementBar     Boolean  @default(false)
+  announcementText    String   @default("")
+  announcementColor   String   @default("blue")
+  language            String   @default("en")
+  timezone            String   @default("Asia/Kolkata")
+  currency            String   @default("INR")
+  currencySymbol      String   @default("₹")
+  smtpHost            String   @default("")
+  smtpPort            Int      @default(587)
+  smtpUser            String   @default("")
+  smtpPass            String   @default("")
+  smtpFrom            String   @default("")
+  smtpSecure          Boolean  @default(false)
+  googleAnalyticsId   String   @default("")
+  metaTitle           String   @default("Dezoryn Technologies - Enterprise Business Automation")
+  metaDescription     String   @default("")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("website_settings")
+}
+
+model AboutSection {
+  id                 String   @id @default("default")
+  badge              String   @default("ABOUT DEZORYN TECHNOLOGIES")
+  heading            String   @default("Empowering Modern Enterprises with Intelligent Automation")
+  descriptionOne     String   @default("Dezoryn Technologies is a global IT solutions provider committed to delivering innovative, reliable and future-ready software products. We engineer unified platforms that automate complex workflows, optimize resource allocation, and drive sustainable growth.") @db.Text
+  descriptionTwo     String   @default("Our mission is to replace fragmented software ecosystems with intelligent, high-performance technology hubs built for scalability, bank-grade security, and seamless multi-channel integration.") @db.Text
+  buttonText         String   @default("Discover Our Ecosystem")
+  buttonUrl          String   @default("/products")
+  buttonEnabled      Boolean  @default(true)
+  mediaUrl           String?
+  mediaType          String   @default("IMAGE")
+  mediaId            String?
+  cardEnabled        Boolean  @default(true)
+  cardTitle          String   @default("Global Enterprise HQ")
+  cardSubtitle       String   @default("Innovation Center")
+  cardLocation       String   @default("San Francisco, CA")
+  cardIcon           String   @default("Globe")
+  layoutSettings     Json     @default("{\"imagePosition\":\"right\",\"imageWidth\":\"100%\",\"imageHeight\":\"auto\",\"borderRadius\":\"1.5rem\",\"padding\":\"5rem 1rem\",\"columnGap\":\"3rem\",\"verticalAlign\":\"center\"}")
+  styleSettings      Json     @default("{\"bgColor\":\"transparent\",\"accentColor\":\"#06b6d4\",\"headingColor\":\"#ffffff\",\"paragraphColor\":\"#94a3b8\",\"overlayOpacity\":0.2}")
+  animationSettings  Json     @default("{\"fadeEnabled\":true,\"slideEnabled\":true,\"scaleEnabled\":false,\"duration\":0.6,\"delay\":0.2}")
+  isDraft            Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  @@map("about_section")
+}
+
+model ThemeSettings {
+  id                  String   @id @default("default")
+  primaryColor        String   @default("#2563eb")
+  secondaryColor      String   @default("#4f46e5")
+  accentColor         String   @default("#06b6d4")
+  fontFamily          String   @default("Plus Jakarta Sans")
+  borderRadius        String   @default("1rem")
+  buttonStyle         String   @default("gradient")
+  defaultMode         String   @default("dark")
+  activeMode          String   @default("dark")
+  lightTheme          Json?    @default("{}")
+  darkTheme           Json?    @default("{}")
+  colorSettings       Json?    @default("{}")
+  savedPalettes       Json?    @default("[]")
+  typographySettings  Json?    @default("{}")
+  footerEffects       Json?    @default("{}")
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
+
+  @@map("theme_settings")
+}
+
+model CompanyTimeline {
+  id          String   @id @default(uuid())
+  year        String
+  title       String
+  description String   @db.Text
+  icon        String   @default("Rocket")
+  orderIndex  Int      @default(0)
+  enabled     Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@map("company_timeline")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  category    String   @default("General")
+  badge       String   @default("")
+  title       String
+  description String   @db.Text
+  icon        String   @default("Code2")
+  services    Json     @default("[]")
+  ctaText     String   @default("Explore Services")
+  ctaLink     String   @default("/contact-sales")
+  imageUrl    String?  @default("")
+  order       Int      @default(0)
+  status      String   @default("active")
+  isEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("services")
+}
+
+model ContactSubmission {
+  id              String   @id @default(cuid())
+  fullName        String
+  email           String
+  phone           String?  @default("")
+  company         String?  @default("")
+  industry        String?  @default("")
+  employees       String?  @default("")
+  budget          String?  @default("")
+  productInterest String?  @default("")
+  message         String?  @db.Text
+  status          String   @default("NEW")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("contact_submissions")
+}
+
+
