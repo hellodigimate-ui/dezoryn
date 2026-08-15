@@ -17,7 +17,42 @@ app.use(helmet({
 }));
 
 // CORS Configuration
-app.use(cors({ origin: true, credentials: true }));
+const allowedOrigins = [
+  'https://dezoryn.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5000',
+];
+
+if (env.CORS_ORIGIN) {
+  env.CORS_ORIGIN.split(',').forEach((o) => {
+    const trimmed = o.trim();
+    if (trimmed && !allowedOrigins.includes(trimmed)) {
+      allowedOrigins.push(trimmed);
+    }
+  });
+}
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
+    credentials: true,
+  })
+);
 
 
 // Body Parsing & Cookie Parser

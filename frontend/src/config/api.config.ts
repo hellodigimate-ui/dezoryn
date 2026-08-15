@@ -1,11 +1,40 @@
+const DEFAULT_PRODUCTION_URL = 'https://dezoryn123.onrender.com';
+const DEFAULT_LOCAL_URL = 'http://localhost:5000';
+
+const isLocalhostHost = (): boolean => {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  }
+  return false;
+};
+
+const resolveUrl = (envVal: string | undefined): string => {
+  let target = envVal?.trim();
+  if (!target) {
+    target = isLocalhostHost() ? DEFAULT_LOCAL_URL : DEFAULT_PRODUCTION_URL;
+  }
+  target = target.replace(/\/+$/, '');
+
+  // Safety Guard: If running in a production browser environment, NEVER allow localhost URLs
+  if (typeof window !== 'undefined' && !isLocalhostHost() && (target.includes('localhost') || target.includes('127.0.0.1'))) {
+    return DEFAULT_PRODUCTION_URL;
+  }
+
+  return target;
+};
+
 const getInitialBaseUrl = (): string => {
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:5000';
+  if (import.meta.env.VITE_API_URL) {
+    return resolveUrl(import.meta.env.VITE_API_URL);
   }
   if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '');
+    return resolveUrl(import.meta.env.VITE_API_BASE_URL);
   }
-  return 'https://dezo-backend.onrender.com';
+  if (isLocalhostHost()) {
+    return DEFAULT_LOCAL_URL;
+  }
+  return DEFAULT_PRODUCTION_URL;
 };
 
 export const API_BASE_URL = getInitialBaseUrl();
@@ -15,10 +44,10 @@ export const API_URL = `${API_BASE_URL}${API_PREFIX}`;
 export const API_CONFIG = {
   baseUrl: API_BASE_URL,
   apiUrl: API_URL,
-  crmApiUrl: import.meta.env.VITE_CRM_API_URL || API_BASE_URL,
-  estateApiUrl: import.meta.env.VITE_ESTATE_API_URL || API_BASE_URL,
-  schoolycoreApiUrl: import.meta.env.VITE_SCHOOLYCORE_API_URL || import.meta.env.VITE_ESTATE_API_URL || API_BASE_URL,
-  schoolycoreLiteApiUrl: import.meta.env.VITE_SCHOOLYCORE_LITE_API_URL || API_BASE_URL,
+  crmApiUrl: resolveUrl(import.meta.env.VITE_CRM_API_URL),
+  estateApiUrl: resolveUrl(import.meta.env.VITE_ESTATE_API_URL),
+  schoolycoreApiUrl: resolveUrl(import.meta.env.VITE_SCHOOLYCORE_API_URL || import.meta.env.VITE_ESTATE_API_URL),
+  schoolycoreLiteApiUrl: resolveUrl(import.meta.env.VITE_SCHOOLYCORE_LITE_API_URL),
 };
 
 export function getFullApiUrl(endpoint: string): string {
@@ -67,17 +96,7 @@ export async function apiFetch(input: string | URL, init?: RequestInit): Promise
   };
 
   try {
-    let res = await fetch(fullUrl, options);
-    if (res.status === 404 && fullUrl.includes('dezo-backend.onrender.com')) {
-      const localUrl = fullUrl.replace('https://dezo-backend.onrender.com', 'http://localhost:5000');
-      try {
-        const localRes = await fetch(localUrl, options);
-        if (localRes.ok) {
-          console.info(`[API] Fallback from un-deployed remote 404 to local server: ${localUrl}`);
-          return localRes;
-        }
-      } catch (_e) {}
-    }
+    const res = await fetch(fullUrl, options);
     if (!res.ok) {
       if (res.status === 401) {
         console.warn(`[API] 401 Unauthorized: ${fullUrl}`);
@@ -91,12 +110,6 @@ export async function apiFetch(input: string | URL, init?: RequestInit): Promise
     }
     return res;
   } catch (error) {
-    if (fullUrl.includes('dezo-backend.onrender.com')) {
-      const localUrl = fullUrl.replace('https://dezo-backend.onrender.com', 'http://localhost:5000');
-      try {
-        return await fetch(localUrl, options);
-      } catch (_e) {}
-    }
     console.error(`[API] Network failure connecting to: ${fullUrl}`, error);
     throw error;
   }
