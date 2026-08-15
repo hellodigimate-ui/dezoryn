@@ -1,0 +1,274 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --primary-color: #2563eb;
+  --secondary-color: #4f46e5;
+  --accent-color: #06b6d4;
+  --bg-color: #020617;
+  --surface-color: #0f172a;
+  --card-color: #1e293b;
+  --border-color: #334155;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+  --info-color: #3b82f6;
+  --text-primary-color: #f8fafc;
+  --text-secondary-color: #94a3b8;
+  --link-color: #38bdf8;
+
+  --font-family: 'Plus Jakarta Sans', sans-serif;
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-button: 'Outfit', sans-serif;
+  --font-weight: 600;
+  --letter-spacing: 0em;
+  --line-height: 1.5;
+  --text-transform: none;
+  --font-scale: 1.0;
+
+  --font-size-display: 3.5rem;
+  --font-size-h1: 2.5rem;
+  --font-size-h2: 2rem;
+  --font-size-h3: 1.5rem;
+  --font-size-h4: 1.25rem;
+  --font-size-h5: 1.125rem;
+  --font-size-h6: 1rem;
+  --font-size-body: 1rem;
+  --font-size-small: 0.875rem;
+  --font-size-caption: 0.75rem;
+  --font-size-button: 0.875rem;
+  --border-radius: 1rem;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-family);
+}
+
+/* ── Hardware-Accelerated 60fps Smooth Theme Transitions ── */
+.admin-scope,
+.admin-scope div,
+.admin-scope section,
+.admin-scope main,
+.admin-scope aside,
+.admin-scope header,
+.admin-scope nav,
+.admin-scope button,
+.admin-scope a,
+.admin-scope p,
+.admin-scope span,
+.admin-scope h1,
+.admin-scope h2,
+.admin-scope h3,
+.admin-scope h4,
+.admin-scope h5,
+.admin-scope h6,
+body:not(:has(.admin-scope)),
+:not(.admin-scope) section,
+:not(.admin-scope) footer {
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Exclude inputs, SVG elements, media, canvas & active spinners to prevent layout reflow lag */
+img,
+video,
+canvas,
+svg,
+svg *,
+input,
+select,
+textarea,
+.animate-spin,
+.animate-pulse,
+.no-theme-transition {
+  transition: none !important;
+}
+
+
+/* Custom CSS Utility Classes for Dynamic Theme */
+.bg-theme-primary {
+  background-color: var(--primary-color) !important;
+}
+
+.bg-theme-secondary {
+  background-color: var(--secondary-color) !important;
+}
+
+.bg-theme-accent {
+  background-color: var(--accent-color) !important;
+}
+
+.text-theme-primary {
+  color: var(--primary-color) !important;
+}
+
+.text-theme-secondary {
+  color: var(--secondary-color) !important;
+}
+
+.text-theme-accent {
+  color: var(--accent-color) !important;
+}
+
+.border-theme-primary {
+  border-color: var(--primary-color) !important;
+}
+
+.border-theme-accent {
+  border-color: var(--accent-color) !important;
+}
+
+.btn-theme-primary {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+  border-radius: var(--border-radius) !important;
+}
+
+.btn-theme-primary:hover {
+  filter: brightness(1.1);
+}
+
+/* Global utility overrides so main landing page elements adapt to Theme CMS colors dynamically */
+/* Scoped to exclude admin panel elements (.admin-scope) so admin UI retains proper Tailwind colors */
+:not(.admin-scope) .bg-blue-600,
+:not(.admin-scope) .bg-blue-500 {
+  background-color: var(--primary-color) !important;
+}
+
+:not(.admin-scope) .text-blue-600,
+:not(.admin-scope) .text-blue-500,
+:not(.admin-scope) .text-blue-400 {
+  color: var(--primary-color) !important;
+}
+
+:not(.admin-scope) .border-blue-600,
+:not(.admin-scope) .border-blue-500 {
+  border-color: var(--primary-color) !important;
+}
+
+:not(.admin-scope) .bg-cyan-500,
+:not(.admin-scope) .bg-cyan-400 {
+  background-color: var(--accent-color) !important;
+}
+
+:not(.admin-scope) .text-cyan-500,
+:not(.admin-scope) .text-cyan-400 {
+  color: var(--accent-color) !important;
+}
+
+:not(.admin-scope) .border-cyan-500,
+:not(.admin-scope) .border-cyan-400 {
+  border-color: var(--accent-color) !important;
+}
+
+/* ── Global text scale-down ── */
+html {
+  font-size: 93%;
+}
+
+@layer utilities {
+
+  .glass-card {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 10px 30px -5px rgba(37, 99, 235, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+  }
+
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(241, 245, 249, 0.9);
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 40px rgba(37, 99, 235, 0.25);
+  }
+
+  .glow-blue-lg {
+    box-shadow: 0 0 80px rgba(37, 99, 235, 0.35);
+  }
+}
+
+/* Custom keyframes for ambient elements */
+@keyframes floatSlow {
+
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(1.5deg);
+  }
+}
+
+@keyframes pulseGlow {
+
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 3s ease-in-out infinite;
+}
+
+.animate-float-fast {
+  animation: floatSlow 1.8s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+/* Three.js canvas container reset */
+canvas {
+  touch-action: none;
+  outline: none;
+}
+
+/* ── Hardware Acceleration & Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-spin,
+  .animate-pulse,
+  .animate-ping,
+  .animate-float-slow,
+  .animate-float-fast,
+  .animate-pulse-glow {
+    animation: none !important;
+  }
+}
+
+.will-change-transform {
+  will-change: transform;
+}
