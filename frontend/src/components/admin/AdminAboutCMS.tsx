@@ -171,9 +171,21 @@ export const AdminAboutCMS: React.FC = () => {
           mediaType: isVid ? 'VIDEO' : 'IMAGE',
         };
         setFormData(updated);
+        setSavedData(updated);
         localStorage.setItem('dezo-about-data', JSON.stringify(updated));
         window.dispatchEvent(new CustomEvent('dezo-about-updated', { detail: updated }));
-        showStatus('success', `Uploaded ${file.name} successfully!`);
+
+        // Auto-save to backend API so live site updates immediately
+        try {
+          await apiFetch(API_ABOUT, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          });
+        } catch {
+          // ignore
+        }
+        showStatus('success', `Uploaded & saved ${file.name} successfully!`);
       } else {
         showStatus('error', json.message || 'Failed to upload media file.');
       }
@@ -199,7 +211,7 @@ export const AdminAboutCMS: React.FC = () => {
     }
   };
 
-  const selectMediaItem = (item: any) => {
+  const selectMediaItem = async (item: any) => {
     const isVid = item.mimeType?.startsWith('video/') || item.url?.endsWith('.mp4') || item.url?.endsWith('.webm');
     const fullUrl = resolveMediaUrl(item.url);
     const updated = {
@@ -208,10 +220,22 @@ export const AdminAboutCMS: React.FC = () => {
       mediaType: isVid ? 'VIDEO' : 'IMAGE',
     };
     setFormData(updated);
+    setSavedData(updated);
     localStorage.setItem('dezo-about-data', JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('dezo-about-updated', { detail: updated }));
     setIsMediaModalOpen(false);
-    showStatus('success', 'Selected media asset from Library.');
+
+    // Auto-save to backend API so live site updates immediately
+    try {
+      await apiFetch(API_ABOUT, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+    } catch {
+      // ignore
+    }
+    showStatus('success', 'Selected & saved media asset from Library.');
   };
 
   if (isLoading) {
@@ -226,33 +250,39 @@ export const AdminAboutCMS: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
-      {/* Top Action Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+    <div className="max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
+      {/* Compact Top Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 px-6 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 backdrop-blur-xl shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-cyan-950 text-blue-700 dark:text-cyan-400 text-[10px] font-black uppercase tracking-wider">
-              CMS Module
+            <span className="px-2.5 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-[10px] font-black uppercase tracking-wider">
+              Homepage CMS
             </span>
-            {isDirty && (
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider">
-                Unsaved Changes
+            {isDirty ? (
+              <span className="px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-extrabold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                Unsaved changes
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold flex items-center gap-1.5">
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                Saved
               </span>
             )}
           </div>
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-            About Section Manager
-          </h2>
+          <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            About Section
+          </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Customize content, media (image & video), floating card, layout positions, colors & Framer Motion animations.
+            Manage the content and visual presentation of the About section on your homepage.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => openAdminAIAssistant({ type: 'hero', topic: 'Dezoryn Enterprise About Section' })}
-            className="px-3.5 py-2 rounded-xl bg-purple-600/10 hover:bg-purple-600/20 text-purple-600 dark:text-purple-300 border border-purple-500/20 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/20 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
           >
             <Sparkles className="w-4 h-4 text-purple-500" />
             <span>AI Copywriter</span>
@@ -262,28 +292,28 @@ export const AdminAboutCMS: React.FC = () => {
             type="button"
             onClick={handleReset}
             disabled={!isDirty}
-            className={`px-3.5 py-2 rounded-xl border font-bold text-xs transition flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl border font-bold text-xs transition flex items-center gap-1.5 ${
               isDirty
-                ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 cursor-pointer hover:bg-slate-200'
-                : 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 text-slate-400 border-slate-200'
+                ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700'
+                : 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 text-slate-400 border-slate-200/80 dark:border-slate-800'
             }`}
           >
-            <RotateCcw className="w-4 h-4" />
-            <span>Reset</span>
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset to Default</span>
           </button>
 
           <button
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-md shadow-blue-500/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:via-indigo-500 hover:to-cyan-500 text-white font-extrabold text-xs shadow-md shadow-blue-500/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
             {isSaving ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
               <Save className="w-4 h-4" />
             )}
-            <span>{isSaving ? 'Saving...' : 'Publish Changes'}</span>
+            <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
           </button>
         </div>
       </div>
@@ -295,7 +325,7 @@ export const AdminAboutCMS: React.FC = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={`p-4 rounded-2xl border text-xs font-bold flex items-center justify-between ${
+            className={`p-4 rounded-2xl border text-xs font-bold flex items-center justify-between shadow-sm ${
               statusMsg.type === 'success'
                 ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
                 : 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300'
@@ -312,15 +342,15 @@ export const AdminAboutCMS: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Navigation Sub-Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
+      {/* Compact Horizontal Tab Bar Container */}
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 backdrop-blur-xl overflow-x-auto shadow-xs scrollbar-none">
         {[
-          { id: 'content', label: '📝 Content & Copy', icon: Sparkles },
-          { id: 'media', label: '🖼️ Media & Video', icon: ImageIcon },
-          { id: 'card', label: '📌 Floating Info Card', icon: ShieldCheck },
-          { id: 'layout', label: '📐 Layout & Spacing', icon: Layout },
-          { id: 'style', label: '🎨 Colors & Animations', icon: Palette },
-          { id: 'preview', label: '👁️ Live Preview', icon: Eye },
+          { id: 'content', label: 'Content & Copy', icon: Sparkles },
+          { id: 'media', label: 'Media & Video', icon: ImageIcon },
+          { id: 'card', label: 'Floating Info Card', icon: ShieldCheck },
+          { id: 'layout', label: 'Layout & Spacing', icon: Layout },
+          { id: 'style', label: 'Colors & Animations', icon: Palette },
+          { id: 'preview', label: 'Live Preview', icon: Eye },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -329,10 +359,10 @@ export const AdminAboutCMS: React.FC = () => {
               type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-xl font-extrabold text-xs transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              className={`px-4 py-2 rounded-xl font-bold text-xs transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+                  ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white shadow-md shadow-blue-500/20'
+                  : 'bg-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -342,120 +372,134 @@ export const AdminAboutCMS: React.FC = () => {
         })}
       </div>
 
-      {/* Main CMS Tab Form Sections */}
+      {/* Two-Column Desktop Layout (60% Left Form / 40% Right Preview) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Form Controls (8 cols if not full preview) */}
-        <div className={activeTab === 'preview' ? 'lg:col-span-12' : 'lg:col-span-8'}>
+        {/* LEFT COLUMN: Content Editor (~60% width) */}
+        <div className={activeTab === 'preview' ? 'lg:col-span-12' : 'lg:col-span-7 xl:col-span-7 space-y-6'}>
           {activeTab === 'content' && (
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
-              <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                <Sparkles className="w-4 h-4 text-cyan-500" />
-                Text Copy & Primary Action Settings
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Section Badge Text
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.badge}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, badge: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                    placeholder="ABOUT DEZORYN TECHNOLOGIES"
-                  />
+            <div className="space-y-6">
+              {/* Card 1: Section Content */}
+              <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
+                <div className="border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-cyan-500" />
+                    Section Content
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Define the main text copy and headers rendered in the homepage About section.
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Main Heading
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.heading}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, heading: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-extrabold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                    placeholder="Empowering Modern Enterprises with Intelligent Automation"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Description Paragraph 1 (Highlight Text)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={formData.descriptionOne}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, descriptionOne: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 leading-relaxed"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Description Paragraph 2 (Secondary Subtext)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={formData.descriptionTwo}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, descriptionTwo: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 leading-relaxed"
-                  />
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-extrabold text-slate-900 dark:text-white">
-                      Primary Action Button
-                    </span>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.buttonEnabled}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, buttonEnabled: e.target.checked }))}
-                        className="w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 cursor-pointer"
-                      />
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                        Enable Button
-                      </span>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Section Badge Text
                     </label>
+                    <input
+                      type="text"
+                      value={formData.badge}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, badge: e.target.value }))}
+                      className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-sm font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
+                      placeholder="ABOUT DEZORYN TECHNOLOGIES"
+                    />
                   </div>
 
-                  {formData.buttonEnabled && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                          Button Text
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.buttonText}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, buttonText: e.target.value }))}
-                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                          Button Link URL
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.buttonUrl}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, buttonUrl: e.target.value }))}
-                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
+                  <div>
+                    <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Main Heading
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.heading}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, heading: e.target.value }))}
+                      className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-sm font-extrabold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
+                      placeholder="Empowering Modern Enterprises with Intelligent Automation"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Description Paragraph 1 (Highlight Text)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={formData.descriptionOne}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, descriptionOne: e.target.value }))}
+                      className="w-full min-h-[100px] p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all leading-relaxed shadow-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Description Paragraph 2 (Secondary Subtext)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={formData.descriptionTwo}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, descriptionTwo: e.target.value }))}
+                      className="w-full min-h-[100px] p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all leading-relaxed shadow-xs"
+                    />
+                  </div>
                 </div>
+              </div>
+
+              {/* Card 2: Primary Action */}
+              <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      Primary Action Button
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Configure the call-to-action button displayed in the section.
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.buttonEnabled}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, buttonEnabled: e.target.checked }))}
+                      className="w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Enable Button
+                    </span>
+                  </label>
+                </div>
+
+                {formData.buttonEnabled && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Button Text
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.buttonText}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, buttonText: e.target.value }))}
+                        className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Button Link URL
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.buttonUrl}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, buttonUrl: e.target.value }))}
+                        className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {activeTab === 'media' && (
             <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
-              <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
                 <ImageIcon className="w-4 h-4 text-blue-500" />
                 Media Management (Images & Videos)
               </h3>
@@ -505,12 +549,12 @@ export const AdminAboutCMS: React.FC = () => {
                           }));
                         }}
                         placeholder="https://images.unsplash.com/... or /uploads/..."
-                        className="flex-1 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                        className="flex-1 h-11 px-4 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                       />
                       <select
                         value={formData.mediaType}
                         onChange={(e) => setFormData((prev) => ({ ...prev, mediaType: e.target.value as any }))}
-                        className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                        className="h-11 px-4 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                       >
                         <option value="IMAGE">IMAGE</option>
                         <option value="VIDEO">VIDEO</option>
@@ -518,7 +562,7 @@ export const AdminAboutCMS: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Media Action Buttons: Delete / Remove & Restore Default */}
+                  {/* Media Action Buttons */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800/80">
                     <button
                       type="button"
@@ -600,7 +644,7 @@ export const AdminAboutCMS: React.FC = () => {
           {activeTab === 'card' && (
             <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-500" />
                   Floating Information Card Settings
                 </h3>
@@ -627,7 +671,7 @@ export const AdminAboutCMS: React.FC = () => {
                       type="text"
                       value={formData.cardTitle}
                       onChange={(e) => setFormData((prev) => ({ ...prev, cardTitle: e.target.value }))}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-extrabold text-slate-900 dark:text-white"
+                      className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-extrabold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
                       placeholder="Global Enterprise HQ"
                     />
                   </div>
@@ -641,7 +685,7 @@ export const AdminAboutCMS: React.FC = () => {
                         type="text"
                         value={formData.cardSubtitle}
                         onChange={(e) => setFormData((prev) => ({ ...prev, cardSubtitle: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                        className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
                         placeholder="Innovation Center"
                       />
                     </div>
@@ -654,7 +698,7 @@ export const AdminAboutCMS: React.FC = () => {
                         type="text"
                         value={formData.cardLocation}
                         onChange={(e) => setFormData((prev) => ({ ...prev, cardLocation: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                        className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
                         placeholder="San Francisco, CA"
                       />
                     </div>
@@ -688,7 +732,7 @@ export const AdminAboutCMS: React.FC = () => {
 
           {activeTab === 'layout' && (
             <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
-              <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
                 <Layout className="w-4 h-4 text-purple-500" />
                 Layout & Spacing Configuration
               </h3>
@@ -706,7 +750,7 @@ export const AdminAboutCMS: React.FC = () => {
                         layoutSettings: { ...prev.layoutSettings, imagePosition: e.target.value as any },
                       }))
                     }
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                    className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
                   >
                     <option value="right">Right Column (Default)</option>
                     <option value="left">Left Column</option>
@@ -726,7 +770,7 @@ export const AdminAboutCMS: React.FC = () => {
                         layoutSettings: { ...prev.layoutSettings, borderRadius: e.target.value },
                       }))
                     }
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white"
+                    className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
                     placeholder="1.5rem"
                   />
                 </div>
@@ -736,7 +780,7 @@ export const AdminAboutCMS: React.FC = () => {
 
           {activeTab === 'style' && (
             <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
-              <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
                 <Palette className="w-4 h-4 text-amber-500" />
                 Colors & Framer Motion Animations
               </h3>
@@ -838,20 +882,27 @@ export const AdminAboutCMS: React.FC = () => {
           )}
         </div>
 
-        {/* Right Live Preview Panel (4 cols or 12 cols) */}
-        <div className={activeTab === 'preview' ? 'lg:col-span-12' : 'lg:col-span-4'}>
-          <div className="p-4 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl sticky top-24 space-y-3 text-white">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-              <span className="text-xs font-extrabold text-cyan-400 flex items-center gap-1.5">
-                <Eye className="w-4 h-4" /> Live Interactive Preview
+        {/* RIGHT COLUMN: Sticky Live Preview Panel (~40% width) */}
+        <div className={activeTab === 'preview' ? 'lg:col-span-12' : 'lg:col-span-5 xl:col-span-5'}>
+          <div className="sticky top-24 space-y-3">
+            {/* Live Preview Header Badge */}
+            <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xs backdrop-blur-xl">
+              <span className="text-xs font-extrabold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
+                <Eye className="w-4 h-4" /> LIVE PREVIEW
               </span>
-              <span className="text-[10px] font-mono text-slate-400">
-                {formData.layoutSettings?.imagePosition === 'left' ? 'Left Image' : 'Right Image'}
+              <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Real-time
               </span>
             </div>
 
-            <div className="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 p-2">
-              <AboutSection initialData={formData} />
+            {/* Proportional Interactive Device Frame */}
+            <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-slate-950 p-2 shadow-2xl overflow-hidden">
+              <div className="max-h-[660px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent rounded-2xl">
+                <div className="transform scale-[0.88] origin-top-left w-[113.6%]">
+                  <AboutSection initialData={formData} />
+                </div>
+              </div>
             </div>
           </div>
         </div>

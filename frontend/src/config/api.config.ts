@@ -95,8 +95,16 @@ export async function apiFetch(input: string | URL, init?: RequestInit): Promise
     credentials: 'include',
   };
 
+  const method = (init?.method || 'GET').toUpperCase();
+  if (method !== 'GET') {
+    invalidateApiCache();
+  }
+
   try {
     const res = await fetch(fullUrl, options);
+    if (res.ok && method !== 'GET') {
+      invalidateApiCache();
+    }
     if (!res.ok) {
       if (res.status === 401) {
         console.warn(`[API] 401 Unauthorized: ${fullUrl}`);

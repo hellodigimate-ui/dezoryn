@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { AdminNavbar } from './AdminNavbar';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminOverview } from './AdminOverview';
@@ -18,6 +19,7 @@ import { AdminServicesManager } from './AdminServicesManager';
 import { AdminThemeManager } from './AdminThemeManager';
 import { AdminWebsiteSettings } from './AdminWebsiteSettings';
 import { AdminAboutCMS } from './AdminAboutCMS';
+import { AdminHomepageStatsCMS } from './AdminHomepageStatsCMS';
 import { AdminAIAssistantModal } from './AdminAIAssistantModal';
 import type { AIGenerateType } from './AdminAIAssistantModal';
 import { useNavigation } from '../../utils/NavigationContext';
@@ -149,6 +151,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         return <AdminOverview setActiveTab={setActiveTab} userRole={role} />;
       case 'pages':
         return <AdminHeroCMS />;
+      case 'homepage-stats':
+        return <AdminHomepageStatsCMS />;
       case 'about':
         return <AdminAboutCMS />;
       case 'navigation':
@@ -186,6 +190,46 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   };
 
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('dezo_admin_sidebar_collapsed');
+      return saved !== null ? saved === 'true' : false;
+    }
+    return false;
+  });
+
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024;
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleToggleCollapse = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('dezo_admin_sidebar_collapsed', String(next));
+      } catch (_e) {}
+      return next;
+    });
+  };
+
+  const handleToggleSidebar = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setIsSidebarOpen(prev => !prev);
+    } else {
+      handleToggleCollapse();
+    }
+  };
 
   const handleToggleTheme = () => {
     const nextDark = !isDark;
@@ -195,6 +239,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       localStorage.setItem('user_theme_preference', nextDark ? 'dark' : 'light');
     } catch (_e) {}
   };
+
+  // Calculate synchronized padding width
+  const isExpandedDesktop = isDesktop && (!isSidebarCollapsed || isSidebarHovered);
+  const sidebarPadding = isDesktop ? (isExpandedDesktop ? 256 : 80) : 0;
 
   return (
     <div className={`admin-scope min-h-screen font-['Plus_Jakarta_Sans',sans-serif] ${isDark ? 'dark bg-slate-950 text-slate-100' : 'bg-[#f5f7fb] text-slate-900'}`}>
@@ -208,14 +256,24 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         onLogout={handleLogout}
         isDark={isDark}
         onHoverChange={setIsSidebarHovered}
+        isCollapsed={isSidebarCollapsed}
       />
 
-      {/* Main Container Area - Dynamically adjusts according to sidebar state */}
-      <div className={`pl-0 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${isSidebarHovered ? 'lg:pl-64' : 'lg:pl-20'
-        }`}>
+      {/* Main Container Area - Synchronized in real-time with sidebar movement */}
+      <motion.div
+        initial={false}
+        animate={{ paddingLeft: sidebarPadding }}
+        transition={{
+          type: 'spring',
+          stiffness: 350,
+          damping: 32,
+          mass: 0.85
+        }}
+        className="flex flex-col min-h-screen w-full"
+      >
         {/* Top Navbar */}
         <AdminNavbar
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onToggleSidebar={handleToggleSidebar}
           isDark={isDark}
           onToggleTheme={handleToggleTheme}
           activeTab={activeTab}
@@ -229,7 +287,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1700px] w-full mx-auto">
           {renderContent()}
         </main>
-      </div>
+      </motion.div>
 
       {/* AI Content Assistant Modal */}
       <AdminAIAssistantModal

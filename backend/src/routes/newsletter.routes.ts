@@ -35,9 +35,13 @@ const handleSubscription = async (req: Request, res: Response) => {
       `CREATE TABLE IF NOT EXISTS newsletter_subscribers (
         id TEXT PRIMARY KEY,
         email TEXT UNIQUE,
+        status VARCHAR(50) DEFAULT 'NEW',
         "createdAt" TIMESTAMP DEFAULT NOW()
       )`
     );
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'NEW';`);
+    } catch (_e) {}
 
     const existing: any = await prisma.$queryRawUnsafe(
       'SELECT * FROM newsletter_subscribers WHERE LOWER(email) = $1 LIMIT 1',

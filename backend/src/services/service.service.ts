@@ -1,6 +1,36 @@
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '../config/prisma.config';
 
 const db = prisma as any;
+
+const dataDir = path.resolve(process.cwd(), 'src/data');
+const dataFilePath = path.join(dataDir, 'services.json');
+
+const ensureDataDir = () => {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+};
+
+const readFileData = (): ServiceItem[] | null => {
+  try {
+    ensureDataDir();
+    if (fs.existsSync(dataFilePath)) {
+      const raw = fs.readFileSync(dataFilePath, 'utf-8');
+      const items = JSON.parse(raw);
+      if (Array.isArray(items) && items.length > 0) return items;
+    }
+  } catch (_e) {}
+  return null;
+};
+
+const writeFileData = (data: ServiceItem[]) => {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (_e) {}
+};
 
 export interface ServiceItem {
   id?: string;
@@ -192,51 +222,25 @@ let hasAttemptedSeed = false;
 
 export class ServiceService {
   static async getAll(filter?: { category?: string; status?: string; isEnabled?: boolean; search?: string }) {
-    if (!hasAttemptedSeed) {
-      hasAttemptedSeed = true;
+    let items = readFileData();
+
+    if (!items) {
       try {
         if (db.service) {
-          const totalCount = await db.service.count();
-          if (totalCount === 0) {
-            await db.service.createMany({ data: DEFAULT_SERVICES });
+          const dbItems = await db.service.findMany({ orderBy: { order: 'asc' } });
+          if (dbItems && dbItems.length > 0) {
+            items = dbItems;
           }
         }
-      } catch (_e) {
-        // ignore seed error
+      } catch (_err) {}
+
+      if (!items || items.length === 0) {
+        items = DEFAULT_SERVICES.map((s, idx) => ({ ...s, id: `service-${idx + 1}` }));
       }
+      writeFileData(items);
     }
 
-    try {
-      if (db.service) {
-        const where: any = {};
-        if (filter?.isEnabled !== undefined) {
-          where.isEnabled = filter.isEnabled;
-        }
-        if (filter?.status && filter.status !== 'All') {
-          where.status = filter.status;
-        }
-        if (filter?.category) {
-          where.category = filter.category;
-        }
-        if (filter?.search) {
-          where.OR = [
-            { title: { contains: filter.search, mode: 'insensitive' } },
-            { description: { contains: filter.search, mode: 'insensitive' } },
-            { category: { contains: filter.search, mode: 'insensitive' } },
-          ];
-        }
-
-        const items = await db.service.findMany({ where, orderBy: { order: 'asc' } });
-        if (items && items.length > 0) {
-          return items;
-        }
-      }
-    } catch (_err) {
-      console.error('Database query for services failed, using memory store:', _err);
-    }
-
-    // Fallback in-memory dataset
-    let filtered = [...memoryServicesStore];
+    let filtered = [...items];
     if (filter?.isEnabled !== undefined) {
       filtered = filtered.filter(s => s.isEnabled === filter.isEnabled);
     }
@@ -250,47 +254,17 @@ export class ServiceService {
       const q = filter.search.toLowerCase();
       filtered = filtered.filter(s => s.title.toLowerCase().includes(q) || s.description.toLowerCase().includes(q) || s.category.toLowerCase().includes(q));
     }
-    return filtered.sort((a, b) => a.order - b.order);
+    return filtered.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }
 
   static async getById(id: string) {
-    try {
-      if (db.service) {
-        const item = await db.service.findUnique({ where: { id } });
-        if (item) return item;
-      }
-    } catch (_e) {
-      // fallback
-    }
-    return memoryServicesStore.find(s => s.id === id) || null;
+    const items = await ServiceService.getAll();
+    return items.find(s => s.id === id) || null;
   }
 
   static async create(data: Partial<ServiceItem>) {
-    let createdItem: any = null;
-    try {
-      if (db.service) {
-        const count = await db.service.count();
-        createdItem = await db.service.create({
-          data: {
-            category: data.category || 'General',
-            badge: data.badge || '',
-            title: data.title || 'New Service',
-            description: data.description || '',
-            icon: data.icon || 'Code2',
-            services: data.services || [],
-            ctaText: data.ctaText || 'Explore Services',
-            ctaLink: data.ctaLink || '/contact-sales',
-            order: data.order ?? count,
-            status: data.status || 'active',
-            isEnabled: data.isEnabled ?? true,
-          }
-        });
-      }
-    } catch (_e) {
-      // fallback
-    }
-
-    const newItem: ServiceItem = createdItem || {
+    const current = await ServiceService.getAll();
+    const newItem: ServiceItem = {
       id: `service-${Date.now()}`,
       category: data.category || 'General',
       badge: data.badge || '',
@@ -300,131 +274,150 @@ export class ServiceService {
       services: data.services || [],
       ctaText: data.ctaText || 'Explore Services',
       ctaLink: data.ctaLink || '/contact-sales',
-      order: data.order ?? memoryServicesStore.length,
+      order: data.order ?? current.length,
       status: data.status || 'active',
       isEnabled: data.isEnabled ?? true,
     };
 
-    if (!createdItem) {
-      memoryServicesStore.push(newItem);
-    } else {
-      // sync in memory store too
-      memoryServicesStore.push(createdItem);
-    }
+    const updated = [...current, newItem];
+    writeFileData(updated);
+
+    try {
+      if (db.service) {
+        await db.service.create({ data: newItem });
+      }
+    } catch (_e) {}
 
     return newItem;
   }
 
   static async update(id: string, data: Partial<ServiceItem>) {
+    const current = await ServiceService.getAll();
     let updatedItem: any = null;
+
+    const updatedList = current.map(item => {
+      if (item.id === id) {
+        updatedItem = { ...item, ...data };
+        if (data.status !== undefined && data.isEnabled === undefined) {
+          updatedItem.isEnabled = data.status === 'active';
+        }
+        return updatedItem;
+      }
+      return item;
+    });
+
+    if (!updatedItem) {
+      updatedItem = {
+        id,
+        category: data.category || 'General',
+        badge: data.badge || '',
+        title: data.title || 'Service',
+        description: data.description || '',
+        icon: data.icon || 'Code2',
+        services: data.services || [],
+        ctaText: data.ctaText || 'Explore Services',
+        ctaLink: data.ctaLink || '/contact-sales',
+        order: data.order ?? 0,
+        status: data.status || 'active',
+        isEnabled: data.isEnabled ?? true,
+      };
+      updatedList.push(updatedItem);
+    }
+
+    writeFileData(updatedList);
+
     try {
       if (db.service) {
         const updateData: any = { ...data };
         delete updateData.id;
-        if (data.status !== undefined && data.isEnabled === undefined) {
-          updateData.isEnabled = data.status === 'active';
-        }
-        const existing = await db.service.findUnique({ where: { id } }).catch(() => null);
-        if (existing) {
-          updatedItem = await db.service.update({ where: { id }, data: updateData });
-        } else {
-          updatedItem = await db.service.create({
-            data: {
-              category: data.category || 'General',
-              badge: data.badge || '',
-              title: data.title || 'Service',
-              description: data.description || '',
-              icon: data.icon || 'Code2',
-              services: data.services || [],
-              ctaText: data.ctaText || 'Explore Services',
-              ctaLink: data.ctaLink || '/contact-sales',
-              order: data.order ?? 0,
-              status: data.status || 'active',
-              isEnabled: data.isEnabled ?? true,
-            }
-          });
-        }
+        await db.service.upsert({
+          where: { id },
+          update: updateData,
+          create: updatedItem,
+        });
       }
-    } catch (_e) {
-      console.warn('Service update notice:', _e);
-    }
+    } catch (_e) {}
 
-    memoryServicesStore = memoryServicesStore.map(s => {
-      if (s.id === id) {
-        return { ...s, ...data };
-      }
-      return s;
-    });
-
-    return updatedItem || memoryServicesStore.find(s => s.id === id) || { id, ...data };
+    return updatedItem;
   }
 
   static async delete(id: string) {
+    const current = await ServiceService.getAll();
+    const updatedList = current.filter(s => s.id !== id);
+    writeFileData(updatedList);
+
     try {
       if (db.service) {
-        const existing = await db.service.findUnique({ where: { id } }).catch(() => null);
-        if (existing) {
-          await db.service.delete({ where: { id } });
-        }
+        await db.service.delete({ where: { id } });
       }
-    } catch (_e) {
-      // fallback
-    }
-    memoryServicesStore = memoryServicesStore.filter(s => s.id !== id);
+    } catch (_e) {}
+
     return { success: true, deletedId: id };
   }
 
   static async toggleStatus(id: string) {
+    const current = await ServiceService.getAll();
     let toggled: any = null;
-    try {
-      if (db.service) {
-        const item = await db.service.findUnique({ where: { id } }).catch(() => null);
-        if (item) {
-          const newStatus = item.status === 'active' ? 'inactive' : 'active';
-          toggled = await db.service.update({
-            where: { id },
-            data: { status: newStatus, isEnabled: newStatus === 'active' },
-          });
-        }
-      }
-    } catch (_e) {
-      // fallback
-    }
 
-    memoryServicesStore = memoryServicesStore.map(s => {
+    const updatedList = current.map(s => {
       if (s.id === id) {
         const newStatus = s.status === 'active' ? 'inactive' : 'active';
-        return { ...s, status: newStatus, isEnabled: newStatus === 'active' };
+        toggled = { ...s, status: newStatus, isEnabled: newStatus === 'active' };
+        return toggled;
       }
       return s;
     });
 
-    return toggled || memoryServicesStore.find(s => s.id === id) || { id, status: 'toggled' };
+    writeFileData(updatedList);
+
+    try {
+      if (db.service && toggled) {
+        await db.service.update({
+          where: { id },
+          data: { status: toggled.status, isEnabled: toggled.isEnabled },
+        });
+      }
+    } catch (_e) {}
+
+    return toggled || { id, status: 'toggled' };
   }
 
   static async duplicate(id: string) {
+    const current = await ServiceService.getAll();
+    const target = current.find(s => s.id === id);
+    if (!target) return { id: `copy-${Date.now()}` };
+
+    const newItem: ServiceItem = {
+      ...target,
+      id: `service-${Date.now()}`,
+      title: `${target.title} (Copy)`,
+      order: current.length,
+    };
+
+    const updated = [...current, newItem];
+    writeFileData(updated);
+
     try {
       if (db.service) {
-        const item = await db.service.findUnique({ where: { id } });
-        if (item) {
-          const count = await db.service.count();
-          const { id: _id, createdAt: _ca, updatedAt: _ua, ...rest } = item;
-          return await db.service.create({
-            data: {
-              ...rest,
-              title: `${rest.title} (Copy)`,
-              order: count,
-            },
-          });
-        }
+        await db.service.create({ data: newItem });
       }
-    } catch (_e) {
-      // fallback
-    }
-    return { id: `copy-${Date.now()}` };
+    } catch (_e) {}
+
+    return newItem;
   }
 
   static async reorder(orderedIds: string[]) {
+    const current = await ServiceService.getAll();
+    const map = new Map(current.map(s => [s.id, s]));
+    const updatedList = orderedIds
+      .map((id, index) => {
+        const item = map.get(id);
+        return item ? { ...item, order: index } : null;
+      })
+      .filter(Boolean) as ServiceItem[];
+
+    writeFileData(updatedList);
+
     try {
       if (db.service) {
         await Promise.all(
@@ -435,11 +428,10 @@ export class ServiceService {
             })
           )
         );
-        return await db.service.findMany({ orderBy: { order: 'asc' } });
       }
-    } catch (_e) {
-      // fallback
-    }
-    return DEFAULT_SERVICES;
+    } catch (_e) {}
+
+    return updatedList;
   }
 }
+

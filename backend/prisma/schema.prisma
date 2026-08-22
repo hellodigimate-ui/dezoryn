@@ -400,4 +400,20 @@ model ContactSubmission {
   @@map("contact_submissions")
 }
 
+model HomepageStats {
+  id                     String   @id @default("default")
+  statsEnabled           Boolean  @default(true)
+  aiAssistantEnabled     Boolean  @default(true)
+  aiAssistantTitle       String   @default("AI Assistant")
+  aiAssistantGreeting    String   @default("Hello! How can I help you today?")
+  aiAssistantButtonLabel String   @default("Chat Now")
+  aiAssistantButtonLink  String   @default("/chat")
+  stats                  Json
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@map("homepage_stats")
+}
+
+
 

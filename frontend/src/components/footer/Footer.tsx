@@ -23,9 +23,6 @@ import { API_URL, cachedApiFetch } from '../../config/api.config';
 const API_CONTACT = `${API_URL}/contact`;
 const API_FOOTER = `${API_URL}/footer`;
 
-
-
-
 /* ─── Stagger container variants ─── */
 const containerVariants = {
   hidden: {},
@@ -62,6 +59,14 @@ function injectStyles() {
   document.head.appendChild(s);
 }
 
+const DEFAULT_SOCIAL_LINKS = {
+  linkedin: 'https://linkedin.com/company/dezoryn',
+  github: 'https://github.com/dezoryn',
+  twitter: 'https://twitter.com/dezoryn',
+  instagram: 'https://instagram.com/dezoryn',
+  youtube: 'https://youtube.com/@dezoryn',
+  facebook: 'https://facebook.com/dezoryn',
+};
 
 export const Footer: React.FC = React.memo(() => {
   const { navigateTo } = useNavigation();
@@ -118,14 +123,7 @@ export const Footer: React.FC = React.memo(() => {
         ],
       },
     ],
-    socialLinks: {
-      linkedin: 'https://linkedin.com/company/dezoryn',
-      twitter: 'https://twitter.com/dezoryn',
-      github: 'https://github.com/dezoryn',
-      youtube: 'https://youtube.com/@dezoryn',
-      instagram: 'https://instagram.com/dezoryn',
-      facebook: 'https://facebook.com/dezoryn',
-    },
+    socialLinks: DEFAULT_SOCIAL_LINKS,
     copyrightText: 'Dezoryn Technologies Pvt. Ltd. All Rights Reserved.',
     legalLinks: [
       { label: 'Privacy Policy', url: '/privacy' },
@@ -172,18 +170,29 @@ export const Footer: React.FC = React.memo(() => {
           businessHours: contactObj.businessHours || 'Mon - Sat: 9:00 AM - 7:00 PM IST',
         });
 
-        const mergedSocialLinks = {
+        const rawSocials = {
+          ...DEFAULT_SOCIAL_LINKS,
           ...(typeof contactObj.socialLinks === 'object' && contactObj.socialLinks ? contactObj.socialLinks : {}),
           ...(typeof footerObj.socialLinks === 'object' && footerObj.socialLinks ? footerObj.socialLinks : {}),
         };
 
+        // Clean empty values to keep reliable fallbacks
+        const mergedSocialLinks: typeof DEFAULT_SOCIAL_LINKS = {
+          linkedin: (typeof rawSocials.linkedin === 'string' && rawSocials.linkedin.trim()) ? rawSocials.linkedin.trim() : DEFAULT_SOCIAL_LINKS.linkedin,
+          github: (typeof rawSocials.github === 'string' && rawSocials.github.trim()) ? rawSocials.github.trim() : DEFAULT_SOCIAL_LINKS.github,
+          twitter: (typeof rawSocials.twitter === 'string' && rawSocials.twitter.trim()) ? rawSocials.twitter.trim() : DEFAULT_SOCIAL_LINKS.twitter,
+          instagram: (typeof rawSocials.instagram === 'string' && rawSocials.instagram.trim()) ? rawSocials.instagram.trim() : DEFAULT_SOCIAL_LINKS.instagram,
+          youtube: (typeof rawSocials.youtube === 'string' && rawSocials.youtube.trim()) ? rawSocials.youtube.trim() : DEFAULT_SOCIAL_LINKS.youtube,
+          facebook: (typeof rawSocials.facebook === 'string' && rawSocials.facebook.trim()) ? rawSocials.facebook.trim() : DEFAULT_SOCIAL_LINKS.facebook,
+        };
+
         setFooter({
-          companyDescription: footerObj.companyDescription || `${siteName} is a global IT solutions provider.`,
+          companyDescription: footerObj.companyDescription || `${siteName} is a global IT solutions provider committed to delivering innovative, reliable and future-ready software products.`,
           footerLogo: footerObj.footerLogo || siteName,
-          footerLinks: Array.isArray(footerObj.footerLinks) ? footerObj.footerLinks : [],
+          footerLinks: Array.isArray(footerObj.footerLinks) && footerObj.footerLinks.length > 0 ? footerObj.footerLinks : footer.footerLinks,
           socialLinks: mergedSocialLinks,
           copyrightText: footerObj.copyrightText || `${siteName}. All Rights Reserved.`,
-          legalLinks: Array.isArray(footerObj.legalLinks) ? footerObj.legalLinks : [],
+          legalLinks: Array.isArray(footerObj.legalLinks) && footerObj.legalLinks.length > 0 ? footerObj.legalLinks : footer.legalLinks,
         });
 
         if (themeData.success && themeData.data && themeData.data.footerEffects) {
@@ -338,61 +347,53 @@ export const Footer: React.FC = React.memo(() => {
                 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl
                 border border-slate-200/80 dark:border-slate-800/80
                 shadow-md hover:shadow-xl hover:shadow-cyan-500/15 hover:border-cyan-500/40
-                transition-all duration-300 flex flex-col items-start text-left cursor-pointer"
+                transition-all duration-300 flex flex-col justify-between items-start text-left cursor-pointer"
             >
               {/* Inner glow */}
               <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-cyan-500/0 via-blue-600/0 to-indigo-500/0 group-hover/card:from-cyan-500/5 group-hover/card:via-blue-600/5 group-hover/card:to-indigo-500/5 transition-all duration-500 pointer-events-none" />
 
-              {/* Floating logo */}
-              <button
-                type="button"
-                onClick={() => navigateTo('/')}
-                className="flex items-center gap-2.5 mb-4 border-none bg-transparent cursor-pointer p-0 relative z-10"
-              >
-                {siteSettings.logoUrl && !logoError ? (
-                  <img
-                    src={siteSettings.logoUrl}
-                    alt={siteSettings.websiteName || footer.footerLogo}
-                    className="h-10 w-auto object-contain rounded-xl"
-                    onError={() => setLogoError(true)}
-                  />
-                ) : (
-                  <motion.div
-                    animate={{ y: [0, -4, 0] }}
-                    transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-                    whileHover={{ rotate: 8, scale: 1.12 }}
-                    className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-black text-xl shadow-md shadow-blue-600/30 shrink-0"
-                  >
-                    {(siteSettings.websiteName || footer.footerLogo || 'D')[0]}
-                  </motion.div>
-                )}
-                {/* Gradient shimmer text */}
-                <span
-                  className="text-xl font-extrabold tracking-tight group-hover/card:text-cyan-600 dark:group-hover/card:text-cyan-400 transition-colors duration-300"
-                  style={{
-                    background: 'linear-gradient(90deg, #1e293b 30%, #06b6d4 50%, #1e293b 70%)',
-                    backgroundSize: '200% auto',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    animation: 'dezo-shimmer 4s linear infinite',
-                  }}
+              <div>
+                {/* Floating logo & title */}
+                <button
+                  type="button"
+                  onClick={() => navigateTo('/')}
+                  className="flex items-center gap-3 mb-4 border-none bg-transparent cursor-pointer p-0 relative z-10 text-left"
                 >
-                  {siteSettings.websiteName || footer.footerLogo}
-                </span>
-              </button>
+                  {siteSettings.logoUrl && !logoError ? (
+                    <img
+                      src={siteSettings.logoUrl}
+                      alt={siteSettings.websiteName || footer.footerLogo}
+                      className="h-10 w-auto object-contain rounded-xl shrink-0"
+                      onError={() => setLogoError(true)}
+                    />
+                  ) : (
+                    <motion.div
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                      whileHover={{ rotate: 8, scale: 1.12 }}
+                      className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white font-black text-xl shadow-lg shadow-blue-600/30 shrink-0"
+                    >
+                      {(siteSettings.websiteName || footer.footerLogo || 'D')[0]}
+                    </motion.div>
+                  )}
+                  {/* High contrast crisp brand text */}
+                  <span className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white group-hover/card:text-blue-600 dark:group-hover/card:text-cyan-400 transition-colors duration-300 leading-tight">
+                    {siteSettings.websiteName || footer.footerLogo}
+                  </span>
+                </button>
 
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-5 relative z-10">
-                {footer.companyDescription}
-              </p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-5 relative z-10 font-normal">
+                  {footer.companyDescription}
+                </p>
+              </div>
 
-              <div className="space-y-2 relative z-10">
-                <span className="text-[11px] font-extrabold uppercase text-slate-500 dark:text-slate-400 tracking-wider flex items-center gap-1">
-                  {/* Breathing sparkle */}
+              <div className="space-y-2.5 relative z-10 w-full pt-2">
+                <span className="text-[11px] font-extrabold uppercase text-slate-500 dark:text-slate-400 tracking-wider flex items-center gap-1.5">
                   <motion.span
                     animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.15, 1] }}
                     transition={{ duration: 3, repeat: Infinity, repeatDelay: 3 }}
                   >
-                    <Sparkles className="w-3 h-3 text-cyan-500" />
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
                   </motion.span>
                   <span>Connect With Us</span>
                 </span>

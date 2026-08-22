@@ -103,22 +103,34 @@ export const DemoCenterSection: React.FC = () => {
     fetchDemos();
   }, []);
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setFormSubmitted(true);
-      setTimeout(() => setFormSubmitted(false), 5000);
-      setForm({
-        name: '',
-        mobile: '',
-        email: '',
-        product: 'SchoolyCore',
-        organization: '',
-        usersCount: '',
+    try {
+      await apiFetch(API_URL + '/contact/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: form.name || 'Anonymous Demo Applicant',
+          email: form.email,
+          phone: form.mobile,
+          company: form.organization,
+          productInterest: form.product,
+          message: `[Demo Center Schedule Request]: Product ${form.product} requested for ${form.organization || 'Organization'}. Users count: ${form.usersCount || 'N/A'}.`,
+        }),
       });
-    }, 1000);
+    } catch (_err) {}
+    setIsSubmitting(false);
+    setFormSubmitted(true);
+    setTimeout(() => setFormSubmitted(false), 5000);
+    setForm({
+      name: '',
+      mobile: '',
+      email: '',
+      product: 'SchoolyCore',
+      organization: '',
+      usersCount: '',
+    });
   };
 
   return (

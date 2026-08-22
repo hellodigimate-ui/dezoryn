@@ -1,99 +1,181 @@
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '../config/prisma.config';
 
 export const DEFAULT_NAV_ITEMS = [
-  { label: 'Home', route: '/', order: 0, isVisible: true, isHighlight: false },
-  { label: 'Ecosystem', route: '/products', order: 1, isVisible: true, isHighlight: false },
-  { label: 'Marketplace', route: '/marketplace', order: 2, isVisible: true, isHighlight: false },
-  { label: 'Services', route: '/services', order: 3, isVisible: true, isHighlight: false },
-  { label: 'Careers', route: '/careers', order: 4, isVisible: true, isHighlight: false },
-  { label: 'Pricing', route: '/pricing', order: 5, isVisible: true, isHighlight: false },
-  { label: 'About Us', route: '/about', order: 6, isVisible: true, isHighlight: false },
-  { label: 'Contact', route: '/contact-sales', order: 7, isVisible: true, isHighlight: false },
+  { id: '0', label: 'Home', route: '/', order: 0, isVisible: true, isHighlight: false },
+  { id: '1', label: 'Ecosystem', route: '/products', order: 1, isVisible: true, isHighlight: false },
+  { id: '2', label: 'Marketplace', route: '/marketplace', order: 2, isVisible: true, isHighlight: false },
+  { id: '3', label: 'Services', route: '/services', order: 3, isVisible: true, isHighlight: false },
+  { id: '4', label: 'Careers', route: '/careers', order: 4, isVisible: true, isHighlight: false },
+  { id: '5', label: 'Pricing', route: '/pricing', order: 5, isVisible: true, isHighlight: false },
+  { id: '6', label: 'About Us', route: '/about', order: 6, isVisible: true, isHighlight: false },
+  { id: '7', label: 'Contact', route: '/contact-sales', order: 7, isVisible: true, isHighlight: false },
 ];
+
+const dataDir = path.resolve(process.cwd(), 'src/data');
+const dataFilePath = path.join(dataDir, 'nav.json');
+
+const ensureDataDir = () => {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+};
+
+const readFileData = () => {
+  try {
+    ensureDataDir();
+    if (fs.existsSync(dataFilePath)) {
+      const raw = fs.readFileSync(dataFilePath, 'utf-8');
+      const items = JSON.parse(raw);
+      if (Array.isArray(items) && items.length > 0) return items;
+    }
+  } catch (_e) {}
+  return null;
+};
+
+const writeFileData = (data: any[]) => {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (_e) {}
+};
 
 export class NavService {
   public static async getAllNavItems() {
+    const fileData = readFileData();
+    if (fileData) return fileData;
+
     try {
       const items = await (prisma as any).navItem.findMany({
         orderBy: { order: 'asc' },
       });
 
-      if (items.length === 0) {
-        // Seed defaults if table is empty
-        await (prisma as any).navItem.createMany({
-          data: DEFAULT_NAV_ITEMS,
-        });
-        const fresh = await (prisma as any).navItem.findMany({ orderBy: { order: 'asc' } });
-        return fresh.map((i: any) => i.label === 'Contact Sales' ? { ...i, label: 'Contact' } : i);
+      if (items.length > 0) {
+        writeFileData(items);
+        return items;
       }
+    } catch (_error) {}
 
-      // Deduplicate items by route
-      const uniqueMap = new Map<string, any>();
-      for (const item of items) {
-        const key = item.route.toLowerCase();
-        if (!uniqueMap.has(key)) {
-          uniqueMap.set(key, item);
-        }
-      }
-      if (!uniqueMap.has('/products')) {
-        uniqueMap.set('/products', { id: 'products-nav', label: 'Ecosystem', route: '/products', order: 1, isVisible: true, isHighlight: false });
-      }
-      if (!uniqueMap.has('/services')) {
-        uniqueMap.set('/services', { id: 'services-nav', label: 'Services', route: '/services', order: 3, isVisible: true, isHighlight: false });
-      }
-      const uniqueItems = Array.from(uniqueMap.values());
-
-      return uniqueItems
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-        .map((i: any) => i.label === 'Contact Sales' || i.label === 'Contact Sales Team' ? { ...i, label: 'Contact' } : i);
-    } catch (_error) {
-      return DEFAULT_NAV_ITEMS.map((item, idx) => ({ id: String(idx), ...item }));
-    }
+    writeFileData(DEFAULT_NAV_ITEMS);
+    return DEFAULT_NAV_ITEMS;
   }
 
   public static async createNavItem(data: { label: string; route: string; isVisible?: boolean; isHighlight?: boolean }) {
-    const count = await (prisma as any).navItem.count();
-    return (prisma as any).navItem.create({
-      data: {
-        label: data.label,
-        route: data.route,
-        order: count,
-        isVisible: data.isVisible ?? true,
-        isHighlight: data.isHighlight ?? false,
-      },
-    });
+    const current = await NavService.getAllNavItems();
+    const newItem = {
+      id: `nav-${Date.now()}`,
+      label: data.label,
+      route: data.route,
+      order: current.length,
+      isVisible: data.isVisible ?? true,
+      isHighlight: data.isHighlight ?? false,
+    };
+    const updated = [...current, newItem];
+    writeFileData(updated);
+
+    try {
+      await (prisma as any).navItem.create({
+        data: {
+          id: newItem.id,
+          label: newItem.label,
+          route: newItem.route,
+          order: newItem.order,
+          isVisible: newItem.isVisible,
+          isHighlight: newItem.isHighlight,
+        },
+      });
+    } catch (_err) {}
+
+    return newItem;
   }
 
   public static async updateNavItem(
     id: string,
     data: { label?: string; route?: string; isVisible?: boolean; isHighlight?: boolean; order?: number }
   ) {
-    return (prisma as any).navItem.update({
-      where: { id },
-      data,
+    const current = await NavService.getAllNavItems();
+    let updatedItem: any = null;
+    const updatedList = current.map((item: any) => {
+      if (item.id === id) {
+        updatedItem = { ...item, ...data };
+        return updatedItem;
+      }
+      return item;
     });
+
+    writeFileData(updatedList);
+
+    try {
+      await (prisma as any).navItem.update({
+        where: { id },
+        data,
+      });
+    } catch (_err) {}
+
+    return updatedItem || { id, ...data };
   }
 
   public static async deleteNavItem(id: string) {
-    return (prisma as any).navItem.delete({ where: { id } });
+    const current = await NavService.getAllNavItems();
+    const updatedList = current.filter((item: any) => item.id !== id);
+    writeFileData(updatedList);
+
+    try {
+      await (prisma as any).navItem.delete({ where: { id } });
+    } catch (_err) {}
+
+    return { id, success: true };
   }
 
   public static async reorderNavItems(orderedIds: string[]) {
-    const updates = orderedIds.map((id, index) =>
-      (prisma as any).navItem.update({
-        where: { id },
-        data: { order: index },
+    const current = await NavService.getAllNavItems();
+    const map = new Map(current.map((item: any) => [item.id, item]));
+    const updatedList = orderedIds
+      .map((id, index) => {
+        const item = map.get(id);
+        return item ? { ...item, order: index } : null;
       })
-    );
-    await Promise.all(updates);
-    return (prisma as any).navItem.findMany({ orderBy: { order: 'asc' } });
+      .filter(Boolean);
+
+    writeFileData(updatedList);
+
+    try {
+      const updates = orderedIds.map((id, index) =>
+        (prisma as any).navItem.update({
+          where: { id },
+          data: { order: index },
+        })
+      );
+      await Promise.all(updates);
+    } catch (_err) {}
+
+    return updatedList;
   }
 
   public static async toggleVisibility(id: string) {
-    const item = await (prisma as any).navItem.findUnique({ where: { id } });
-    return (prisma as any).navItem.update({
-      where: { id },
-      data: { isVisible: !item.isVisible },
+    const current = await NavService.getAllNavItems();
+    let toggledItem: any = null;
+    const updatedList = current.map((item: any) => {
+      if (item.id === id) {
+        toggledItem = { ...item, isVisible: !item.isVisible };
+        return toggledItem;
+      }
+      return item;
     });
+
+    writeFileData(updatedList);
+
+    try {
+      if (toggledItem) {
+        await (prisma as any).navItem.update({
+          where: { id },
+          data: { isVisible: toggledItem.isVisible },
+        });
+      }
+    } catch (_err) {}
+
+    return toggledItem;
   }
 }
+

@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -66,52 +68,58 @@ const DEFAULT_FOOTER = {
   ],
 };
 
-async function seedDefaultFooterRaw() {
-  try {
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO footer_settings (id, "companyDescription", "footerLogo", "footerLinks", "socialLinks", "copyrightText", "legalLinks", "supportLinks", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7::jsonb, $8::jsonb, NOW(), NOW())
-       ON CONFLICT (id) DO NOTHING`,
-      DEFAULT_FOOTER.id,
-      DEFAULT_FOOTER.companyDescription,
-      DEFAULT_FOOTER.footerLogo,
-      JSON.stringify(DEFAULT_FOOTER.footerLinks),
-      JSON.stringify(DEFAULT_FOOTER.socialLinks),
-      DEFAULT_FOOTER.copyrightText,
-      JSON.stringify(DEFAULT_FOOTER.legalLinks),
-      JSON.stringify(DEFAULT_FOOTER.supportLinks)
-    );
-  } catch {
-    // ignore
+const dataDir = path.resolve(process.cwd(), 'src/data');
+const dataFilePath = path.join(dataDir, 'footer.json');
+
+const ensureDataDir = () => {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
   }
-}
+};
+
+const readFileData = () => {
+  try {
+    ensureDataDir();
+    if (fs.existsSync(dataFilePath)) {
+      const raw = fs.readFileSync(dataFilePath, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch (_e) {}
+  return null;
+};
+
+const writeFileData = (data: any) => {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (_e) {}
+};
 
 export class FooterService {
   static async get() {
+    const fileData = readFileData();
+    if (fileData) return fileData;
+
     try {
       if (db.footerSettings) {
         let settings = await db.footerSettings.findUnique({ where: { id: 'default' } });
-        if (!settings) {
-          settings = await db.footerSettings.create({ data: DEFAULT_FOOTER });
+        if (settings) {
+          writeFileData(settings);
+          return settings;
         }
-        return settings;
       }
-    } catch {
-      // Fall through to raw SQL
-    }
+    } catch (_e) {}
 
     try {
       const rows: any = await prisma.$queryRawUnsafe('SELECT * FROM footer_settings WHERE id = $1', 'default');
       if (rows && rows.length > 0) {
+        writeFileData(rows[0]);
         return rows[0];
-      } else {
-        await seedDefaultFooterRaw();
-        const seeded: any = await prisma.$queryRawUnsafe('SELECT * FROM footer_settings WHERE id = $1', 'default');
-        return seeded[0] || DEFAULT_FOOTER;
       }
-    } catch {
-      return DEFAULT_FOOTER;
-    }
+    } catch (_e) {}
+
+    writeFileData(DEFAULT_FOOTER);
+    return DEFAULT_FOOTER;
   }
 
   static async update(payload: FooterSettingsPayload) {
@@ -127,17 +135,17 @@ export class FooterService {
       supportLinks: payload.supportLinks ?? existing.supportLinks ?? DEFAULT_FOOTER.supportLinks,
     };
 
+    writeFileData(updatedData);
+
     try {
       if (db.footerSettings) {
-        return await db.footerSettings.upsert({
+        await db.footerSettings.upsert({
           where: { id: 'default' },
           update: updatedData,
           create: { id: 'default', ...updatedData },
         });
       }
-    } catch {
-      // Fall through to raw SQL
-    }
+    } catch (_e) {}
 
     try {
       await prisma.$executeRawUnsafe(
@@ -160,11 +168,9 @@ export class FooterService {
         JSON.stringify(updatedData.legalLinks),
         JSON.stringify(updatedData.supportLinks)
       );
+    } catch (_e) {}
 
-      return { id: 'default', ...updatedData };
-    } catch (err) {
-      console.error('Error updating footer settings:', err);
-      throw err;
-    }
+    return { id: 'default', ...updatedData };
   }
 }
+

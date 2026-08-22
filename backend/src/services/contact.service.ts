@@ -203,7 +203,7 @@ export class ContactService {
       items = memorySubmissions.map((i) => ({ ...i, source: i.source || 'Contact Form' }));
     }
 
-    // 2. Fetch Demo Booking Submissions from PostgreSQL (23 existing records)
+    // 2. Fetch Demo Booking Submissions from PostgreSQL
     let demoBookings: any[] = [];
     try {
       const demoRows: any = await prisma.$queryRawUnsafe('SELECT * FROM public."demo_bookings" ORDER BY "createdAt" DESC');
@@ -229,9 +229,36 @@ export class ContactService {
       updatedAt: b.updatedAt || new Date(),
     }));
 
-    // 3. Combine both streams into unified leads collection
+    // 3. Fetch Newsletter Subscriptions from PostgreSQL
+    let newsletterSubscribers: any[] = [];
+    try {
+      const newsRows: any = await prisma.$queryRawUnsafe('SELECT * FROM public."newsletter_subscribers" ORDER BY "createdAt" DESC');
+      if (newsRows && Array.isArray(newsRows)) {
+        newsletterSubscribers = newsRows;
+      }
+    } catch (_e) {}
+
+    const mappedNewsletterSubscribers = newsletterSubscribers.map((n: any) => ({
+      id: n.id || `sub_${n.email}`,
+      fullName: 'Newsletter Subscriber',
+      email: n.email || '',
+      phone: '',
+      company: '',
+      industry: 'Newsletter Subscriber',
+      employees: '',
+      budget: '',
+      productInterest: 'Newsletter Digest & Product Updates',
+      message: 'Subscribed to Dezoryn Newsletter for product updates & enterprise insights.',
+      status: (n.status || 'NEW').toUpperCase(),
+      source: 'Newsletter Subscription',
+      createdAt: n.createdAt || new Date(),
+      updatedAt: n.createdAt || new Date(),
+    }));
+
+    // 4. Combine all 3 streams into unified leads collection
     const combinedMap = new Map<string, any>();
     mappedDemoBookings.forEach((item) => combinedMap.set(item.id, item));
+    mappedNewsletterSubscribers.forEach((item) => combinedMap.set(item.id, item));
     items.forEach((item) => combinedMap.set(item.id, item));
 
     const combined = Array.from(combinedMap.values()).sort(
@@ -286,6 +313,14 @@ export class ContactService {
       );
     } catch (_e) {}
 
+    try {
+      await prisma.$executeRawUnsafe(
+        'UPDATE public."newsletter_subscribers" SET status = $1 WHERE id = $2',
+        status,
+        id
+      );
+    } catch (_e) {}
+
     return { id, status };
   }
 
@@ -298,6 +333,10 @@ export class ContactService {
 
     try {
       await prisma.$executeRawUnsafe('DELETE FROM public."demo_bookings" WHERE id = $1', id);
+    } catch (_e) {}
+
+    try {
+      await prisma.$executeRawUnsafe('DELETE FROM public."newsletter_subscribers" WHERE id = $1', id);
     } catch (_e) {}
 
     return { success: true };
@@ -342,6 +381,12 @@ async function ensureSubmissionsTableRaw() {
   try {
     await prisma.$executeRawUnsafe(`
       ALTER TABLE public."demo_bookings" ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'NEW';
+    `);
+  } catch (_e) {}
+
+  try {
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE public."newsletter_subscribers" ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'NEW';
     `);
   } catch (_e) {}
 }

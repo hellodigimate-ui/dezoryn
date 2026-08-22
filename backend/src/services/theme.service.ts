@@ -199,22 +199,53 @@ const DEFAULT_THEME = {
   footerEffects: DEFAULT_FOOTER_EFFECTS,
 };
 
-let memoryTheme = { ...DEFAULT_THEME };
+import fs from 'fs';
+import path from 'path';
+
+const dataDir = path.resolve(process.cwd(), 'src/data');
+const dataFilePath = path.join(dataDir, 'theme.json');
+
+const ensureDataDir = () => {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+};
+
+const readFileData = () => {
+  try {
+    ensureDataDir();
+    if (fs.existsSync(dataFilePath)) {
+      const raw = fs.readFileSync(dataFilePath, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch (_e) {}
+  return null;
+};
+
+const writeFileData = (data: any) => {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (_e) {}
+};
 
 export class ThemeService {
   static async get() {
+    const fileData = readFileData();
+    if (fileData) return fileData;
+
     try {
       if (db.themeSettings) {
         let settings = await db.themeSettings.findUnique({ where: { id: 'default' } });
-        if (!settings) {
-          settings = await db.themeSettings.create({ data: DEFAULT_THEME });
+        if (settings) {
+          writeFileData(settings);
+          return settings;
         }
-        return settings;
       }
-    } catch {
-      // Fall through
-    }
-    return memoryTheme;
+    } catch (_e) {}
+
+    writeFileData(DEFAULT_THEME);
+    return DEFAULT_THEME;
   }
 
   static async update(payload: ThemeSettingsPayload) {
@@ -243,20 +274,19 @@ export class ThemeService {
         : existing.footerEffects || DEFAULT_FOOTER_EFFECTS,
     };
 
-    memoryTheme = { ...memoryTheme, ...updatedData };
+    writeFileData(updatedData);
 
     try {
       if (db.themeSettings) {
-        return await db.themeSettings.upsert({
+        await db.themeSettings.upsert({
           where: { id: 'default' },
           update: updatedData,
           create: { id: 'default', ...updatedData },
         });
       }
-    } catch {
-      // Fall through
-    }
+    } catch (_e) {}
 
-    return memoryTheme;
+    return updatedData;
   }
 }
+

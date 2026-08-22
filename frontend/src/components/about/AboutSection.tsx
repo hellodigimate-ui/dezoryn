@@ -173,7 +173,6 @@ export const AboutSection: React.FC<{ initialData?: AboutSectionData }> = React.
 
   // Animation variants
   const anim = data.animationSettings || {};
-  const duration = anim.duration ?? 0.6;
   const delay = anim.delay ?? 0.2;
 
   const textVariants = {
@@ -203,8 +202,7 @@ export const AboutSection: React.FC<{ initialData?: AboutSectionData }> = React.
   };
 
   const resolveMedia = (url: string | null | undefined): string => {
-    if (url === '') return '';
-    if (!url) return DEFAULT_ABOUT_DATA.mediaUrl!;
+    if (!url || !url.trim()) return DEFAULT_ABOUT_DATA.mediaUrl!;
     return resolveMediaUrl(url);
   };
 
@@ -216,9 +214,15 @@ export const AboutSection: React.FC<{ initialData?: AboutSectionData }> = React.
       key="text-col"
       initial={textVariants.initial}
       whileInView={textVariants.whileInView}
-      viewport={{ once: true }}
-      transition={{ duration, delay: anim.slideEnabled ? 0 : delay }}
-      className="lg:col-span-6 flex flex-col items-start text-left"
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{
+        type: 'spring',
+        stiffness: 110,
+        damping: 20,
+        mass: 0.8,
+        delay: anim.slideEnabled ? 0 : delay,
+      }}
+      className="lg:col-span-6 flex flex-col items-start text-left transform-gpu"
     >
       {data.badge && (
         <span className="text-xs font-extrabold uppercase tracking-wider text-blue-600 dark:text-cyan-400 mb-3 font-['Plus_Jakarta_Sans'] flex items-center gap-2">
@@ -255,7 +259,7 @@ export const AboutSection: React.FC<{ initialData?: AboutSectionData }> = React.
               navigateTo(data.buttonUrl as any);
             }
           }}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/25 transition cursor-pointer"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/25 transition cursor-pointer transform-gpu hover:-translate-y-0.5"
         >
           <span>{data.buttonText}</span>
           <ArrowRight className="w-4 h-4" />
@@ -269,12 +273,18 @@ export const AboutSection: React.FC<{ initialData?: AboutSectionData }> = React.
       key="media-col"
       initial={mediaVariants.initial}
       whileInView={mediaVariants.whileInView}
-      viewport={{ once: true }}
-      transition={{ duration, delay }}
-      className="lg:col-span-6 relative"
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{
+        type: 'spring',
+        stiffness: 110,
+        damping: 20,
+        mass: 0.8,
+        delay,
+      }}
+      className="lg:col-span-6 relative transform-gpu"
     >
       <div
-        className="relative w-full h-[320px] sm:h-[400px] rounded-tl-[120px] rounded-br-[40px] rounded-tr-3xl rounded-bl-3xl overflow-hidden shadow-2xl shadow-blue-900/10 dark:shadow-slate-950/60 border border-slate-200 dark:border-slate-800"
+        className="relative w-full h-[320px] sm:h-[400px] rounded-tl-[120px] rounded-br-[40px] rounded-tr-3xl rounded-bl-3xl overflow-hidden shadow-2xl shadow-blue-900/10 dark:shadow-slate-950/60 border border-slate-200 dark:border-slate-800 transform-gpu"
         style={{
           borderRadius: data.layoutSettings?.borderRadius || '1.5rem',
         }}
@@ -292,7 +302,7 @@ export const AboutSection: React.FC<{ initialData?: AboutSectionData }> = React.
           <img
             src={mediaSrc}
             alt={data.heading || 'Dezoryn Technologies Enterprise'}
-            className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
+            className="w-full h-full object-cover transform-gpu hover:scale-105 transition-transform duration-700 ease-out"
           />
         )}
 
@@ -302,30 +312,46 @@ export const AboutSection: React.FC<{ initialData?: AboutSectionData }> = React.
           style={{ opacity: data.styleSettings?.overlayOpacity ?? 0.2 }}
         />
 
-        {/* Floating Information Card Overlay */}
+        {/* Buttery Smooth Floating Information Card Overlay */}
         {data.cardEnabled && (
-          <div className="absolute bottom-4 left-4 right-4 p-3 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white shadow-lg">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-blue-100 dark:bg-cyan-950 text-blue-600 dark:text-cyan-400">
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.94 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{
+              type: 'spring',
+              stiffness: 280,
+              damping: 24,
+              delay: delay + 0.2,
+            }}
+            whileHover={{
+              y: -5,
+              scale: 1.02,
+              transition: { type: 'spring', stiffness: 350, damping: 22 },
+            }}
+            className="absolute bottom-4 left-4 right-4 sm:bottom-5 sm:left-5 sm:right-5 p-3.5 rounded-2xl bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border border-white/20 dark:border-slate-700/60 flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white shadow-2xl shadow-slate-950/40 transition-shadow transition-colors duration-300 cursor-pointer group transform-gpu"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-blue-600/15 dark:bg-cyan-500/15 text-blue-600 dark:text-cyan-400 border border-blue-500/20 dark:border-cyan-500/20 shadow-inner shrink-0 group-hover:scale-110 transition-transform duration-200">
                 <CardIconComponent className="w-4 h-4" />
-              </span>
+              </div>
               <div className="flex flex-col text-left">
-                <span className="text-xs font-extrabold text-slate-900 dark:text-white leading-tight">
+                <span className="text-xs font-black text-slate-900 dark:text-white leading-tight tracking-wide">
                   {data.cardTitle}
                 </span>
                 {data.cardSubtitle && (
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
                     {data.cardSubtitle}
                   </span>
                 )}
               </div>
             </div>
             {data.cardLocation && (
-              <span className="text-[11px] font-bold text-blue-600 dark:text-cyan-400 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-slate-800">
+              <span className="text-[10px] font-extrabold text-blue-600 dark:text-cyan-400 px-3 py-1 rounded-xl bg-blue-500/10 dark:bg-slate-800/90 border border-blue-500/20 dark:border-cyan-500/20 shrink-0">
                 {data.cardLocation}
               </span>
             )}
-          </div>
+          </motion.div>
         )}
       </div>
     </motion.div>

@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -27,14 +29,47 @@ const DEFAULT_SETTINGS = {
   metaDescription: '',
 };
 
+const dataDir = path.resolve(process.cwd(), 'src/data');
+const dataFilePath = path.join(dataDir, 'website_settings.json');
+
+const ensureDataDir = () => {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+};
+
+const readFileData = () => {
+  try {
+    ensureDataDir();
+    if (fs.existsSync(dataFilePath)) {
+      const raw = fs.readFileSync(dataFilePath, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch (_e) {}
+  return null;
+};
+
+const writeFileData = (data: any) => {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (_e) {}
+};
+
 export class WebsiteSettingsService {
   static async get() {
+    const fileData = readFileData();
+    if (fileData) return fileData;
+
     try {
       const rows: any[] = await prisma.$queryRawUnsafe(
         `SELECT * FROM website_settings WHERE id = $1 LIMIT 1`,
         'default'
       );
-      if (rows && rows.length > 0) return rows[0];
+      if (rows && rows.length > 0) {
+        writeFileData(rows[0]);
+        return rows[0];
+      }
 
       // Seed default row
       await prisma.$executeRawUnsafe(
@@ -74,9 +109,12 @@ export class WebsiteSettingsService {
         `SELECT * FROM website_settings WHERE id = $1 LIMIT 1`,
         'default'
       );
-      return seeded[0] || DEFAULT_SETTINGS;
+      const resData = seeded[0] || DEFAULT_SETTINGS;
+      writeFileData(resData);
+      return resData;
     } catch (err) {
       console.error('WebsiteSettings get error:', err);
+      writeFileData(DEFAULT_SETTINGS);
       return DEFAULT_SETTINGS;
     }
   }
@@ -84,6 +122,8 @@ export class WebsiteSettingsService {
   static async update(payload: Partial<typeof DEFAULT_SETTINGS>) {
     const existing = await WebsiteSettingsService.get();
     const merged = { ...existing, ...payload };
+
+    writeFileData(merged);
 
     try {
       await prisma.$executeRawUnsafe(
@@ -141,10 +181,10 @@ export class WebsiteSettingsService {
         merged.metaTitle ?? DEFAULT_SETTINGS.metaTitle,
         merged.metaDescription ?? ''
       );
-      return await WebsiteSettingsService.get();
     } catch (err) {
-      console.error('WebsiteSettings update error:', err);
-      throw err;
+      console.error('WebsiteSettings update DB error:', err);
     }
+    return merged;
   }
 }
+

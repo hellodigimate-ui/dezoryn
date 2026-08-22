@@ -31,82 +31,180 @@ const DEFAULT_HOMEPAGE_SERVICES: ServiceCategory[] = [
   {
     id: 'software-dev',
     title: 'Software Development',
-    badge: 'ENTERPRISE',
-    description: 'Custom enterprise software solutions tailored to automate complex workflows and scale operations.',
+    badge: 'ENTERPRISE ARCHITECTURE',
+    description: 'Custom enterprise software solutions tailored to automate complex workflows, enhance operational efficiency, and scale seamlessly with your business growth.',
     iconName: 'Code2',
-    services: ['Custom ERP & CRM', 'SaaS Engineering', 'Cloud DevOps'],
-    ctaText: 'Explore Software'
+    services: ['Custom Software Development', 'CRM Development', 'ERP Development'],
+    ctaText: 'Explore Software Services'
   },
   {
     id: 'web-dev',
     title: 'Website Development',
     badge: 'WEB PLATFORMS',
-    description: 'Modern, high-performance websites and web applications built with intuitive UI/UX and bank-grade security.',
+    description: 'Modern, high-performance websites and web applications built with intuitive UI/UX, ultra-fast loading speeds, and bank-grade security protocols.',
     iconName: 'Globe',
-    services: ['Corporate Portals', 'E-Commerce Portals', 'Progressive Web Apps'],
-    ctaText: 'Explore Web'
+    services: ['Business Website', 'Corporate Website', 'E-commerce Website'],
+    ctaText: 'Explore Web Services'
   },
   {
     id: 'mobile-dev',
     title: 'Mobile App Development',
     badge: 'IOS & ANDROID',
-    description: 'Native and cross-platform mobile apps for iOS and Android delivering engaging user experiences.',
+    description: 'Native and cross-platform mobile apps for iOS and Android delivering engaging user experiences, offline capabilities, and real-time data sync.',
     iconName: 'Smartphone',
-    services: ['iOS App Development', 'Android App Dev', 'React Native & Flutter'],
-    ctaText: 'Explore Mobile'
+    services: ['Android App', 'iOS App', 'Cross-Platform App'],
+    ctaText: 'Explore Mobile Services'
   },
   {
     id: 'business-mgmt',
-    title: 'Business Management',
-    badge: 'AUTOMATION',
-    description: 'Integrated business automation platforms covering HRMS, payroll, inventory, and operational control.',
+    title: 'Business Management Solutions',
+    badge: 'AUTOMATION SUITE',
+    description: 'Integrated business automation platforms covering HRMS, automated payroll, inventory management, billing, and complete operational control.',
     iconName: 'Briefcase',
-    services: ['HRMS & Payroll', 'Inventory Pro', 'Financial Accounting'],
-    ctaText: 'Explore Business'
+    services: ['CRM', 'HRM & Payroll', 'ERP'],
+    ctaText: 'Explore Business Solutions'
   }
 ];
 
-const renderIcon = (iconName?: string) => {
+interface CardTheme {
+  topGradient: string;
+  ambientGradient: string;
+  borderHover: string;
+  iconBg: string;
+  iconGlow: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  dotBg: string;
+  checkBg: string;
+  checkBorder: string;
+  checkIcon: string;
+  btnBg: string;
+  btnBorder: string;
+  btnText: string;
+  btnHoverShadow: string;
+}
+
+const CARD_THEMES: CardTheme[] = [
+  // 0: Software Dev (Blue / Cyan)
+  {
+    topGradient: 'from-blue-500 via-cyan-400 to-indigo-500',
+    ambientGradient: 'from-blue-600/15 via-cyan-500/10 to-transparent',
+    borderHover: 'group-hover:border-cyan-400/80 dark:group-hover:border-cyan-400/80',
+    iconBg: 'bg-gradient-to-br from-blue-600 to-cyan-500',
+    iconGlow: 'shadow-[0_0_25px_rgba(56,189,248,0.35)]',
+    badgeBg: 'bg-blue-500/10 dark:bg-blue-950/60',
+    badgeText: 'text-blue-600 dark:text-cyan-400',
+    badgeBorder: 'border-blue-500/30 dark:border-cyan-400/30',
+    dotBg: 'bg-cyan-400',
+    checkBg: 'bg-blue-500/10 dark:bg-cyan-500/15',
+    checkBorder: 'border-blue-500/20 dark:border-cyan-500/30',
+    checkIcon: 'text-blue-600 dark:text-cyan-400',
+    btnBg: 'bg-blue-50/80 dark:bg-slate-900/90 hover:bg-blue-600 dark:hover:bg-cyan-500',
+    btnBorder: 'border-blue-600/40 dark:border-cyan-500/40 hover:border-blue-600 dark:hover:border-cyan-400',
+    btnText: 'text-blue-600 dark:text-cyan-400 hover:text-white dark:hover:text-slate-950',
+    btnHoverShadow: 'hover:shadow-[0_0_24px_rgba(56,189,248,0.35)]',
+  },
+  // 1: Website Dev (Cyan / Sky)
+  {
+    topGradient: 'from-cyan-500 via-sky-400 to-blue-500',
+    ambientGradient: 'from-cyan-600/15 via-sky-500/10 to-transparent',
+    borderHover: 'group-hover:border-sky-400/80 dark:group-hover:border-sky-400/80',
+    iconBg: 'bg-gradient-to-br from-cyan-500 to-sky-600',
+    iconGlow: 'shadow-[0_0_25px_rgba(14,165,233,0.35)]',
+    badgeBg: 'bg-cyan-500/10 dark:bg-cyan-950/60',
+    badgeText: 'text-cyan-600 dark:text-sky-400',
+    badgeBorder: 'border-cyan-500/30 dark:border-sky-400/30',
+    dotBg: 'bg-sky-400',
+    checkBg: 'bg-cyan-500/10 dark:bg-sky-500/15',
+    checkBorder: 'border-cyan-500/20 dark:border-sky-500/30',
+    checkIcon: 'text-cyan-600 dark:text-sky-400',
+    btnBg: 'bg-cyan-50/80 dark:bg-slate-900/90 hover:bg-sky-600 dark:hover:bg-sky-400',
+    btnBorder: 'border-cyan-600/40 dark:border-sky-500/40 hover:border-sky-600 dark:hover:border-sky-400',
+    btnText: 'text-cyan-600 dark:text-sky-400 hover:text-white dark:hover:text-slate-950',
+    btnHoverShadow: 'hover:shadow-[0_0_24px_rgba(14,165,233,0.35)]',
+  },
+  // 2: Mobile App Dev (Violet / Purple)
+  {
+    topGradient: 'from-violet-500 via-purple-400 to-fuchsia-500',
+    ambientGradient: 'from-violet-600/15 via-purple-500/10 to-transparent',
+    borderHover: 'group-hover:border-violet-400/80 dark:group-hover:border-violet-400/80',
+    iconBg: 'bg-gradient-to-br from-violet-600 to-fuchsia-500',
+    iconGlow: 'shadow-[0_0_25px_rgba(168,85,247,0.35)]',
+    badgeBg: 'bg-purple-500/10 dark:bg-purple-950/60',
+    badgeText: 'text-purple-600 dark:text-violet-300',
+    badgeBorder: 'border-purple-500/30 dark:border-violet-400/30',
+    dotBg: 'bg-purple-400',
+    checkBg: 'bg-purple-500/10 dark:bg-violet-500/15',
+    checkBorder: 'border-purple-500/20 dark:border-violet-500/30',
+    checkIcon: 'text-purple-600 dark:text-violet-400',
+    btnBg: 'bg-purple-50/80 dark:bg-slate-900/90 hover:bg-purple-600 dark:hover:bg-violet-500',
+    btnBorder: 'border-purple-600/40 dark:border-violet-500/40 hover:border-purple-600 dark:hover:border-violet-400',
+    btnText: 'text-purple-600 dark:text-violet-300 hover:text-white dark:hover:text-slate-950',
+    btnHoverShadow: 'hover:shadow-[0_0_24px_rgba(168,85,247,0.35)]',
+  },
+  // 3: Business Management (Emerald / Teal)
+  {
+    topGradient: 'from-emerald-500 via-teal-400 to-cyan-500',
+    ambientGradient: 'from-emerald-600/15 via-teal-500/10 to-transparent',
+    borderHover: 'group-hover:border-emerald-400/80 dark:group-hover:border-emerald-400/80',
+    iconBg: 'bg-gradient-to-br from-emerald-600 to-teal-500',
+    iconGlow: 'shadow-[0_0_25px_rgba(52,211,153,0.35)]',
+    badgeBg: 'bg-emerald-500/10 dark:bg-emerald-950/60',
+    badgeText: 'text-emerald-600 dark:text-emerald-300',
+    badgeBorder: 'border-emerald-500/30 dark:border-emerald-400/30',
+    dotBg: 'bg-emerald-400',
+    checkBg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
+    checkBorder: 'border-emerald-500/20 dark:border-emerald-500/30',
+    checkIcon: 'text-emerald-600 dark:text-emerald-400',
+    btnBg: 'bg-emerald-50/80 dark:bg-slate-900/90 hover:bg-emerald-600 dark:hover:bg-emerald-400',
+    btnBorder: 'border-emerald-600/40 dark:border-emerald-500/40 hover:border-emerald-600 dark:hover:border-emerald-400',
+    btnText: 'text-emerald-600 dark:text-emerald-300 hover:text-white dark:hover:text-slate-950',
+    btnHoverShadow: 'hover:shadow-[0_0_24px_rgba(52,211,153,0.35)]',
+  },
+];
+
+const renderWhiteIcon = (iconName?: string) => {
   switch (iconName) {
     case 'Globe':
-      return <Globe className="w-6 h-6 text-cyan-500" />;
+      return <Globe className="w-6 h-6 text-white" />;
     case 'Smartphone':
-      return <Smartphone className="w-6 h-6 text-indigo-500" />;
+      return <Smartphone className="w-6 h-6 text-white" />;
     case 'Briefcase':
-      return <Briefcase className="w-6 h-6 text-purple-500" />;
+      return <Briefcase className="w-6 h-6 text-white" />;
     case 'Factory':
-      return <Factory className="w-6 h-6 text-emerald-500" />;
+      return <Factory className="w-6 h-6 text-white" />;
     case 'Layers':
-      return <Layers className="w-6 h-6 text-amber-500" />;
+      return <Layers className="w-6 h-6 text-white" />;
     case 'Megaphone':
-      return <Megaphone className="w-6 h-6 text-rose-500" />;
+      return <Megaphone className="w-6 h-6 text-white" />;
     case 'TrendingUp':
-      return <TrendingUp className="w-6 h-6 text-teal-500" />;
+      return <TrendingUp className="w-6 h-6 text-white" />;
     case 'Cpu':
-      return <Cpu className="w-6 h-6 text-blue-500" />;
+      return <Cpu className="w-6 h-6 text-white" />;
     case 'Server':
-      return <Server className="w-6 h-6 text-indigo-500" />;
+      return <Server className="w-6 h-6 text-white" />;
     case 'Shield':
-      return <Shield className="w-6 h-6 text-emerald-500" />;
+      return <Shield className="w-6 h-6 text-white" />;
     case 'Zap':
-      return <Zap className="w-6 h-6 text-amber-500" />;
+      return <Zap className="w-6 h-6 text-white" />;
     case 'Database':
-      return <Database className="w-6 h-6 text-cyan-500" />;
+      return <Database className="w-6 h-6 text-white" />;
     case 'Sparkles':
-      return <Sparkles className="w-6 h-6 text-purple-500" />;
+      return <Sparkles className="w-6 h-6 text-white" />;
     case 'Box':
-      return <Box className="w-6 h-6 text-slate-500" />;
+      return <Box className="w-6 h-6 text-white" />;
     case 'Award':
-      return <Award className="w-6 h-6 text-amber-500" />;
+      return <Award className="w-6 h-6 text-white" />;
     case 'Terminal':
-      return <Terminal className="w-6 h-6 text-emerald-500" />;
+      return <Terminal className="w-6 h-6 text-white" />;
     case 'Cloud':
-      return <Cloud className="w-6 h-6 text-sky-500" />;
+      return <Cloud className="w-6 h-6 text-white" />;
     case 'Lock':
-      return <Lock className="w-6 h-6 text-rose-500" />;
+      return <Lock className="w-6 h-6 text-white" />;
     case 'Code2':
     default:
-      return <Code2 className="w-6 h-6 text-blue-500 dark:text-cyan-400" />;
+      return <Code2 className="w-6 h-6 text-white" />;
   }
 };
 
@@ -158,9 +256,9 @@ export const ServicesSection: React.FC = () => {
   }, []);
 
   return (
-    <section id="services-section" className="py-20 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 transition-colors duration-300 relative overflow-hidden font-['Plus_Jakarta_Sans',sans-serif]">
-      {/* Background Accent */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-purple-500/10 blur-[140px] pointer-events-none -z-10" />
+    <section id="services-section" className="py-20 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 transition-colors duration-300 relative overflow-hidden font-['Plus_Jakarta_Sans',sans-serif] select-none">
+      {/* Background Accent Mesh */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[450px] bg-gradient-to-tr from-blue-500/10 via-cyan-500/10 to-purple-500/10 blur-[140px] pointer-events-none -z-10" />
 
       <div className="max-w-[1440px] mx-auto px-6 sm:px-8 lg:px-12">
         {/* Header */}
@@ -180,54 +278,102 @@ export const ServicesSection: React.FC = () => {
 
           <button
             onClick={() => navigateTo('/services')}
-            className="self-start md:self-auto px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 dark:bg-cyan-500/20 dark:hover:bg-cyan-500/30 border border-blue-600 dark:border-cyan-400/40 text-white dark:text-cyan-300 font-extrabold text-xs shadow-md transition cursor-pointer flex items-center gap-2 shrink-0"
+            className="self-start md:self-auto px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 dark:bg-cyan-500/20 dark:hover:bg-cyan-500/30 border border-blue-600 dark:border-cyan-400/40 text-white dark:text-cyan-300 font-extrabold text-xs shadow-md hover:shadow-cyan-500/20 transition cursor-pointer flex items-center gap-2 shrink-0 group/btn"
           >
             <span>View All Services</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-200" />
           </button>
         </div>
 
-        {/* 4 Cards Grid */}
+        {/* 4 Cards Grid with Futuristic 3D Glass Panel Styling */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {services.map((item, idx) => (
-            <motion.div
-              key={item.id || idx}
-              transition={{ duration: 0.28, ease: 'easeOut' }}
-              whileHover={{ y: -5 }}
-              className="group bg-slate-50/90 dark:bg-slate-900/80 rounded-3xl border border-slate-200/90 dark:border-slate-800 hover:border-blue-500/60 dark:hover:border-cyan-400/50 transition-all duration-300 ease-out text-left shadow-xs hover:shadow-[0_14px_36px_-10px_rgba(37,99,235,0.16)] dark:hover:shadow-[0_14px_36px_-10px_rgba(34,211,238,0.12)] cursor-pointer"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs group-hover:bg-blue-50/80 dark:group-hover:bg-cyan-500/20 group-hover:border-blue-300 dark:group-hover:border-cyan-400/50 group-hover:-translate-y-0.5 group-hover:scale-[1.05] transition-all duration-300 ease-out">
-                    {renderIcon(item.iconName)}
-                  </div>
-                  <span className="text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-100/80 dark:bg-slate-800 text-blue-600 dark:text-cyan-400 border border-blue-200/50 dark:border-slate-700">
-                    {item.badge}
-                  </span>
-                </div>
+          {services.map((item, idx) => {
+            const theme = CARD_THEMES[idx % CARD_THEMES.length];
 
-                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-cyan-300 transition-colors duration-300 ease-out">{item.title}</h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4 line-clamp-3">{item.description}</p>
-
-                <div className="space-y-2 mb-6 pt-3 border-t border-slate-200/60 dark:border-slate-800">
-                  {item.services.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400 shrink-0" />
-                      <span className="truncate">{s}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={() => navigateTo('/services', item.id)}
-                className="w-full py-2.5 px-3 rounded-xl border border-blue-600/60 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 group-hover:bg-white group-hover:border-blue-600 dark:group-hover:bg-slate-800 dark:group-hover:border-cyan-400 hover:!bg-blue-600 hover:!border-blue-600 dark:hover:!bg-cyan-500 text-slate-900 dark:text-slate-100 hover:!text-white dark:hover:!text-slate-950 font-extrabold text-xs transition-all duration-300 ease-out cursor-pointer flex items-center justify-center gap-1.5 group/btn shadow-xs hover:shadow-md hover:shadow-blue-500/25"
+            return (
+              <motion.div
+                key={item.id || idx}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{
+                  duration: 0.5,
+                  delay: idx * 0.08,
+                  type: 'spring',
+                  stiffness: 160,
+                  damping: 22,
+                }}
+                whileHover={{
+                  y: -8,
+                  scale: 1.02,
+                  transition: { type: 'spring', stiffness: 300, damping: 20 },
+                }}
+                className="transform-gpu h-full"
               >
-                <span className="font-extrabold transition-colors duration-300">{item.ctaText || 'Learn More'}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400 group-hover/btn:!text-white dark:group-hover/btn:!text-slate-950 group-hover:translate-x-0.75 group-hover/btn:translate-x-1 transition-all duration-300 ease-out" />
-              </button>
-            </motion.div>
-          ))}
+                <div
+                  className={`group relative h-full bg-white/90 dark:bg-slate-900/90 rounded-3xl border border-slate-200/90 dark:border-slate-800 p-6 flex flex-col justify-between shadow-xs hover:shadow-2xl backdrop-blur-2xl transition-all duration-300 text-left overflow-hidden transform-gpu ${theme.borderHover}`}
+                >
+                  {/* Glowing Top Edge Accent Bar */}
+                  <div className={`absolute top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r ${theme.topGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-10`} />
+
+                  {/* Ambient Interactive Background Mesh */}
+                  <div className={`absolute inset-0 bg-gradient-to-b ${theme.ambientGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none -z-10`} />
+
+                  {/* Diagonal Glass Reflection Sweep */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/15 dark:via-cyan-400/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none" />
+
+                  <div>
+                    {/* Top Bar: Icon + Badge */}
+                    <div className="flex items-center justify-between mb-5">
+                      <div className={`w-12 h-12 rounded-2xl ${theme.iconBg} ${theme.iconGlow} flex items-center justify-center text-white border border-white/20 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shrink-0`}>
+                        {renderWhiteIcon(item.iconName)}
+                      </div>
+
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${theme.badgeBg} ${theme.badgeText} border ${theme.badgeBorder} backdrop-blur-md flex items-center gap-1.5`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${theme.dotBg} animate-pulse`} />
+                        {item.badge}
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2 font-['Plus_Jakarta_Sans'] group-hover:text-blue-600 dark:group-hover:text-cyan-300 transition-colors duration-200">
+                      {item.title}
+                    </h3>
+
+                    {/* Description */}
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal mb-5 line-clamp-3">
+                      {item.description}
+                    </p>
+
+                    {/* Feature List */}
+                    <ul className="space-y-2.5 mb-6 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                      {item.services.map((s, i) => (
+                        <li
+                          key={i}
+                          className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-transform duration-200 group-hover:translate-x-1.5"
+                          style={{ transitionDelay: `${i * 30}ms` }}
+                        >
+                          <span className={`w-4 h-4 rounded-full ${theme.checkBg} border ${theme.checkBorder} flex items-center justify-center shrink-0`}>
+                            <CheckCircle2 className={`w-3 h-3 ${theme.checkIcon}`} />
+                          </span>
+                          <span className="truncate">{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Button */}
+                  <button
+                    onClick={() => navigateTo('/services', item.id)}
+                    className={`w-full py-3 px-4 rounded-2xl border ${theme.btnBorder} ${theme.btnBg} ${theme.btnText} font-extrabold text-xs transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 group/btn ${theme.btnHoverShadow}`}
+                  >
+                    <span className="font-extrabold">{item.ctaText || 'Explore Services'}</span>
+                    <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-200" />
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>

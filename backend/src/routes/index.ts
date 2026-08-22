@@ -21,6 +21,7 @@ import aboutRoutes from './about.routes';
 import timelineRoutes from './timeline.routes';
 import newsletterRoutes from './newsletter.routes';
 import serviceRoutes from './service.routes';
+import homepageStatsRoutes from './homepage-stats.routes';
 
 const router = Router();
 
@@ -63,6 +64,7 @@ router.use('/about', aboutRoutes);
 router.use('/timeline', timelineRoutes);
 router.use('/newsletter', newsletterRoutes);
 router.use('/services', serviceRoutes);
+router.use('/homepage-stats', homepageStatsRoutes);
 
 export default router;
 

@@ -1,6 +1,35 @@
+import fs from 'fs';
+import path from 'path';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
+
+const dataDir = path.resolve(process.cwd(), 'src/data');
+const dataFilePath = path.join(dataDir, 'about.json');
+
+const ensureDataDir = () => {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+};
+
+const readFileData = () => {
+  try {
+    ensureDataDir();
+    if (fs.existsSync(dataFilePath)) {
+      const raw = fs.readFileSync(dataFilePath, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch (_e) {}
+  return null;
+};
+
+const writeFileData = (data: any) => {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (_e) {}
+};
 
 export interface AboutSectionInput {
   badge?: string;
@@ -67,55 +96,43 @@ const DEFAULT_ABOUT: AboutSectionInput & { id: string; mediaUrl: string | null; 
   isDraft: false,
 };
 
-let memoryAboutData = { ...DEFAULT_ABOUT };
-
 export class AboutService {
   public static async getAboutSection() {
+    const fileData = readFileData();
+    if (fileData) return fileData;
+
     try {
       const data = await (prisma as any).aboutSection.findUnique({
         where: { id: 'default' },
       });
-      if (data) return data;
-    } catch {
-      // Return memory fallback if table does not exist yet
-    }
-    return memoryAboutData;
+      if (data) {
+        writeFileData(data);
+        return data;
+      }
+    } catch (_e) {}
+
+    writeFileData(DEFAULT_ABOUT);
+    return DEFAULT_ABOUT;
   }
 
   public static async updateAboutSection(input: AboutSectionInput) {
+    const existing = await AboutService.getAboutSection();
     const payload = {
-      badge: input.badge ?? memoryAboutData.badge,
-      heading: input.heading ?? memoryAboutData.heading,
-      descriptionOne: input.descriptionOne ?? memoryAboutData.descriptionOne,
-      descriptionTwo: input.descriptionTwo ?? memoryAboutData.descriptionTwo,
-      buttonText: input.buttonText ?? memoryAboutData.buttonText,
-      buttonUrl: input.buttonUrl ?? memoryAboutData.buttonUrl,
-      buttonEnabled: input.buttonEnabled ?? memoryAboutData.buttonEnabled,
-      mediaUrl: input.mediaUrl !== undefined ? input.mediaUrl : memoryAboutData.mediaUrl,
-      mediaType: input.mediaType ?? memoryAboutData.mediaType,
-      mediaId: input.mediaId !== undefined ? input.mediaId : memoryAboutData.mediaId,
-      cardEnabled: input.cardEnabled ?? memoryAboutData.cardEnabled,
-      cardTitle: input.cardTitle ?? memoryAboutData.cardTitle,
-      cardSubtitle: input.cardSubtitle ?? memoryAboutData.cardSubtitle,
-      cardLocation: input.cardLocation ?? memoryAboutData.cardLocation,
-      cardIcon: input.cardIcon ?? memoryAboutData.cardIcon,
-      layoutSettings: input.layoutSettings ?? memoryAboutData.layoutSettings,
-      styleSettings: input.styleSettings ?? memoryAboutData.styleSettings,
-      animationSettings: input.animationSettings ?? memoryAboutData.animationSettings,
-      isDraft: input.isDraft ?? memoryAboutData.isDraft,
+      ...existing,
+      ...input,
     };
 
-    memoryAboutData = { ...memoryAboutData, ...payload };
+    writeFileData(payload);
 
     try {
-      return await (prisma as any).aboutSection.upsert({
+      await (prisma as any).aboutSection.upsert({
         where: { id: 'default' },
         create: { id: 'default', ...payload },
         update: payload,
       });
-    } catch {
-      return memoryAboutData;
-    }
+    } catch (_e) {}
+
+    return payload;
   }
 
   public static async updateMedia(mediaUrl: string, mediaType: string, mediaId?: string) {
@@ -126,3 +143,4 @@ export class AboutService {
     return this.updateAboutSection({ mediaUrl: '', mediaType: 'IMAGE', mediaId: '' });
   }
 }
+

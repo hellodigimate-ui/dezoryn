@@ -16,7 +16,8 @@ import {
   Layers,
   Copy,
   Check,
-  Tv
+  Tv,
+  Sparkles
 } from 'lucide-react';
 import { API_URL, apiFetch } from '../../config/api.config';
 
@@ -99,6 +100,8 @@ export const AdminInquiryManager: React.FC = () => {
         if (item.source && item.source !== 'Contact Form') return false;
       } else if (sourceFilter === 'DEMO') {
         if (item.source !== 'Demo Booking') return false;
+      } else if (sourceFilter === 'NEWSLETTER') {
+        if (item.source !== 'Newsletter Subscription') return false;
       }
 
       // Local search filter for instant responsiveness
@@ -211,6 +214,7 @@ export const AdminInquiryManager: React.FC = () => {
   const closedCount = inquiries.filter((i) => (i.status || '').toUpperCase() === 'CLOSED').length;
   const contactFormCount = inquiries.filter((i) => !i.source || i.source === 'Contact Form').length;
   const demoBookingCount = inquiries.filter((i) => i.source === 'Demo Booking').length;
+  const newsletterCount = inquiries.filter((i) => i.source === 'Newsletter Subscription').length;
 
   return (
     <div className="space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
@@ -225,7 +229,7 @@ export const AdminInquiryManager: React.FC = () => {
             Customer Inquiries & Leads
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-semibold max-w-xl">
-            Review, search, and manage incoming enterprise inquiries and scheduled product demo requests from PostgreSQL.
+            Review, search, and manage incoming enterprise inquiries, newsletter subscriptions, and scheduled product demo requests from PostgreSQL.
           </p>
         </div>
 
@@ -289,6 +293,19 @@ export const AdminInquiryManager: React.FC = () => {
         >
           <Tv className="w-4 h-4 text-purple-600 dark:text-purple-400" />
           <span>Demo Bookings ({demoBookingCount})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setSourceFilter('NEWSLETTER'); setCurrentPage(1); }}
+          className={`px-4 py-2.5 rounded-xl font-extrabold text-xs transition cursor-pointer flex items-center gap-2 border whitespace-nowrap shadow-xs ${
+            sourceFilter === 'NEWSLETTER'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-md shadow-emerald-500/20'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <span>Newsletter Subscriptions ({newsletterCount})</span>
         </button>
       </div>
 
@@ -403,9 +420,11 @@ export const AdminInquiryManager: React.FC = () => {
                         <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border flex items-center gap-1.5 w-fit ${
                           item.source === 'Demo Booking'
                             ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20'
+                            : item.source === 'Newsletter Subscription'
+                            ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
                             : 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-500/20'
                         }`}>
-                          {item.source === 'Demo Booking' ? <Tv className="w-3.5 h-3.5" /> : <Mail className="w-3.5 h-3.5" />}
+                          {item.source === 'Demo Booking' ? <Tv className="w-3.5 h-3.5" /> : item.source === 'Newsletter Subscription' ? <Sparkles className="w-3.5 h-3.5" /> : <Mail className="w-3.5 h-3.5" />}
                           <span>{item.source || 'Contact Form'}</span>
                         </span>
                       </td>
@@ -605,6 +624,8 @@ export const AdminInquiryManager: React.FC = () => {
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase ${
                       selectedInquiry.source === 'Demo Booking'
                         ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20'
+                        : selectedInquiry.source === 'Newsletter Subscription'
+                        ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20'
                         : 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-500/20'
                     }`}>
                       {selectedInquiry.source || 'Contact Form'}

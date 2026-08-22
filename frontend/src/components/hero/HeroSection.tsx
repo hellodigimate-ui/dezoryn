@@ -172,7 +172,7 @@ export const HeroSection: React.FC = React.memo(() => {
                 ease: [0.16, 1, 0.3, 1],
               }}
               whileHover={{ scale: 1.005 }}
-              className="relative w-full rounded-[24px] bg-slate-900/90 dark:bg-[#030712] border border-blue-200/80 dark:border-blue-950/80 shadow-xl shadow-blue-900/10 dark:shadow-cyan-950/40 overflow-hidden backdrop-blur-md transition-all duration-500 p-0 transform-gpu"
+              className="relative w-full rounded-[24px] bg-slate-900/90 dark:bg-[#030712] border border-blue-200/80 dark:border-blue-950/80 shadow-xl shadow-blue-900/10 dark:shadow-cyan-950/40 overflow-hidden backdrop-blur-md transition-shadow transition-colors duration-500 p-0 transform-gpu"
               style={{ willChange: "transform" }}
             >
               {/* Soft radial backdrop glow */}

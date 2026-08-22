@@ -44,50 +44,71 @@ export function getNormalizedWhatsAppUrl(whatsAppInput?: string | null): string 
   return `https://wa.me/${digits}`;
 }
 
+const DEFAULT_SOCIAL_URLS: Record<string, string> = {
+  linkedin: 'https://linkedin.com/company/dezoryn',
+  github: 'https://github.com/dezoryn',
+  twitter: 'https://twitter.com/dezoryn',
+  instagram: 'https://instagram.com/dezoryn',
+  youtube: 'https://youtube.com/@dezoryn',
+  facebook: 'https://facebook.com/dezoryn',
+};
+
 /**
  * Validates a social media profile URL for a specific platform.
- * Returns the validated HTTPS profile URL string, or null if missing, invalid,
- * or a generic platform homepage (e.g., https://linkedin.com/).
+ * Returns the validated HTTPS profile URL string, or fallback if missing/invalid/homepage.
  */
 export function getValidSocialUrl(urlInput?: string | null, platformKey?: string): string | null {
-  if (!urlInput || typeof urlInput !== 'string') return null;
+  const key = (platformKey || '').toLowerCase();
+  const defaultUrl = DEFAULT_SOCIAL_URLS[key] || null;
+
+  if (!urlInput || typeof urlInput !== 'string') return defaultUrl;
   let trimmed = urlInput.trim();
-  if (!trimmed) return null;
+  if (!trimmed) return defaultUrl;
+
+  // Handle @handle or raw handles (e.g. @dezoryn or dezoryn)
+  if (!trimmed.includes('.') && !trimmed.startsWith('http')) {
+    const handle = trimmed.replace(/^@/, '');
+    if (!handle) return defaultUrl;
+    switch (key) {
+      case 'linkedin': return `https://linkedin.com/company/${handle}`;
+      case 'github': return `https://github.com/${handle}`;
+      case 'twitter': return `https://twitter.com/${handle}`;
+      case 'instagram': return `https://instagram.com/${handle}`;
+      case 'youtube': return `https://youtube.com/@${handle}`;
+      case 'facebook': return `https://facebook.com/${handle}`;
+      default: return `https://social.com/${handle}`;
+    }
+  }
 
   // Ensure protocol
   if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-    if (trimmed.startsWith('//')) {
-      trimmed = `https:${trimmed}`;
-    } else {
-      trimmed = `https://${trimmed}`;
-    }
+    trimmed = `https://${trimmed.replace(/^\/\//, '')}`;
   }
 
   try {
     const parsed = new URL(trimmed);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return defaultUrl;
 
     const hostname = parsed.hostname.toLowerCase();
     const pathname = parsed.pathname.trim();
 
-    // Check if pathname is empty or root '/' (Generic platform homepage)
+    // If generic platform homepage without specific profile path (e.g., https://linkedin.com/)
     if (!pathname || pathname === '/' || pathname === '/home' || pathname === '/index.html') {
-      return null;
+      return defaultUrl;
     }
 
     // Platform domain validation (if platformKey specified)
-    if (platformKey) {
-      const key = platformKey.toLowerCase();
-      if (key === 'linkedin' && !hostname.includes('linkedin.com')) return null;
-      if (key === 'github' && !hostname.includes('github.com')) return null;
-      if (key === 'twitter' && !hostname.includes('twitter.com') && !hostname.includes('x.com')) return null;
-      if (key === 'instagram' && !hostname.includes('instagram.com')) return null;
-      if (key === 'youtube' && !hostname.includes('youtube.com') && !hostname.includes('youtu.be')) return null;
-      if (key === 'facebook' && !hostname.includes('facebook.com') && !hostname.includes('fb.com')) return null;
+    if (key) {
+      if (key === 'linkedin' && !hostname.includes('linkedin.com')) return defaultUrl;
+      if (key === 'github' && !hostname.includes('github.com')) return defaultUrl;
+      if (key === 'twitter' && !hostname.includes('twitter.com') && !hostname.includes('x.com')) return defaultUrl;
+      if (key === 'instagram' && !hostname.includes('instagram.com')) return defaultUrl;
+      if (key === 'youtube' && !hostname.includes('youtube.com') && !hostname.includes('youtu.be')) return defaultUrl;
+      if (key === 'facebook' && !hostname.includes('facebook.com') && !hostname.includes('fb.com')) return defaultUrl;
     }
 
     return parsed.href;
   } catch {
-    return null;
+    return defaultUrl;
   }
 }
