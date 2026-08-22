@@ -33,12 +33,26 @@ const API_BASE = `${API_URL}/nav`;
 
 
 const DEFAULT_NAV: NavItemData[] = [
-  { id: '1', label: 'Home', route: '/', order: 0, isVisible: true, isHighlight: false },
-  { id: '2', label: 'Products', route: '/products', order: 1, isVisible: true, isHighlight: false },
-  { id: '3', label: 'Careers', route: '/careers', order: 2, isVisible: true, isHighlight: false },
-  { id: '4', label: 'Pricing', route: '/pricing', order: 3, isVisible: true, isHighlight: false },
-  { id: '5', label: 'About Us', route: '/about', order: 4, isVisible: true, isHighlight: false },
-  { id: '6', label: 'Contact', route: '/contact-sales', order: 5, isVisible: true, isHighlight: false },
+  { id: 'nav-1', label: 'Home', route: '/', order: 0, isVisible: true, isHighlight: false },
+  { id: 'nav-2', label: 'Ecosystem', route: '/products', order: 1, isVisible: true, isHighlight: false },
+  { id: 'nav-3', label: 'Marketplace', route: '/marketplace', order: 2, isVisible: true, isHighlight: false },
+  { id: 'nav-4', label: 'Services', route: '/services', order: 3, isVisible: true, isHighlight: false },
+  { id: 'nav-5', label: 'Careers', route: '/careers', order: 4, isVisible: true, isHighlight: false },
+  { id: 'nav-6', label: 'Pricing', route: '/pricing', order: 5, isVisible: true, isHighlight: false },
+  { id: 'nav-7', label: 'About Us', route: '/about', order: 6, isVisible: true, isHighlight: false },
+  { id: 'nav-8', label: 'Contact', route: '/contact-sales', order: 7, isVisible: true, isHighlight: false },
+];
+
+const PRESET_ROUTES = [
+  { label: 'Services', route: '/services' },
+  { label: 'Ecosystem', route: '/products' },
+  { label: 'Marketplace', route: '/marketplace' },
+  { label: 'Careers', route: '/careers' },
+  { label: 'Pricing', route: '/pricing' },
+  { label: 'About Us', route: '/about' },
+  { label: 'Contact', route: '/contact-sales' },
+  { label: 'Book Demo', route: '/book-demo' },
+  { label: 'Blog', route: '/blog' },
 ];
 
 export const AdminNavCMS: React.FC = () => {
@@ -74,12 +88,36 @@ export const AdminNavCMS: React.FC = () => {
       .then((r) => r.json())
       .then((data) => {
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          setNavItems(data.data.sort((a: NavItemData, b: NavItemData) => a.order - b.order));
+          const uniqueMap = new Map<string, NavItemData>();
+          data.data.forEach((item: NavItemData) => {
+            const key = (item.route || '').toLowerCase().trim();
+            if (key && !uniqueMap.has(key)) {
+              uniqueMap.set(key, item);
+            }
+          });
+          setNavItems(Array.from(uniqueMap.values()).sort((a, b) => a.order - b.order));
         }
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
+
+  const handleRestoreDefaults = async () => {
+    setIsLoading(true);
+    try {
+      const res = await apiFetch(`${API_BASE}/reset`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setNavItems(data.data);
+        showMessage('success', 'Navigation reset to system defaults including Services!');
+      }
+    } catch (_e) {
+      setNavItems(DEFAULT_NAV);
+      showMessage('info', 'Restored default navigation including Services.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // ── Save reorder to API ─────────────────────────────────────
   const saveReorder = async (items: NavItemData[]) => {
@@ -268,14 +306,25 @@ export const AdminNavCMS: React.FC = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowAddForm(true)}
-          className="px-5 py-2.5 rounded-xl bg-white text-purple-700 hover:bg-purple-50 font-black text-xs transition shadow-lg shadow-black/10 flex items-center gap-2 cursor-pointer shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Add Menu Item
-        </button>
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <button
+            type="button"
+            onClick={handleRestoreDefaults}
+            className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-extrabold text-xs transition border border-white/20 flex items-center gap-2 cursor-pointer"
+            title="Reset navigation menu to default system routes including Services"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Restore Defaults
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAddForm(true)}
+            className="px-5 py-2.5 rounded-xl bg-white text-purple-700 hover:bg-purple-50 font-black text-xs transition shadow-lg shadow-black/10 flex items-center gap-2 cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Add Menu Item
+          </button>
+        </div>
       </div>
 
       {/* Toast */}
@@ -316,6 +365,28 @@ export const AdminNavCMS: React.FC = () => {
               <button type="button" onClick={() => setShowAddForm(false)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
+            </div>
+
+            {/* Presets Quick Picker */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                Quick Select System Route Preset:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {PRESET_ROUTES.map((p) => (
+                  <button
+                    key={p.route}
+                    type="button"
+                    onClick={() => {
+                      setNewLabel(p.label);
+                      setNewRoute(p.route);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-bold transition cursor-pointer"
+                  >
+                    + {p.label} ({p.route})
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">

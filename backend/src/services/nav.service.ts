@@ -3,14 +3,14 @@ import path from 'path';
 import { prisma } from '../config/prisma.config';
 
 export const DEFAULT_NAV_ITEMS = [
-  { id: '0', label: 'Home', route: '/', order: 0, isVisible: true, isHighlight: false },
-  { id: '1', label: 'Ecosystem', route: '/products', order: 1, isVisible: true, isHighlight: false },
-  { id: '2', label: 'Marketplace', route: '/marketplace', order: 2, isVisible: true, isHighlight: false },
-  { id: '3', label: 'Services', route: '/services', order: 3, isVisible: true, isHighlight: false },
-  { id: '4', label: 'Careers', route: '/careers', order: 4, isVisible: true, isHighlight: false },
-  { id: '5', label: 'Pricing', route: '/pricing', order: 5, isVisible: true, isHighlight: false },
-  { id: '6', label: 'About Us', route: '/about', order: 6, isVisible: true, isHighlight: false },
-  { id: '7', label: 'Contact', route: '/contact-sales', order: 7, isVisible: true, isHighlight: false },
+  { id: 'nav-1', label: 'Home', route: '/', order: 0, isVisible: true, isHighlight: false },
+  { id: 'nav-2', label: 'Ecosystem', route: '/products', order: 1, isVisible: true, isHighlight: false },
+  { id: 'nav-3', label: 'Marketplace', route: '/marketplace', order: 2, isVisible: true, isHighlight: false },
+  { id: 'nav-4', label: 'Services', route: '/services', order: 3, isVisible: true, isHighlight: false },
+  { id: 'nav-5', label: 'Careers', route: '/careers', order: 4, isVisible: true, isHighlight: false },
+  { id: 'nav-6', label: 'Pricing', route: '/pricing', order: 5, isVisible: true, isHighlight: false },
+  { id: 'nav-7', label: 'About Us', route: '/about', order: 6, isVisible: true, isHighlight: false },
+  { id: 'nav-8', label: 'Contact', route: '/contact-sales', order: 7, isVisible: true, isHighlight: false },
 ];
 
 const dataDir = path.resolve(process.cwd(), 'src/data');
@@ -43,21 +43,46 @@ const writeFileData = (data: any[]) => {
 
 export class NavService {
   public static async getAllNavItems() {
-    const fileData = readFileData();
-    if (fileData) return fileData;
+    let items = readFileData();
 
-    try {
-      const items = await (prisma as any).navItem.findMany({
-        orderBy: { order: 'asc' },
-      });
+    if (!items) {
+      try {
+        const dbItems = await (prisma as any).navItem.findMany({
+          orderBy: { order: 'asc' },
+        });
 
-      if (items.length > 0) {
-        writeFileData(items);
-        return items;
+        if (dbItems.length > 0) {
+          items = dbItems;
+        }
+      } catch (_error) {}
+    }
+
+    if (!items || items.length === 0) {
+      items = DEFAULT_NAV_ITEMS;
+      writeFileData(items);
+    }
+
+    // Deduplicate by route
+    const uniqueMap = new Map<string, any>();
+    items.forEach((item: any) => {
+      const key = (item.route || '').toLowerCase().trim();
+      if (key && (!uniqueMap.has(key) || item.id.startsWith('nav-'))) {
+        uniqueMap.set(key, item);
       }
-    } catch (_error) {}
+    });
 
+    const result = Array.from(uniqueMap.values()).sort((a: any, b: any) => a.order - b.order);
+    return result;
+  }
+
+  public static async resetToDefaults() {
     writeFileData(DEFAULT_NAV_ITEMS);
+    try {
+      await (prisma as any).navItem.deleteMany({});
+      for (const item of DEFAULT_NAV_ITEMS) {
+        await (prisma as any).navItem.create({ data: item });
+      }
+    } catch (_err) {}
     return DEFAULT_NAV_ITEMS;
   }
 

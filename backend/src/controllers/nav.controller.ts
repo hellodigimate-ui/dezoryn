@@ -68,4 +68,13 @@ export class NavController {
       next(error);
     }
   }
+
+  public static async reset(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const items = await NavService.resetToDefaults();
+      res.status(200).json({ success: true, message: 'Navigation reset to defaults', data: items });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
