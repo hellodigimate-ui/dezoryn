@@ -20,6 +20,7 @@ export type AppRoute =
   | '/terms'
   | '/cookies'
   | '/help'
+  | '/support'
   | '/faq'
   | '/api-docs'
   | '/status'
@@ -47,7 +48,7 @@ export const getRouteFromPath = (path: string): AppRoute => {
   if (cleanPath.startsWith('/privacy')) return '/privacy';
   if (cleanPath.startsWith('/terms')) return '/terms';
   if (cleanPath.startsWith('/cookie')) return '/cookies';
-  if (cleanPath.startsWith('/help')) return '/help';
+  if (cleanPath.startsWith('/support') || cleanPath.startsWith('/help') || cleanPath.startsWith('/ticket')) return '/support';
   if (cleanPath.startsWith('/faq')) return '/faq';
   if (cleanPath.startsWith('/api-docs') || cleanPath.startsWith('/docs')) return '/api-docs';
   if (cleanPath.startsWith('/status')) return '/status';

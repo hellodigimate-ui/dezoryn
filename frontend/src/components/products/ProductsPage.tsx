@@ -8,8 +8,8 @@ import {
   ArrowRight,
   CheckCircle2,
   Sparkles,
-  Check,
-  ChevronDown
+  ChevronDown,
+  Calendar
 } from 'lucide-react';
 import { useNavigation } from '../../utils/NavigationContext';
 
@@ -128,52 +128,7 @@ export const ProductsPage: React.FC = () => {
     ? productModules 
     : productModules.filter(m => m.category === selectedCategory);
 
-  const pricingPlans = [
-    {
-      name: 'Starter',
-      desc: 'Ideal for small sales teams getting started with CRM automation.',
-      price: '₹29',
-      period: '/user/month',
-      isPopular: false,
-      features: [
-        'Up to 10 Sales Reps',
-        'Basic AI Lead Scoring',
-        'Email & SMS Cadences',
-        'Standard Kanban Pipelines',
-        '99.5% SLA Uptime Guarantee'
-      ]
-    },
-    {
-      name: 'Professional',
-      desc: 'For growing revenue teams needing predictive AI intelligence.',
-      price: '₹79',
-      period: '/user/month',
-      isPopular: true,
-      features: [
-        'Unlimited Sales Reps',
-        'Advanced 50+ Signal Lead Scoring',
-        'Multi-Channel Automated Cadences',
-        'Quarterly Revenue Forecasting',
-        'Multi-Currency & Custom Fields',
-        'Dedicated Support & Onboarding'
-      ]
-    },
-    {
-      name: 'Enterprise',
-      desc: 'Custom infrastructure & SOC2 security for global organizations.',
-      price: 'Custom',
-      period: 'Billed Annually',
-      isPopular: false,
-      features: [
-        'Dedicated Enterprise Cloud Cluster',
-        'SOC2, GDPR & HIPAA Compliance',
-        'Custom AI Model Training',
-        '24/7 Priority Support & 15 Min SLA',
-        'Dedicated Technical Account Manager',
-        'Custom SSO (SAML, Okta, Azure AD)'
-      ]
-    }
-  ];
+
 
   const faqs = [
     {
@@ -364,59 +319,28 @@ export const ProductsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ── ENTERPRISE PRICING PREVIEW ── */}
-        <div className="mb-20">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-xs font-extrabold tracking-wider text-blue-600 dark:text-cyan-400 uppercase">TRANSPARENT ENTERPRISE PRICING</span>
-            <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">Flexible Plans for Every Stage</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {pricingPlans.map((plan, idx) => (
-              <div
-                key={idx}
-                className={`p-8 rounded-3xl border flex flex-col justify-between relative transition duration-300 ${
-                  plan.isPopular
-                    ? 'bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border-blue-600 dark:border-cyan-400 shadow-xl dark:shadow-2xl shadow-blue-500/10 dark:shadow-cyan-500/25 scale-105'
-                    : 'bg-white dark:bg-slate-900/70 border-slate-200 dark:border-slate-800'
-                }`}
-              >
-                {plan.isPopular && (
-                  <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-blue-600 dark:bg-cyan-400 text-white dark:text-slate-950 text-[10px] font-black uppercase tracking-wider shadow-md">
-                    MOST POPULAR
-                  </span>
-                )}
-                <div>
-                  <h4 className="text-xl font-extrabold text-slate-900 dark:text-white mb-1">{plan.name}</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">{plan.desc}</p>
-                  
-                  <div className="mb-6">
-                    <span className="text-4xl font-black text-slate-900 dark:text-white">{plan.price}</span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">{plan.period}</span>
-                  </div>
-
-                  <div className="space-y-3 mb-8">
-                    {plan.features.map((f, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-                        <Check className="w-4 h-4 text-blue-600 dark:text-cyan-400 shrink-0" />
-                        <span>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => navigateTo(plan.name === 'Enterprise' ? '/contact-sales' : '/book-demo')}
-                  className={`w-full py-3.5 rounded-xl font-extrabold text-xs transition cursor-pointer ${
-                    plan.isPopular
-                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-600 dark:to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-lg shadow-blue-500/20 dark:shadow-cyan-500/30'
-                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  {plan.name === 'Enterprise' ? 'Contact Enterprise Sales' : 'Get Started Now'}
-                </button>
-              </div>
-            ))}
+        {/* ── ENTERPRISE PRICING REDIRECTION CTA ── */}
+        <div className="mb-20 bg-gradient-to-r from-blue-900/40 via-slate-900 to-slate-900 border border-slate-800 rounded-3xl p-10 text-center shadow-xl">
+          <span className="text-xs font-extrabold tracking-wider text-blue-600 dark:text-cyan-400 uppercase">ENTERPRISE SOLUTIONS & MARKETPLACE</span>
+          <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1 mb-3">Evaluate Pricing & Subscription Plans</h3>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto mb-8 font-normal leading-relaxed">
+            Explore tier options, compare product features, and purchase subscription plans directly in the Marketplace catalog.
+          </p>
+          <div className="flex flex-wrap items-center gap-4 justify-center">
+            <button
+              onClick={() => navigateTo('/marketplace')}
+              className="px-7 py-4 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-lg shadow-blue-500/25 transition cursor-pointer flex items-center gap-2 border-none"
+            >
+              <span>View Pricing & Plans</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => navigateTo('/book-demo')}
+              className="px-7 py-4 rounded-full bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs border border-slate-700 transition cursor-pointer flex items-center gap-2"
+            >
+              <Calendar className="w-4 h-4 text-cyan-400" />
+              <span>Schedule a Demo</span>
+            </button>
           </div>
         </div>
 

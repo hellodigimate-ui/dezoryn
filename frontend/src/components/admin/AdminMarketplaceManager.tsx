@@ -32,11 +32,11 @@ import {
 } from 'lucide-react';
 import { DEFAULT_HERO_CMS, type MarketplaceHeroCMSConfig } from '../marketplace/MarketplaceHero';
 import { AdminMarketplaceAnalytics } from './AdminMarketplaceAnalytics';
+import { PRODUCT_DETAILS_MAP, normalizeProductId } from '../marketplace/ProductDetailPage';
 
 import { API_URL, apiFetch } from '../../config/api.config';
 
 const API_BASE = `${API_URL}/products`;
-
 
 export interface CustomerReviewItem {
   id?: string;
@@ -48,6 +48,15 @@ export interface CustomerReviewItem {
   title: string;
   review: string;
   verified: boolean;
+}
+
+export interface PricingTierAdminItem {
+  name: string;
+  price: string;
+  period: string;
+  popular?: boolean;
+  features: string[];
+  ctaText?: string;
 }
 
 export interface MarketplaceProductAdmin {
@@ -65,6 +74,7 @@ export interface MarketplaceProductAdmin {
   price: string;
   priceValue: number;
   discount?: number;
+  pricingTiers?: PricingTierAdminItem[];
   thumbnail?: string;
   image?: string;
   coverPhoto?: string;
@@ -657,7 +667,16 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                               type="button"
                               onClick={() => {
                                 setModalTab('basic');
-                                setEditModalProduct({ ...prod });
+                                const canonicalId = normalizeProductId(prod.id);
+                                const baseTiers = PRODUCT_DETAILS_MAP[canonicalId]?.pricingTiers;
+                                const tiersToUse = (Array.isArray(prod.pricingTiers) && prod.pricingTiers.length > 0)
+                                  ? prod.pricingTiers
+                                  : (baseTiers && baseTiers.length > 0 ? baseTiers : [
+                                      { name: 'Starter Tier', price: prod.price || '₹49', period: '/month', features: ['Core Module Access', 'Standard Support'], ctaText: 'Start Free Trial' },
+                                      { name: 'Pro Tier', price: '₹149', period: '/month', popular: true, features: ['Unlimited Workflows & Users', '24/7 Priority Support'], ctaText: 'Start Free Trial' },
+                                      { name: 'Enterprise Network', price: 'Custom', period: '', features: ['Dedicated Private Cloud Cluster', 'Custom SLA'], ctaText: 'Contact Enterprise Team' }
+                                    ]);
+                                setEditModalProduct({ ...prod, pricingTiers: tiersToUse });
                                 setIsEditModalOpen(true);
                               }}
                               className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-300 transition cursor-pointer border border-slate-200 dark:border-slate-700/80"
@@ -1788,6 +1807,194 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                         onChange={(e) => setEditModalProduct({ ...editModalProduct, documentation: e.target.value })}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-cyan-600 dark:text-cyan-300 text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                       />
+                    </div>
+                  </div>
+
+                  {/* ── INTERACTIVE SUBSCRIPTION PRICING TIERS EDITOR ── */}
+                  <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                          <DollarSign className="w-4 h-4 text-emerald-500" />
+                          <span>Subscription Pricing Tiers (Product Detail Page)</span>
+                        </h4>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Customize subscription tier names, prices, periods, popular badges, and feature lists shown on the Product Detail page.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentTiers = editModalProduct.pricingTiers || [];
+                          setEditModalProduct({
+                            ...editModalProduct,
+                            pricingTiers: [
+                              ...currentTiers,
+                              {
+                                name: 'New Custom Tier',
+                                price: '₹99',
+                                period: '/month',
+                                popular: false,
+                                features: ['Core Module Access', 'Standard Cloud Hosting'],
+                                ctaText: 'Start Free Trial'
+                              }
+                            ]
+                          });
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs border border-emerald-500/30 transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Pricing Tier</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {(editModalProduct.pricingTiers && editModalProduct.pricingTiers.length > 0
+                        ? editModalProduct.pricingTiers
+                        : []
+                      ).map((tier, tIdx) => (
+                        <div key={tIdx} className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3 shadow-xs">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="w-6 h-6 rounded-full bg-blue-500/10 text-blue-600 dark:text-cyan-400 font-black text-xs flex items-center justify-center border border-blue-500/30 shrink-0">
+                                {tIdx + 1}
+                              </span>
+                              <input
+                                type="text"
+                                placeholder="Tier Name (e.g. Starter CRM)"
+                                value={tier.name}
+                                onChange={(e) => {
+                                  const updated = [...(editModalProduct.pricingTiers || [])];
+                                  updated[tIdx] = { ...updated[tIdx], name: e.target.value };
+                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                }}
+                                className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-extrabold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 flex-1 focus:outline-none"
+                              />
+                            </div>
+
+                            <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 cursor-pointer shrink-0">
+                              <input
+                                type="checkbox"
+                                checked={!!tier.popular}
+                                onChange={(e) => {
+                                  const updated = [...(editModalProduct.pricingTiers || [])];
+                                  updated[tIdx] = { ...updated[tIdx], popular: e.target.checked };
+                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                }}
+                                className="rounded text-blue-600"
+                              />
+                              <span>Mark Most Popular</span>
+                            </label>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = (editModalProduct.pricingTiers || []).filter((_, idx) => idx !== tIdx);
+                                setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                              }}
+                              className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 transition cursor-pointer"
+                              title="Delete Pricing Tier"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500">Tier Price (e.g. ₹29)</label>
+                              <input
+                                type="text"
+                                placeholder="₹29 or $39"
+                                value={tier.price}
+                                onChange={(e) => {
+                                  const updated = [...(editModalProduct.pricingTiers || [])];
+                                  updated[tIdx] = { ...updated[tIdx], price: e.target.value };
+                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                }}
+                                className="w-full bg-white dark:bg-slate-900 text-blue-600 dark:text-cyan-400 text-xs font-black px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-0.5 focus:outline-none"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500">Period (e.g. /month)</label>
+                              <input
+                                type="text"
+                                placeholder="/month or /year"
+                                value={tier.period}
+                                onChange={(e) => {
+                                  const updated = [...(editModalProduct.pricingTiers || [])];
+                                  updated[tIdx] = { ...updated[tIdx], period: e.target.value };
+                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                }}
+                                className="w-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-0.5 focus:outline-none"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500">CTA Text</label>
+                              <input
+                                type="text"
+                                placeholder="Start Free Trial"
+                                value={tier.ctaText || 'Start Free Trial'}
+                                onChange={(e) => {
+                                  const updated = [...(editModalProduct.pricingTiers || [])];
+                                  updated[tIdx] = { ...updated[tIdx], ctaText: e.target.value };
+                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                }}
+                                className="w-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-0.5 focus:outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Tier Features List */}
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 mb-1 block">Tier Features List</label>
+                            <div className="space-y-1.5">
+                              {(tier.features || []).map((feat, fIdx) => (
+                                <div key={fIdx} className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={feat}
+                                    onChange={(e) => {
+                                      const updated = [...(editModalProduct.pricingTiers || [])];
+                                      const feats = [...(updated[tIdx].features || [])];
+                                      feats[fIdx] = e.target.value;
+                                      updated[tIdx] = { ...updated[tIdx], features: feats };
+                                      setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                    }}
+                                    className="flex-1 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...(editModalProduct.pricingTiers || [])];
+                                      const feats = (updated[tIdx].features || []).filter((_, i) => i !== fIdx);
+                                      updated[tIdx] = { ...updated[tIdx], features: feats };
+                                      setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                    }}
+                                    className="text-slate-400 hover:text-rose-500 cursor-pointer p-1"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...(editModalProduct.pricingTiers || [])];
+                                  const feats = [...(updated[tIdx].features || []), 'New feature requirement'];
+                                  updated[tIdx] = { ...updated[tIdx], features: feats };
+                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                }}
+                                className="text-[10px] font-extrabold text-blue-600 dark:text-cyan-400 hover:underline cursor-pointer inline-flex items-center gap-1 mt-1"
+                              >
+                                <Plus className="w-3 h-3" />
+                                <span>Add Feature Item</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>

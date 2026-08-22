@@ -58,7 +58,54 @@ const DEFAULT_PRODUCTS = [
       'Exams, Grading & Custom Report Card Generator',
       'Parent & Student iOS / Android Mobile App'
     ],
+    pricingTiers: [
+      { name: 'Starter Institute', price: '₹29', period: '/month', features: ['Up to 500 Students', 'Student & Staff Records', 'Basic Fee Billing & Receipts', 'Exam Grading Engine', 'Email Support'], ctaText: 'Start 14-Day Free Trial' },
+      { name: 'Professional Campus', price: '₹49', period: '/month', popular: true, features: ['Up to 2,000 Students', 'Parent & Student Mobile Apps', 'WhatsApp Payment Reminders', 'Biometric Attendance Sync', 'Transport GPS Fleet Tracker', '24/7 Priority Support'], ctaText: 'Start Free Trial' },
+      { name: 'Enterprise Network', price: '₹99', period: '/month', features: ['Unlimited Students & Campuses', 'Dedicated Private Cloud Cluster', 'Custom Webhooks & REST API', 'Single Sign-On (SSO / SAML 2.0)', 'Custom Board Report Cards', 'Dedicated Success Manager'], ctaText: 'Contact Enterprise Team' }
+    ],
     order: 0,
+    isEnabled: true
+  },
+  {
+    id: 'schoolycore-lite',
+    title: 'SchoolyCore Lite',
+    subtitle: 'LITE MODULE',
+    description: 'Lightweight institute management system for core attendance, basic fee billing, parent alerts, and student records.',
+    icon: 'Building',
+    gradient: 'from-emerald-600 to-teal-500',
+    category: 'industry',
+    categoryLabel: 'Education & Academics',
+    industry: 'Education & Academics',
+    badge: 'LITE MODULE',
+    tag: 'Education',
+    tags: ['schoolycore-lite', 'lite', 'school', 'education', 'attendance', 'fees'],
+    status: 'Available',
+    rating: 4.8,
+    reviewsCount: 610,
+    price: 'From ₹24/mo',
+    priceValue: 24,
+    pricingType: 'Monthly',
+    businessSizes: ['Startup (1-10)', 'SMB (10-50)'],
+    deployment: ['Cloud Hosted (SaaS)'],
+    platforms: ['Web App (Browser)', 'Android App'],
+    aiPowered: false,
+    apiAvailable: true,
+    cloudNative: true,
+    mobileApp: true,
+    whatsAppIntegration: true,
+    languages: ['English', 'Hindi'],
+    countries: ['Global', 'India (GST Ready)'],
+    features: [
+      'Core Student Roster & Contact Directory',
+      'Basic Fee Receipt Generator & Payment Tracking',
+      'Daily Attendance Logging & SMS Parent Alerts',
+      '1-Click CSV Student Data Import / Export'
+    ],
+    pricingTiers: [
+      { name: 'Lite Campus', price: '₹24', period: '/month', popular: true, features: ['Up to 250 Students', 'Basic Fee Receipts', 'Attendance Logging', 'SMS Parent Alerts'], ctaText: 'Start Free Trial' },
+      { name: 'Expanded Campus', price: '₹49', period: '/month', features: ['Up to 800 Students', 'Report Cards', 'Parent Portal', 'Priority Email Support'], ctaText: 'Start Free Trial' }
+    ],
+    order: 1,
     isEnabled: true
   },
   {
@@ -95,6 +142,10 @@ const DEFAULT_PRODUCTS = [
       'EHR & Digital Doctor Prescriptions Engine',
       'Pharmacy & Pathology Lab Billing Integration',
       'NABH Compliance Audit Trail Logs'
+    ],
+    pricingTiers: [
+      { name: 'Clinic Standard', price: '₹89', period: '/month', features: ['Up to 5 OPD Counters', 'Digital Prescriptions', 'Basic EHR & Billing', 'Standard Support'], ctaText: 'Start Free Trial' },
+      { name: 'Hospital Enterprise', price: '₹249', period: '/month', popular: true, features: ['Unlimited Beds & OPD', 'NABH Compliance Audit', 'IPD & ICU Bed Matrix', '24/7 Priority Support'], ctaText: 'Start Free Trial' }
     ],
     order: 1,
     isEnabled: true
@@ -134,6 +185,11 @@ const DEFAULT_PRODUCTS = [
       'Employee Self-Service (ESS) Leave Portal',
       'Performance Appraisals & Goal Tracking (OKRs)'
     ],
+    pricingTiers: [
+      { name: 'Starter HR', price: '₹39', period: '/month', features: ['Up to 50 Employees', 'Automated Payroll Run', 'Biometric Attendance', 'Email Support'], ctaText: 'Start Free Trial' },
+      { name: 'Growth Enterprise', price: '₹89', period: '/month', popular: true, features: ['Up to 250 Employees', 'Biometric Device Integration', 'ESS Mobile App', '24/7 Support'], ctaText: 'Start Free Trial' },
+      { name: 'Enterprise Unlimited', price: '₹199', period: '/month', features: ['Unlimited Headcount', 'Multi-Entity Payroll', 'Custom Performance OKRs', 'Dedicated Success Manager'], ctaText: 'Contact Enterprise Team' }
+    ],
     order: 2,
     isEnabled: true
   },
@@ -171,6 +227,10 @@ const DEFAULT_PRODUCTS = [
       'Barcode & QR Scanner Hardware Integration',
       'Automated Purchase Reordering & PO Generation',
       'Low Stock & Batch Expiry Real-Time Alerts'
+    ],
+    pricingTiers: [
+      { name: 'Single Warehouse', price: '₹35', period: '/month', features: ['Up to 5,000 SKUs', 'Barcode Scanning', 'Purchase Orders', 'Email Support'], ctaText: 'Start Free Trial' },
+      { name: 'Multi-Warehouse Pro', price: '₹89', period: '/month', popular: true, features: ['Up to 50,000 SKUs', '5 Global Warehouses', 'Auto Purchase Orders', '24/7 Priority Support'], ctaText: 'Start Free Trial' }
     ],
     order: 3,
     isEnabled: true
@@ -210,6 +270,11 @@ const DEFAULT_PRODUCTS = [
       'Predictive Pipeline Deal Close Forecasting',
       'Bi-Directional CRM 1-Click Sync'
     ],
+    pricingTiers: [
+      { name: 'Starter AI', price: '₹79', period: '/month', features: ['Up to 1,000 Scored Leads/mo', 'Email Cadence Generator', 'CRM 1-Click Sync', 'Standard Support'], ctaText: 'Start 14-Day Free Trial' },
+      { name: 'Pro Copilot', price: '₹199', period: '/month', popular: true, features: ['Up to 10,000 Scored Leads/mo', 'Autonomous WhatsApp & Email Cadences', 'Predictive Deal Close Analytics', '24/7 Priority Support'], ctaText: 'Start Free Trial' },
+      { name: 'Autonomous Enterprise', price: '₹499', period: '/month', features: ['Unlimited Leads & Custom LLMs', 'Dedicated Fine-Tuned Model Cluster', 'Custom API Webhooks & SLA', 'Dedicated Success Manager'], ctaText: 'Contact Enterprise Team' }
+    ],
     order: 4,
     isEnabled: true
   },
@@ -247,6 +312,11 @@ const DEFAULT_PRODUCTS = [
       'Unified Omnichannel Customer Inbox',
       'Custom Webhooks & REST API Integrations',
       'Sales Rep Quota Attainment Leaderboards'
+    ],
+    pricingTiers: [
+      { name: 'Starter CRM', price: '₹29', period: '/month', features: ['Up to 5 Sales Rep Seats', 'Visual Drag & Drop Kanban', 'Contact & Lead Records', 'Standard Email Support'], ctaText: 'Start 14-Day Free Trial' },
+      { name: 'Growth CRM', price: '₹79', period: '/month', popular: true, features: ['Up to 25 Sales Rep Seats', 'Omnichannel Customer Inbox', 'Automated Deal Stage Triggers', '24/7 Priority Support'], ctaText: 'Start Free Trial' },
+      { name: 'Enterprise 360', price: '₹169', period: '/month', features: ['Unlimited Rep Seats & Pipelines', 'Custom Webhooks & REST API', 'Quota Attainment Leaderboards', 'Dedicated Account Manager'], ctaText: 'Contact Enterprise Team' }
     ],
     order: 5,
     isEnabled: true
@@ -662,6 +732,7 @@ export class ProductService {
 
         // Multi-Field Search Query
         if (searchClean) {
+          const matchesId = String(p.id || '').toLowerCase().includes(searchClean);
           const matchesTitle = String(p.title || '').toLowerCase().includes(searchClean);
           const matchesDesc = String(p.description || p.shortDesc || '').toLowerCase().includes(searchClean);
           const matchesCat = String(p.categoryLabel || p.category || '').toLowerCase().includes(searchClean);
@@ -671,7 +742,7 @@ export class ProductService {
           const feats = Array.isArray(p.features) ? p.features : [];
           const matchesFeat = feats.some((f: string) => String(f).toLowerCase().includes(searchClean));
 
-          return matchesTitle || matchesDesc || matchesCat || matchesInd || matchesTag || matchesFeat;
+          return matchesId || matchesTitle || matchesDesc || matchesCat || matchesInd || matchesTag || matchesFeat;
         }
 
         return true;

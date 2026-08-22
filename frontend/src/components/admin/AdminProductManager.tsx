@@ -555,8 +555,8 @@ export const AdminProductManager: React.FC = () => {
                     <p className="text-[11px] text-slate-500">When disabled, this product won't appear on the live site</p>
                   </div>
                   <button type="button" onClick={() => setForm(f => ({ ...f, isEnabled: !f.isEnabled }))}
-                    className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${form.isEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'}`}>
-                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${form.isEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    className={`w-11 h-6 p-0.5 rounded-full transition-colors cursor-pointer shrink-0 flex items-center ${form.isEnabled ? 'bg-blue-600 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'}`}>
+                    <motion.span layout transition={{ type: 'spring', stiffness: 500, damping: 30 }} className="w-5 h-5 rounded-full bg-white shadow-sm pointer-events-none" />
                   </button>
                 </div>
               </div>

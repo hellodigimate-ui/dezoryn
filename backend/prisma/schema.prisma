@@ -415,5 +415,26 @@ model HomepageStats {
   @@map("homepage_stats")
 }
 
+model SupportTicket {
+  id          String   @id @default(cuid())
+  ticketId    String   @unique
+  fullName    String
+  email       String
+  phone       String?  @default("")
+  company     String?  @default("")
+  product     String?  @default("")
+  category    String   @default("General Support")
+  priority    String   @default("MEDIUM")
+  subject     String
+  message     String   @db.Text
+  status      String   @default("OPEN")
+  adminNotes  String?  @default("") @db.Text
+  assignedTo  String?  @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("support_tickets")
+}
+
 
 

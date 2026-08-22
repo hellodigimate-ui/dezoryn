@@ -106,9 +106,8 @@ const EnterpriseCTAButton: React.FC<EnterpriseCTAButtonProps> = ({
     y.set(mouseY / rect.height - 0.5);
 
     if (spotlightRef.current) {
-      spotlightRef.current.style.background = `radial-gradient(120px circle at ${mouseX}px ${mouseY}px, ${
-        variant === 'primary' ? 'rgba(255, 255, 255, 0.35)' : 'rgba(6, 182, 212, 0.25)'
-      }, transparent 80%)`;
+      spotlightRef.current.style.background = `radial-gradient(120px circle at ${mouseX}px ${mouseY}px, ${variant === 'primary' ? 'rgba(255, 255, 255, 0.35)' : 'rgba(6, 182, 212, 0.25)'
+        }, transparent 80%)`;
     }
   };
 
@@ -175,9 +174,8 @@ const EnterpriseCTAButton: React.FC<EnterpriseCTAButtonProps> = ({
         {/* CURSOR SPOTLIGHT LAYER */}
         <div
           ref={spotlightRef}
-          className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${
-            isHovered ? 'opacity-100' : 'opacity-0'
-          }`}
+          className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'
+            }`}
         />
 
         {/* GLASS SHINE SWEEP ON HOVER */}

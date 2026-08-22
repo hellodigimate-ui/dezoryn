@@ -91,8 +91,20 @@ export const MarketplacePage: React.FC = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const categoryParam = urlParams.get('category');
     const searchParam = urlParams.get('search');
+    const productParam = urlParams.get('product') || urlParams.get('id');
+
     if (categoryParam) setActiveCategory(categoryParam);
     if (searchParam) setSearchQuery(searchParam);
+    else if (productParam) setSearchQuery(productParam.trim());
+
+    if (searchParam || productParam) {
+      setTimeout(() => {
+        const catalogElem = document.getElementById('marketplace-catalog');
+        if (catalogElem) {
+          catalogElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 350);
+    }
   }, []);
 
   useEffect(() => {
@@ -266,7 +278,7 @@ export const MarketplacePage: React.FC = () => {
         </section>
 
         {/* ── 3. MAIN CATALOG CONTENT (REAL BACKEND DATA FILTRATION GRID) ── */}
-        <section className="mb-16">
+        <section id="marketplace-catalog" className="mb-16">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
             {/* ── LEFT DESKTOP STICKY FILTER SIDEBAR ── */}

@@ -7,7 +7,8 @@ import {
   MapPin,
   MessageSquare,
   Sparkles,
-  Clock
+  Clock,
+  LifeBuoy
 } from 'lucide-react';
 import { useNavigation } from '../../utils/NavigationContext';
 import { CompanyTimeline } from './CompanyTimeline';
@@ -115,9 +116,10 @@ export const Footer: React.FC = React.memo(() => {
       {
         title: 'RESOURCES',
         links: [
-          { label: 'Documentation', url: '/api-docs' },
-          { label: 'Help & Support', url: '/help' },
+          { label: '24/7 Support Desk', url: '/support' },
+          { label: 'Help & Support', url: '/support' },
           { label: 'Product FAQs', url: '/faq' },
+          { label: 'API & Documentation', url: '/api-docs' },
           { label: 'System Status', url: '/status' },
           { label: 'Sitemap', url: '/sitemap' },
         ],
@@ -186,10 +188,22 @@ export const Footer: React.FC = React.memo(() => {
           facebook: (typeof rawSocials.facebook === 'string' && rawSocials.facebook.trim()) ? rawSocials.facebook.trim() : DEFAULT_SOCIAL_LINKS.facebook,
         };
 
+        const rawCategories = Array.isArray(footerObj.footerLinks) && footerObj.footerLinks.length > 0 ? footerObj.footerLinks : footer.footerLinks;
+        const sanitizedCategories = rawCategories.map((cat: any) => ({
+          ...cat,
+          links: (cat.links || []).map((l: any) => {
+            const label = String(l.label || '').toLowerCase();
+            if (label.includes('support') || label.includes('help desk') || label.includes('ticket')) {
+              return { ...l, url: '/support' };
+            }
+            return l;
+          }),
+        }));
+
         setFooter({
           companyDescription: footerObj.companyDescription || `${siteName} is a global IT solutions provider committed to delivering innovative, reliable and future-ready software products.`,
           footerLogo: footerObj.footerLogo || siteName,
-          footerLinks: Array.isArray(footerObj.footerLinks) && footerObj.footerLinks.length > 0 ? footerObj.footerLinks : footer.footerLinks,
+          footerLinks: sanitizedCategories,
           socialLinks: mergedSocialLinks,
           copyrightText: footerObj.copyrightText || `${siteName}. All Rights Reserved.`,
           legalLinks: Array.isArray(footerObj.legalLinks) && footerObj.legalLinks.length > 0 ? footerObj.legalLinks : footer.legalLinks,
@@ -555,6 +569,43 @@ export const Footer: React.FC = React.memo(() => {
         {/* Newsletter Subscription Widget */}
         <FooterNewsletter />
 
+        {/* ── Featured Support Desk Banner below Newsletter ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-6 p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-slate-900/90 via-blue-950/80 to-slate-900/90 border border-cyan-500/30 backdrop-blur-xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-4 text-center sm:text-left">
+            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 mx-auto sm:mx-0">
+              <LifeBuoy className="w-6 h-6 animate-pulse text-cyan-400" />
+            </div>
+            <div>
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-black uppercase tracking-wider">
+                  24/7 ENTERPRISE SUPPORT DESK
+                </span>
+                <span className="text-slate-500 text-xs">•</span>
+                <span className="text-xs text-slate-300 font-bold">Fast Response Guarantee</span>
+              </div>
+              <h4 className="text-sm sm:text-base font-black text-white mt-1">
+                Need Technical Assistance or Have a Product Question?
+              </h4>
+            </div>
+          </div>
+
+          <motion.button
+            type="button"
+            onClick={() => navigateTo('/support')}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-slate-800/90 hover:bg-cyan-950/60 text-slate-100 font-extrabold text-xs shadow-md border border-cyan-500/30 hover:border-cyan-400/60 transition duration-200 cursor-pointer flex items-center justify-center gap-2 shrink-0 group"
+          >
+            <LifeBuoy className="w-4 h-4 text-cyan-400 group-hover:text-cyan-300" />
+            <span>24/7 Support Desk & Ticket →</span>
+          </motion.button>
+        </motion.div>
+
         {/* Animated Divider */}
         <AnimatedDivider />
 
@@ -566,10 +617,22 @@ export const Footer: React.FC = React.memo(() => {
           className="pt-2 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-4"
         >
           <p>© {new Date().getFullYear()} {footer.copyrightText}</p>
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3.5 flex-wrap">
+            {/* Featured Support Badge Button */}
+            <motion.button
+              type="button"
+              onClick={() => navigateTo('/support')}
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.96 }}
+              className="px-3 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700/90 border border-slate-700 text-slate-300 hover:text-cyan-400 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition"
+            >
+              <LifeBuoy className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Submit Support Request</span>
+            </motion.button>
+
             {footer.legalLinks.map((link, idx) => (
               <React.Fragment key={idx}>
-                {idx > 0 && <span>|</span>}
+                <span>|</span>
                 <motion.button
                   type="button"
                   onClick={() => navigateTo((link.url || '/') as any)}

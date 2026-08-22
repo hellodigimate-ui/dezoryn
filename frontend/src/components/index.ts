@@ -36,5 +36,7 @@ export * from './admin/AdminServicesManager';
 export * from './services/ServicesPage';
 export * from './services/ServicesSection';
 export * from './faq/FAQSection';
+export * from './support/SupportPage';
+export * from './admin/AdminSupportManager';
 
 

@@ -24,7 +24,7 @@ const DEFAULT_FOOTER = {
       title: 'COMPANY',
       links: [
         { label: 'About Us', url: '/about' },
-        { label: 'Our Leadership', url: '/about' },
+        { label: 'Our Leadership', url: '/leadership' },
         { label: 'Careers & Hiring', url: '/careers' },
         { label: 'Contact Us', url: '/contact-sales' },
       ],
@@ -32,8 +32,9 @@ const DEFAULT_FOOTER = {
     {
       title: 'SOLUTIONS',
       links: [
-        { label: 'DezoAI Sales Copilot', url: '/products' },
-        { label: 'Enterprise Lead Scoring', url: '/products' },
+        { label: 'Technology Services', url: '/services' },
+        { label: 'DezoAI Platform', url: '/products' },
+        { label: 'CRM & ERP Suite', url: '/products' },
         { label: 'Pricing Plans', url: '/pricing' },
         { label: 'Book Live Demo', url: '/book-demo' },
       ],
@@ -41,9 +42,11 @@ const DEFAULT_FOOTER = {
     {
       title: 'RESOURCES',
       links: [
-        { label: 'Contact Us', url: '/contact-sales' },
-        { label: 'Product FAQs', url: '/products' },
-        { label: 'Interactive Walkthrough', url: '/book-demo' },
+        { label: '24/7 Support Desk', url: '/support' },
+        { label: 'Help & Support Center', url: '/support' },
+        { label: 'Product FAQs', url: '/faq' },
+        { label: 'API & Documentation', url: '/api-docs' },
+        { label: 'System Status', url: '/status' },
       ],
     },
   ],
@@ -57,14 +60,14 @@ const DEFAULT_FOOTER = {
   },
   copyrightText: 'Dezoryn Technologies Pvt. Ltd. All Rights Reserved.',
   legalLinks: [
-    { label: 'Privacy Policy', url: '/contact-sales' },
-    { label: 'Terms & Conditions', url: '/contact-sales' },
-    { label: 'Security Policy', url: '/contact-sales' },
+    { label: 'Privacy Policy', url: '/privacy' },
+    { label: 'Terms & Conditions', url: '/terms' },
+    { label: 'Cookie Policy', url: '/cookies' },
   ],
   supportLinks: [
-    { label: '24/7 SLA Support', url: '/contact-sales' },
-    { label: 'Help Center', url: '/products' },
-    { label: 'System Status', url: '/products' },
+    { label: '24/7 Enterprise Support', url: '/support' },
+    { label: 'Submit Support Ticket', url: '/support' },
+    { label: 'System Status', url: '/status' },
   ],
 };
 

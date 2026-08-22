@@ -729,17 +729,15 @@ export const HeroEarth3D: React.FC = React.memo(() => {
             <div className="absolute -inset-4 pointer-events-none rounded-full overflow-visible z-0">
               {/* Outer Cyan Ring (Clockwise) */}
               <div
-                className={`absolute inset-0 rounded-full border border-dashed border-cyan-400/50 dark:border-cyan-400/60 ${
-                  isProcessorHovered ? 'animate-[spin_18s_linear_infinite] border-cyan-400' : 'animate-[spin_36s_linear_infinite]'
-                }`}
+                className={`absolute inset-0 rounded-full border border-dashed border-cyan-400/50 dark:border-cyan-400/60 ${isProcessorHovered ? 'animate-[spin_18s_linear_infinite] border-cyan-400' : 'animate-[spin_36s_linear_infinite]'
+                  }`}
                 style={{ filter: 'drop-shadow(0 0 4px rgba(0, 240, 255, 0.3))' }}
               />
 
               {/* Inner Purple Ring (Counter-Clockwise) */}
               <div
-                className={`absolute inset-2 rounded-full border border-dashed border-purple-500/50 dark:border-purple-400/60 ${
-                  isProcessorHovered ? 'animate-[spin_14s_linear_infinite_reverse] border-purple-400' : 'animate-[spin_28s_linear_infinite_reverse]'
-                }`}
+                className={`absolute inset-2 rounded-full border border-dashed border-purple-500/50 dark:border-purple-400/60 ${isProcessorHovered ? 'animate-[spin_14s_linear_infinite_reverse] border-purple-400' : 'animate-[spin_28s_linear_infinite_reverse]'
+                  }`}
                 style={{ filter: 'drop-shadow(0 0 4px rgba(168, 85, 247, 0.3))' }}
               />
 
@@ -760,11 +758,10 @@ export const HeroEarth3D: React.FC = React.memo(() => {
 
             {/* Glassmorphism Outer Core Frame with Dual Neon Cyan + Purple Glow */}
             <div
-              className={`w-full h-full rounded-[34px] p-3 bg-gradient-to-br from-white/95 via-slate-100/90 to-purple-50/80 dark:from-[#0d1b3e]/90 dark:via-[#08122a]/95 dark:to-[#030715]/98 border-2 relative overflow-hidden backdrop-blur-md transform-gpu flex items-center justify-center cursor-pointer group transition-all duration-500 ease-out ${
-                isProcessorHovered
+              className={`w-full h-full rounded-[34px] p-3 bg-gradient-to-br from-white/95 via-slate-100/90 to-purple-50/80 dark:from-[#0d1b3e]/90 dark:via-[#08122a]/95 dark:to-[#030715]/98 border-2 relative overflow-hidden backdrop-blur-md transform-gpu flex items-center justify-center cursor-pointer group transition-all duration-500 ease-out ${isProcessorHovered
                   ? 'border-cyan-400 dark:border-cyan-400 shadow-[0_0_45px_rgba(0,240,255,0.5),0_0_22px_rgba(168,85,247,0.4),inset_0_0_18px_rgba(0,240,255,0.3)]'
                   : 'border-cyan-400/60 dark:border-cyan-400/50 shadow-[0_8px_30px_rgba(0,240,255,0.2),0_0_18px_rgba(168,85,247,0.15),inset_0_0_12px_rgba(0,240,255,0.12)]'
-              }`}
+                }`}
             >
               {/* Dynamic Slow Animated Light Sheen Reflection */}
               <motion.div
@@ -804,11 +801,10 @@ export const HeroEarth3D: React.FC = React.memo(() => {
                       : { duration: 0.6, ease: 'easeOut' },
                     scale: { type: 'spring', stiffness: 300, damping: 24 },
                   }}
-                  className={`w-15 h-15 rounded-full bg-gradient-to-tr from-cyan-500/20 via-blue-600/20 to-purple-600/30 border border-cyan-400/70 dark:border-cyan-400/60 flex items-center justify-center relative transition-all duration-500 ${
-                    isProcessorHovered
+                  className={`w-15 h-15 rounded-full bg-gradient-to-tr from-cyan-500/20 via-blue-600/20 to-purple-600/30 border border-cyan-400/70 dark:border-cyan-400/60 flex items-center justify-center relative transition-all duration-500 ${isProcessorHovered
                       ? 'shadow-[0_0_28px_#00f0ff,0_0_16px_#a855f7,inset_0_0_12px_#00f0ff]'
                       : 'shadow-[0_0_18px_rgba(0,240,255,0.6),0_0_10px_rgba(168,85,247,0.3)]'
-                  }`}
+                    }`}
                 >
                   {/* Central Glowing Processor Icon */}
                   <Cpu className="w-8 h-8 text-cyan-300 dark:text-cyan-300 drop-shadow-[0_0_8px_#00f0ff]" />

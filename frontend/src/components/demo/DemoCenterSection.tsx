@@ -88,13 +88,33 @@ export const DemoCenterSection: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const productParam = urlParams.get('product') || urlParams.get('id');
+
+    if (productParam) {
+      setForm(f => ({ ...f, product: productParam }));
+    }
+
     const fetchDemos = async () => {
       try {
         const res = await apiFetch(API_DEMOS);
         const data = await res.json();
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
           setDemos(data.data);
-          setActiveDemo(data.data[0]);
+          if (productParam) {
+            const found = data.data.find((d: any) => 
+              d.id?.toLowerCase() === productParam.toLowerCase() || 
+              d.title?.toLowerCase().includes(productParam.toLowerCase())
+            );
+            if (found) {
+              setActiveDemo(found);
+              setForm(f => ({ ...f, product: found.title }));
+            } else {
+              setActiveDemo(data.data[0]);
+            }
+          } else {
+            setActiveDemo(data.data[0]);
+          }
         }
       } catch {
         // use default fallback

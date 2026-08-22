@@ -20,6 +20,7 @@ import { AdminThemeManager } from './AdminThemeManager';
 import { AdminWebsiteSettings } from './AdminWebsiteSettings';
 import { AdminAboutCMS } from './AdminAboutCMS';
 import { AdminHomepageStatsCMS } from './AdminHomepageStatsCMS';
+import { AdminSupportManager } from './AdminSupportManager';
 import { AdminAIAssistantModal } from './AdminAIAssistantModal';
 import type { AIGenerateType } from './AdminAIAssistantModal';
 import { useNavigation } from '../../utils/NavigationContext';
@@ -172,6 +173,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       case 'inquiries':
       case 'leads':
         return <AdminInquiryManager />;
+      case 'support':
+      case 'support-requests':
+      case 'tickets':
+        return <AdminSupportManager />;
       case 'footer':
         return <AdminFooterManager />;
       case 'demos':

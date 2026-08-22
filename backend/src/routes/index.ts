@@ -22,6 +22,7 @@ import timelineRoutes from './timeline.routes';
 import newsletterRoutes from './newsletter.routes';
 import serviceRoutes from './service.routes';
 import homepageStatsRoutes from './homepage-stats.routes';
+import supportRoutes from './support.routes';
 
 const router = Router();
 
@@ -48,6 +49,8 @@ router.use('/testimonials', testimonialRoutes);
 router.use('/faqs', faqRoutes);
 router.use('/jobs', jobRoutes);
 router.use('/contact', contactRoutes);
+router.use('/support', supportRoutes);
+router.use('/support-tickets', supportRoutes);
 router.use('/footer', footerRoutes);
 router.use('/demos/booking', bookingRoutes);
 router.use('/demos/bookings', bookingRoutes);

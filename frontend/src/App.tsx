@@ -33,7 +33,8 @@ import {
   Footer,
   DezoAIWidget,
   AdminLogin,
-  AdminLayout
+  AdminLayout,
+  SupportPage
 } from './components';
 import { PlaceholderPage } from './components/common/PlaceholderPage';
 import { NotFoundPage } from './components/common/NotFoundPage';
@@ -418,6 +419,19 @@ export const App: React.FC = () => {
             </motion.main>
           )}
 
+          {currentRoute === '/support' && (
+            <motion.main
+              key="support-page"
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <SupportPage />
+            </motion.main>
+          )}
+
           {currentRoute === '/' && (
             <motion.main
               key="home-page"
@@ -524,7 +538,7 @@ export const App: React.FC = () => {
 
           {/* Fallback 404 Page */}
           {![
-            '/', '/marketplace', '/products', '/product-detail', '/services', '/book-demo', '/contact-sales', '/about', '/pricing', '/careers',
+            '/', '/marketplace', '/products', '/product-detail', '/services', '/book-demo', '/contact-sales', '/about', '/pricing', '/careers', '/support',
             '/blog', '/leadership', '/privacy', '/terms', '/cookies', '/help', '/faq', '/api-docs', '/status', '/sitemap'
           ].includes(currentRoute) && (
             <motion.main key="404-page" variants={pageVariants} initial="initial" animate="animate" exit="exit">

@@ -11,12 +11,11 @@ import {
   Sparkles,
   ArrowLeft,
   Calendar,
-  MessageSquare,
   Cpu,
-  Check,
   FileText,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  BadgeDollarSign
 } from 'lucide-react';
 import { apiFetch } from '../../config/api.config';
 import { useNavigation } from '../../utils/NavigationContext';
@@ -537,7 +536,30 @@ export const PRODUCT_DETAILS_MAP: Record<string, ProductDetailData> = {
       { title: 'Predictive Intent Lead Scoring', desc: 'Machine learning model ranks leads by likelihood to convert.', icon: 'Sparkles' },
       { title: 'Autonomous Multi-Channel Cadences', desc: 'Personalized email and WhatsApp sequences powered by LLM.', icon: 'Zap' }
     ],
-    pricingTiers: [],
+    pricingTiers: [
+      {
+        name: 'Starter AI',
+        price: '₹79',
+        period: '/month',
+        features: ['Up to 1,000 Scored Leads/mo', 'Email Cadence Generator', 'CRM 1-Click Sync', 'Standard Support'],
+        ctaText: 'Start 14-Day Free Trial'
+      },
+      {
+        name: 'Pro Copilot',
+        price: '₹199',
+        period: '/month',
+        popular: true,
+        features: ['Up to 10,000 Scored Leads/mo', 'Autonomous WhatsApp & Email Cadences', 'Predictive Deal Close Analytics', '24/7 Priority Support'],
+        ctaText: 'Start Free Trial'
+      },
+      {
+        name: 'Autonomous Enterprise',
+        price: '₹499',
+        period: '/month',
+        features: ['Unlimited Leads & Custom LLMs', 'Dedicated Fine-Tuned Model Cluster', 'Custom API Webhooks & SLA', 'Dedicated Success Manager'],
+        ctaText: 'Contact Enterprise Team'
+      }
+    ],
     technicalSpecs: [],
     faqs: [],
     customerReviews: [],
@@ -574,7 +596,30 @@ export const PRODUCT_DETAILS_MAP: Record<string, ProductDetailData> = {
     featuresList: [
       { title: 'Drag-and-Drop Deal Kanban', desc: 'Track sales deals through customizable stage pipelines.', icon: 'Zap' }
     ],
-    pricingTiers: [],
+    pricingTiers: [
+      {
+        name: 'Starter CRM',
+        price: '₹29',
+        period: '/month',
+        features: ['Up to 5 Sales Rep Seats', 'Visual Drag & Drop Kanban', 'Contact & Lead Records', 'Standard Email Support'],
+        ctaText: 'Start 14-Day Free Trial'
+      },
+      {
+        name: 'Growth CRM',
+        price: '₹79',
+        period: '/month',
+        popular: true,
+        features: ['Up to 25 Sales Rep Seats', 'Omnichannel Customer Inbox', 'Automated Deal Stage Triggers', '24/7 Priority Support'],
+        ctaText: 'Start Free Trial'
+      },
+      {
+        name: 'Enterprise 360',
+        price: '₹169',
+        period: '/month',
+        features: ['Unlimited Rep Seats & Pipelines', 'Custom Webhooks & REST API', 'Quota Attainment Leaderboards', 'Dedicated Account Manager'],
+        ctaText: 'Contact Enterprise Team'
+      }
+    ],
     technicalSpecs: [],
     faqs: [],
     customerReviews: [],
@@ -611,7 +656,30 @@ export const PRODUCT_DETAILS_MAP: Record<string, ProductDetailData> = {
     featuresList: [
       { title: 'SAML 2.0 Single Sign-On', desc: 'Connect Okta, Azure AD, or Google Workspace instantly.', icon: 'ShieldCheck' }
     ],
-    pricingTiers: [],
+    pricingTiers: [
+      {
+        name: 'Vault Standard',
+        price: '₹59',
+        period: '/month',
+        features: ['Up to 50 SSO Identity Users', 'Role-Based Access Control', 'Basic Encrypted Audit Logs', 'Standard Support'],
+        ctaText: 'Start Free Trial'
+      },
+      {
+        name: 'Vault Pro',
+        price: '₹149',
+        period: '/month',
+        popular: true,
+        features: ['Up to 500 SSO Identity Users', 'SAML 2.0 / Okta / Azure AD', 'Real-Time Anomaly Threat Detection', '24/7 Security Operations Support'],
+        ctaText: 'Start Free Trial'
+      },
+      {
+        name: 'Zero Trust Enterprise',
+        price: '₹299',
+        period: '/month',
+        features: ['Unlimited Identity Users', 'Dedicated Private Cluster Isolation', 'Custom Audit Export & SIEM Integration', 'Dedicated Compliance Manager'],
+        ctaText: 'Contact Security Team'
+      }
+    ],
     technicalSpecs: [],
     faqs: [],
     customerReviews: [],
@@ -648,7 +716,30 @@ export const PRODUCT_DETAILS_MAP: Record<string, ProductDetailData> = {
     featuresList: [
       { title: 'Automated GST & Multi-Tax Billing', desc: 'Generate GST-compliant invoices and auto-file e-way bills.', icon: 'Zap' }
     ],
-    pricingTiers: [],
+    pricingTiers: [
+      {
+        name: 'FinTrack Basic',
+        price: '₹45',
+        period: '/month',
+        features: ['Up to 500 Invoices/mo', 'GST Compliant Invoicing', 'Single-Currency Ledger', 'Email Support'],
+        ctaText: 'Start Free Trial'
+      },
+      {
+        name: 'FinTrack Pro',
+        price: '₹119',
+        period: '/month',
+        popular: true,
+        features: ['Multi-Currency Ledger & FX Sync', 'Automated E-Way Bill & Tax Filing', 'Real-Time Cash Flow Forecasting', '24/7 Priority Support'],
+        ctaText: 'Start Free Trial'
+      },
+      {
+        name: 'Corporate ERP',
+        price: '₹249',
+        period: '/month',
+        features: ['Unlimited Invoices & Entities', 'Multi-Company Consolidated Ledger', 'Custom Bank API Reconciliation', 'Dedicated Financial Advisor'],
+        ctaText: 'Contact Enterprise Team'
+      }
+    ],
     technicalSpecs: [],
     faqs: [],
     customerReviews: [],
@@ -878,6 +969,15 @@ const VideoPlayerContainer: React.FC<{
 export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId }) => {
   const { navigateTo } = useNavigation();
   
+  const scrollToPricing = () => {
+    const el = document.getElementById('pricing');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigateTo(`/marketplace?product=${encodeURIComponent(product.id)}`);
+    }
+  };
+
   const activeId = useMemo(() => {
     const raw = productId || new URLSearchParams(window.location.search).get('id') || new URLSearchParams(window.location.search).get('productId');
     return normalizeProductId(raw || 'schoolycore');
@@ -914,6 +1014,9 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
             rating: apiProd.rating || localBase.rating,
             reviewsCount: apiProd.reviewsCount || localBase.reviewsCount,
             price: apiProd.price || localBase.price,
+            pricingTiers: (Array.isArray(apiProd.pricingTiers) && apiProd.pricingTiers.length > 0)
+              ? apiProd.pricingTiers
+              : localBase.pricingTiers,
             featuresList: (Array.isArray(apiProd.features) && apiProd.features.length > 0)
               ? apiProd.features.map((f: any) =>
                   typeof f === 'string'
@@ -981,6 +1084,11 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                     <span>AI Powered OS</span>
                   </span>
                 )}
+
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-black text-xs">
+                  <BadgeDollarSign className="w-3.5 h-3.5" />
+                  <span>{product.price || 'From ₹49/mo'}</span>
+                </div>
 
                 <div className="flex items-center gap-1 text-amber-500 font-extrabold text-xs bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -1123,19 +1231,19 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
 
             {/* ── SECTION 5: FEATURES GRID ── */}
             <section className="bg-white dark:bg-slate-900/90 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl">
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <Zap className="w-6 h-6 text-cyan-400" />
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-3">
+                <Zap className="w-8 h-8 text-cyan-400" />
                 <span>Core Capabilities & Features</span>
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {product.featuresList.map((feat, idx) => (
-                  <div key={idx} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 hover:border-blue-500/40 transition text-left flex items-start gap-4">
-                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-cyan-500/10 border border-blue-200 dark:border-cyan-400/30 text-blue-600 dark:text-cyan-300 shrink-0">
-                      <CheckCircle2 className="w-5 h-5" />
+                  <div key={idx} className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 hover:border-blue-500/40 transition text-left flex items-start gap-5 group">
+                    <div className="p-4 rounded-2xl bg-blue-50 dark:bg-cyan-500/10 border border-blue-200 dark:border-cyan-400/30 text-blue-600 dark:text-cyan-300 shrink-0 shadow-md transition-transform group-hover:scale-110">
+                      <CheckCircle2 className="w-7 h-7" />
                     </div>
                     <div>
-                      <h4 className="text-base font-extrabold text-slate-900 dark:text-white mb-1">
+                      <h4 className="text-base font-extrabold text-slate-900 dark:text-white mb-1.5">
                         {feat.title}
                       </h4>
                       <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
@@ -1147,63 +1255,104 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
               </div>
             </section>
 
-            {/* ── SECTION 6: PRICING TIERS ── */}
-            <section className="bg-white dark:bg-slate-900/90 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl">
-              <div className="text-center max-w-xl mx-auto mb-8">
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">
-                  Transparent Subscription Pricing
+
+            {/* ── SECTION 6: PRICING TIERS & PLANS ── */}
+            <section id="pricing" className="bg-white dark:bg-slate-900/90 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl relative scroll-mt-24">
+              <div className="text-left mb-8">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-cyan-500/10 border border-blue-200 dark:border-cyan-400/30 text-blue-600 dark:text-cyan-400 font-extrabold text-xs uppercase tracking-wider mb-2">
+                  <BadgeDollarSign className="w-4 h-4" />
+                  <span>Flexible Subscription Plans</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                  Transparent Pricing for Every Scale
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                  Select the ideal plan for your institution. Upgrade, downgrade, or cancel anytime.
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Choose the ideal plan for your institution. All tiers include a 14-day risk-free trial with zero setup fees.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {product.pricingTiers.map((tier, idx) => (
-                  <div
-                    key={idx}
-                    className={`rounded-3xl p-6 flex flex-col justify-between text-left transition-all ${
-                      tier.popular
-                        ? 'bg-gradient-to-b from-blue-900/40 via-slate-900 to-slate-900 border-2 border-blue-500 dark:border-cyan-400 shadow-2xl scale-102 relative'
-                        : 'bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800'
-                    }`}
-                  >
-                    {tier.popular && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-[10px] font-black uppercase tracking-wider shadow-md">
-                        MOST POPULAR
-                      </span>
-                    )}
-
-                    <div>
-                      <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">{tier.name}</h3>
-                      <div className="flex items-baseline gap-1 my-3">
-                        <span className="text-3xl font-black text-slate-900 dark:text-white">{tier.price}</span>
-                        <span className="text-xs text-slate-400 font-bold">{tier.period}</span>
-                      </div>
-
-                      <div className="space-y-2.5 my-6 pt-4 border-t border-slate-200 dark:border-slate-700/80">
-                        {tier.features.map((f, fIdx) => (
-                          <div key={fIdx} className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                            <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                            <span>{f}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => navigateTo('/book-demo')}
-                      className={`w-full py-3 rounded-2xl font-extrabold text-xs shadow-md transition cursor-pointer ${
-                        tier.popular
-                          ? 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white'
-                          : 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white'
+                {(product.pricingTiers && product.pricingTiers.length > 0
+                  ? product.pricingTiers
+                  : [
+                      {
+                        name: 'Starter Tier',
+                        price: product.price || '₹49',
+                        period: '/month',
+                        features: ['Full Core Suite Access', 'Standard Cloud Hosting', '99.9% Uptime SLA', 'Email Support'],
+                        ctaText: 'Start Free Trial'
+                      },
+                      {
+                        name: 'Professional Tier',
+                        price: '₹149',
+                        period: '/month',
+                        popular: true,
+                        features: ['Unlimited Workflows & Users', 'Dedicated API Rate Limits', '24/7 Priority Support', 'Custom SLA'],
+                        ctaText: 'Start Free Trial'
+                      },
+                      {
+                        name: 'Enterprise Network',
+                        price: 'Custom',
+                        period: '',
+                        features: ['Dedicated Private Cloud Cluster', 'Single Sign-On (SSO / SAML 2.0)', 'Custom Integrations & SLA', 'Dedicated Success Manager'],
+                        ctaText: 'Contact Enterprise Team'
+                      }
+                    ]
+                ).map((tier, idx) => {
+                  const isPopular = tier.popular;
+                  return (
+                    <div
+                      key={idx}
+                      className={`rounded-2xl p-6 flex flex-col justify-between relative transition-all duration-300 ${
+                        isPopular
+                          ? 'bg-gradient-to-b from-blue-600/10 via-cyan-500/5 to-slate-900/50 dark:to-slate-900/90 border-2 border-blue-500 dark:border-cyan-400 shadow-xl shadow-cyan-500/10 scale-102'
+                          : 'bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                       }`}
                     >
-                      {tier.ctaText}
-                    </button>
-                  </div>
-                ))}
+                      {isPopular && (
+                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-[10px] font-black uppercase tracking-wider shadow-md">
+                          Most Popular
+                        </span>
+                      )}
+
+                      <div>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">
+                          {tier.name}
+                        </h3>
+                        <div className="flex items-baseline gap-1 mb-4">
+                          <span className="text-3xl sm:text-4xl font-black text-blue-600 dark:text-cyan-400">
+                            {tier.price}
+                          </span>
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                            {tier.period}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2.5 mb-6 text-xs text-slate-600 dark:text-slate-300">
+                          {tier.features.map((feat, fIdx) => (
+                            <div key={fIdx} className="flex items-start gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                              <span className="font-semibold">{feat}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => navigateTo(`/book-demo?product=${encodeURIComponent(product.id)}&plan=${encodeURIComponent(tier.name)}`)}
+                        className={`w-full py-3 px-4 rounded-xl font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-2 ${
+                          isPopular
+                            ? 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-lg shadow-blue-500/25'
+                            : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white border border-slate-700'
+                        }`}
+                      >
+                        <span>{tier.ctaText || 'Get Started'}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </section>
 
@@ -1338,7 +1487,7 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                       <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mb-4 font-normal">{rel.shortDesc}</p>
                     </div>
                     <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                      <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">{rel.price}</span>
+                      <span className="text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{rel.category}</span>
                       <button
                         type="button"
                         onClick={() => navigateTo('/marketplace')}
@@ -1353,29 +1502,30 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
               </div>
             </section>
 
-            {/* ── SECTION 12: BOOK DEMO CTA BANNER ── */}
-            <section className="bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 rounded-3xl p-10 text-white text-center shadow-2xl">
-              <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">
-                Experience {product.title} Live
+            {/* ── SECTION 12: PRODUCT CONVERSION CTA BANNER ── */}
+            <section className="bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 rounded-3xl p-10 lg:p-12 text-white text-center shadow-2xl">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold mb-3">
+                Ready to explore {product.title}?
               </h2>
-              <p className="text-xs sm:text-sm text-blue-100 max-w-xl mx-auto mb-6">
-                Schedule a 1-on-1 walkthrough with a software architect to see custom workflows and data migration options.
+              <p className="text-xs sm:text-sm text-blue-100 max-w-xl mx-auto mb-8 font-normal leading-relaxed">
+                Discover the platform, explore available subscription plans in the Marketplace, or schedule a live walkthrough with our technical architects.
               </p>
-              <div className="flex flex-wrap gap-3 justify-center">
+              <div className="flex flex-wrap items-center gap-4 justify-center">
                 <button
                   type="button"
-                  onClick={() => navigateTo('/book-demo')}
-                  className="px-6 py-3 rounded-full bg-white text-blue-600 font-extrabold text-xs shadow-lg hover:bg-slate-100 transition cursor-pointer flex items-center gap-2 border-none"
+                  onClick={scrollToPricing}
+                  className="px-7 py-4 rounded-full bg-white text-blue-600 font-extrabold text-xs shadow-xl hover:bg-slate-100 transition cursor-pointer flex items-center gap-2 border-none"
                 >
-                  <Calendar className="w-4 h-4 text-blue-600" />
-                  <span>Book 1-on-1 Live Demo</span>
+                  <span>View Pricing & Plans</span>
+                  <ArrowRight className="w-4 h-4 text-blue-600" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigateTo('/contact-sales')}
-                  className="px-6 py-3 rounded-full bg-blue-700/60 hover:bg-blue-700 text-white font-bold text-xs border border-blue-400/40 transition cursor-pointer"
+                  onClick={() => navigateTo(`/book-demo?product=${encodeURIComponent(product.id)}`)}
+                  className="px-7 py-4 rounded-full bg-blue-900/60 hover:bg-blue-900 text-white font-extrabold text-xs border border-blue-400/40 transition cursor-pointer flex items-center gap-2"
                 >
-                  Contact Architect
+                  <Calendar className="w-4 h-4 text-cyan-300" />
+                  <span>Schedule a Demo</span>
                 </button>
               </div>
             </section>
@@ -1386,42 +1536,52 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
           <div className="lg:col-span-4 sticky top-24 z-20 space-y-6">
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 p-6 shadow-2xl backdrop-blur-xl text-left space-y-6">
               
-              {/* Sidebar Header & Price */}
+              {/* Sidebar Header */}
               <div className="pb-4 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Starting Subscription</span>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl font-black text-slate-900 dark:text-white text-emerald-600 dark:text-emerald-400">{product.price}</span>
-                  <span className="text-xs text-slate-400 font-semibold">billed monthly</span>
+                <span className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-cyan-500/10 border border-blue-200 dark:border-cyan-400/30 text-blue-600 dark:text-cyan-400 font-extrabold text-[10px] uppercase tracking-wider">
+                  {product.categoryLabel}
+                </span>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mt-2 mb-1">
+                  {product.title}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-normal leading-relaxed">
+                  Discover platform capabilities, explore plans in the Marketplace, or schedule a guided architecture walkthrough.
+                </p>
+              </div>
+
+              {/* Sidebar Pricing Callout */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-slate-800/80 dark:to-slate-800/40 border border-blue-200/80 dark:border-slate-700/80 text-left">
+                <div className="text-[10px] font-black text-blue-600 dark:text-cyan-400 uppercase tracking-wider mb-1">
+                  Starting Subscription
                 </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-black text-slate-900 dark:text-white">
+                    {product.price || 'From ₹49/mo'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1">
+                  14-day free trial • Cancel anytime • Zero setup fee
+                </p>
               </div>
 
               {/* Action Buttons Stack */}
               <div className="space-y-3">
                 <button
                   type="button"
-                  onClick={() => setIsVideoModalOpen(true)}
+                  onClick={scrollToPricing}
                   className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-lg shadow-blue-500/25 transition cursor-pointer flex items-center justify-center gap-2 border-none"
                 >
-                  <Play className="w-4 h-4 fill-white" />
-                  <span>Watch Interactive Demo</span>
+                  <span>View Pricing & Plans</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => navigateTo('/book-demo')}
+                  onClick={() => navigateTo(`/book-demo?product=${encodeURIComponent(product.id)}`)}
                   className="w-full py-3.5 px-4 rounded-2xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 font-extrabold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-2 border-none"
                 >
                   <Calendar className="w-4 h-4" />
-                  <span>Book 1-on-1 Live Demo</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigateTo('/contact-sales')}
-                  className="w-full py-3 px-4 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-700"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Contact Architect</span>
+                  <span>Schedule a Demo</span>
                 </button>
               </div>
 

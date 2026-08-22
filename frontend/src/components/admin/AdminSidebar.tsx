@@ -20,7 +20,8 @@ import {
   LayoutGrid,
   Tv,
   Cog,
-  BarChart3
+  BarChart3,
+  LifeBuoy
 } from 'lucide-react';
 import { useNavigation } from '../../utils/NavigationContext';
 
@@ -71,6 +72,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
   {
     categoryTitle: 'ENGAGEMENT & LEADS',
     items: [
+      { id: 'support', label: 'Support Requests', icon: LifeBuoy },
       { id: 'testimonials', label: 'Testimonials CMS', icon: MessageSquareQuote },
       { id: 'faqs', label: 'FAQ Accordion CMS', icon: HelpCircle },
       { id: 'jobs', label: 'Careers & Job Listings', icon: Briefcase },
