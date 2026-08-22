@@ -11,7 +11,8 @@ import {
   Save,
   User,
   Layers,
-  MessageSquare
+  MessageSquare,
+  AlertTriangle
 } from 'lucide-react';
 import { API_URL, apiFetch } from '../../config/api.config';
 
@@ -40,7 +41,11 @@ export const AdminSupportManager: React.FC = () => {
   const [tickets, setTickets] = useState<SupportTicketItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info' | 'delete'; text: string } | null>(null);
+
+  // Custom Delete Confirm Modal State
+  const [deleteConfirmTicket, setDeleteConfirmTicket] = useState<{ id: string; ticketId: string; subject: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter States
   const [search, setSearch] = useState('');
@@ -63,7 +68,7 @@ export const AdminSupportManager: React.FC = () => {
     adminNotes: '',
   });
 
-  const showMsg = (type: 'success' | 'error' | 'info', text: string) => {
+  const showMsg = (type: 'success' | 'error' | 'info' | 'delete', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3500);
   };
@@ -79,12 +84,20 @@ export const AdminSupportManager: React.FC = () => {
       if (sortBy) query.set('sortBy', sortBy);
 
       const res = await apiFetch(`${API_SUPPORT}?${query.toString()}`);
+      
+      if (res.status === 401 || res.status === 403) {
+        showMsg('error', 'Admin authorization required. Please sign out and log in with your updated admin credentials.');
+        return;
+      }
+
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
         setTickets(data.data);
+      } else {
+        showMsg('error', data.message || 'Failed to load support tickets.');
       }
     } catch {
-      showMsg('error', 'Failed to load support tickets.');
+      showMsg('error', 'Network error occurred while loading support tickets.');
     } finally {
       setIsLoading(false);
     }
@@ -133,8 +146,14 @@ export const AdminSupportManager: React.FC = () => {
     }
   };
 
-  const handleDeleteTicket = async (id: string, ticketId: string) => {
-    if (!confirm(`Are you sure you want to delete ticket ${ticketId}?`)) return;
+  const openDeleteModal = (id: string, ticketId: string, subject: string) => {
+    setDeleteConfirmTicket({ id, ticketId, subject });
+  };
+
+  const confirmDeleteTicket = async () => {
+    if (!deleteConfirmTicket) return;
+    const { id, ticketId } = deleteConfirmTicket;
+    setIsDeleting(true);
 
     try {
       const res = await apiFetch(`${API_SUPPORT}/${id}`, { method: 'DELETE' });
@@ -142,10 +161,15 @@ export const AdminSupportManager: React.FC = () => {
       if (data.success) {
         setTickets((prev) => prev.filter((t) => t.id !== id));
         if (selectedTicket?.id === id) setSelectedTicket(null);
-        showMsg('info', `Ticket ${ticketId} deleted.`);
+        showMsg('delete', `Support ticket ${ticketId} deleted successfully.`);
+      } else {
+        showMsg('error', data.message || 'Failed to delete ticket.');
       }
     } catch {
       showMsg('error', 'Failed to delete ticket.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmTicket(null);
     }
   };
 
@@ -174,20 +198,62 @@ export const AdminSupportManager: React.FC = () => {
       case 'MEDIUM':
         return 'bg-blue-600/20 text-blue-400 border border-blue-500/30';
       case 'HIGH':
-        return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+        return 'bg-amber-600/20 text-amber-400 border border-amber-500/30';
       case 'URGENT':
-        return 'bg-rose-500/20 text-rose-400 border border-rose-500/30 font-black animate-pulse';
+        return 'bg-rose-600/20 text-rose-400 border border-rose-500/30';
       default:
-        return 'bg-blue-600/20 text-blue-400';
+        return 'bg-slate-800 text-slate-300';
     }
   };
 
-  const openCount = tickets.filter((t) => t.status === 'OPEN').length;
-  const inProgressCount = tickets.filter((t) => t.status === 'IN_PROGRESS').length;
-  const resolvedCount = tickets.filter((t) => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
+  const openCount = tickets.filter((t) => (t.status || 'OPEN').toUpperCase() === 'OPEN').length;
+  const inProgressCount = tickets.filter((t) => (t.status || '').toUpperCase() === 'IN_PROGRESS').length;
+  const resolvedCount = tickets.filter((t) => (t.status || '').toUpperCase() === 'RESOLVED').length;
 
   return (
-    <div className="space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="space-y-6 w-full p-4 sm:p-6 md:p-8 text-slate-900 dark:text-slate-100 font-['Plus_Jakarta_Sans',sans-serif]">
+      {/* ── FLOATING TOAST NOTIFICATION ── */}
+      <AnimatePresence>
+        {message && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className={`fixed top-6 right-6 z-[999999] max-w-md p-4 rounded-2xl border text-xs font-black flex items-center gap-3 shadow-2xl backdrop-blur-xl ${
+              message.type === 'delete' || message.type === 'error'
+                ? 'bg-rose-950/95 border-rose-500/50 text-rose-300 shadow-rose-900/50'
+                : message.type === 'success'
+                ? 'bg-emerald-950/95 border-emerald-500/40 text-emerald-300 shadow-emerald-900/30'
+                : 'bg-cyan-950/95 border-cyan-500/40 text-cyan-300 shadow-cyan-900/30'
+            }`}
+          >
+            <div className={`p-2 rounded-xl shrink-0 ${
+              message.type === 'delete' || message.type === 'error'
+                ? 'bg-rose-500/20 text-rose-400'
+                : message.type === 'success'
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-cyan-500/20 text-cyan-400'
+            }`}>
+              {message.type === 'delete' ? (
+                <Trash2 className="w-4 h-4 text-rose-400" />
+              ) : message.type === 'error' ? (
+                <AlertTriangle className="w-4 h-4 text-rose-400" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              )}
+            </div>
+            <span className="flex-1 leading-snug">{message.text}</span>
+            <button
+              type="button"
+              onClick={() => setMessage(null)}
+              className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── HEADER BANNER ── */}
       <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-r from-blue-700 via-cyan-700 to-indigo-800 text-white shadow-xl shadow-cyan-500/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -415,20 +481,20 @@ export const AdminSupportManager: React.FC = () => {
 
                     {/* Actions */}
                     <td className="py-4 px-4 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
                           onClick={() => openDetailModal(t)}
-                          className="px-3 py-1.5 rounded-xl bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 text-cyan-700 dark:text-cyan-300 font-extrabold transition cursor-pointer flex items-center gap-1 border border-cyan-200 dark:border-cyan-800"
+                          className="px-3.5 py-1.5 rounded-xl bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 hover:text-cyan-200 font-extrabold text-xs transition-all duration-200 cursor-pointer flex items-center gap-1.5 border border-cyan-500/30 hover:border-cyan-400/50 shadow-xs"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <Eye className="w-3.5 h-3.5 text-cyan-400" />
                           <span>View & Edit</span>
                         </button>
 
                         <button
                           type="button"
-                          onClick={() => handleDeleteTicket(t.id, t.ticketId)}
-                          className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-500 cursor-pointer transition"
+                          onClick={() => openDeleteModal(t.id, t.ticketId, t.subject)}
+                          className="p-1.5 sm:p-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 hover:text-rose-300 border border-rose-500/30 hover:border-rose-400/50 cursor-pointer transition-all duration-200 shadow-xs"
                           title="Delete Ticket"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -616,7 +682,7 @@ export const AdminSupportManager: React.FC = () => {
               <div className="sticky bottom-0 flex items-center justify-between p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-b-3xl">
                 <button
                   type="button"
-                  onClick={() => handleDeleteTicket(selectedTicket.id, selectedTicket.ticketId)}
+                  onClick={() => openDeleteModal(selectedTicket.id, selectedTicket.ticketId, selectedTicket.subject)}
                   className="px-4 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 font-bold text-xs cursor-pointer transition flex items-center gap-1.5"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -644,6 +710,71 @@ export const AdminSupportManager: React.FC = () => {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── CUSTOM DELETE CONFIRMATION MODAL ── */}
+      <AnimatePresence>
+        {deleteConfirmTicket && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDeleteConfirmTicket(null)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 15 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+              className="relative w-full max-w-md p-6 sm:p-8 rounded-3xl bg-slate-900 border border-rose-500/30 text-white shadow-2xl overflow-hidden font-['Plus_Jakarta_Sans',sans-serif]"
+            >
+              {/* Top ambient glow */}
+              <div className="absolute top-0 right-0 w-48 h-48 bg-rose-500/10 rounded-full blur-[70px] pointer-events-none" />
+
+              <div className="flex items-start gap-4 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+                  <AlertTriangle className="w-6 h-6 animate-pulse" />
+                </div>
+
+                <div className="flex-1 min-w-0 text-left">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-400">
+                    PERMANENT DELETION WARNING
+                  </span>
+                  <h3 className="text-lg font-black text-white mt-0.5">
+                    Delete Ticket {deleteConfirmTicket.ticketId}?
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-2 font-medium leading-relaxed">
+                    Are you sure you want to delete ticket <span className="font-bold text-white">"{deleteConfirmTicket.ticketId}"</span> ({deleteConfirmTicket.subject})?
+                    This ticket record will be permanently removed from PostgreSQL database and storage.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-800 relative z-10">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmTicket(null)}
+                  disabled={isDeleting}
+                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition cursor-pointer border border-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteTicket}
+                  disabled={isDeleting}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs shadow-lg shadow-rose-600/30 transition cursor-pointer border border-rose-500/40 disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{isDeleting ? 'Deleting...' : 'Delete Ticket'}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

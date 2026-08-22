@@ -1,7 +1,36 @@
+import fs from 'fs';
+import path from 'path';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 const db = prisma as any;
+
+const dataDir = path.resolve(process.cwd(), 'src/data');
+const dataFilePath = path.join(dataDir, 'support_tickets.json');
+
+const ensureDataDir = () => {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+};
+
+const readTicketsFromFile = (): any[] => {
+  try {
+    ensureDataDir();
+    if (fs.existsSync(dataFilePath)) {
+      const raw = fs.readFileSync(dataFilePath, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch (_e) {}
+  return [];
+};
+
+const writeTicketsToFile = (tickets: any[]) => {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(dataFilePath, JSON.stringify(tickets, null, 2), 'utf-8');
+  } catch (_e) {}
+};
 
 export interface SupportTicketPayload {
   fullName: string;
@@ -79,7 +108,8 @@ export class SupportService {
       count = memorySupportTickets.length;
     }
 
-    const nextNumber = Math.max(count + 1, memorySupportTickets.length + 1);
+    const fileTickets = readTicketsFromFile();
+    const nextNumber = Math.max(count + 1, memorySupportTickets.length + 1, fileTickets.length + 1);
     const formattedNum = String(nextNumber).padStart(4, '0');
     return `SUP-${formattedNum}`;
   }
@@ -113,8 +143,11 @@ export class SupportService {
       updatedAt: now,
     };
 
-    // Store in memory fallback array first
+    // Store in memory fallback array and JSON file backup
     memorySupportTickets.unshift(ticketData);
+    const fileTickets = readTicketsFromFile();
+    fileTickets.unshift(ticketData);
+    writeTicketsToFile(fileTickets);
 
     // Try Prisma DB insertion
     try {
@@ -148,7 +181,7 @@ export class SupportService {
         ticketData.updatedAt
       );
     } catch (_rawErr) {
-      // Memory fallback saved
+      // Saved in memory and file fallback
     }
 
     return ticketData;
@@ -178,13 +211,15 @@ export class SupportService {
           tickets = rows;
         }
       } catch (_e) {
-        // use memory
+        // use memory / file
       }
     }
 
-    // Merge memory tickets with DB results to eliminate duplicates
+    // Merge memory tickets, file tickets, and DB results to eliminate duplicates
+    const fileTickets = readTicketsFromFile();
     const map = new Map<string, any>();
     tickets.forEach((t) => map.set(t.id, t));
+    fileTickets.forEach((t) => map.set(t.id, t));
     memorySupportTickets.forEach((t) => map.set(t.id, t));
 
     let result = Array.from(map.values());
@@ -270,7 +305,7 @@ export class SupportService {
     await ensureSupportTableRaw();
     const now = new Date();
 
-    // Update in memory
+    // Update in memory and file
     const memIdx = memorySupportTickets.findIndex((t) => t.id === id || t.ticketId === id);
     if (memIdx !== -1) {
       if (payload.status !== undefined) memorySupportTickets[memIdx].status = payload.status;
@@ -278,6 +313,17 @@ export class SupportService {
       if (payload.assignedTo !== undefined) memorySupportTickets[memIdx].assignedTo = payload.assignedTo;
       if (payload.adminNotes !== undefined) memorySupportTickets[memIdx].adminNotes = payload.adminNotes;
       memorySupportTickets[memIdx].updatedAt = now;
+    }
+
+    const fileTickets = readTicketsFromFile();
+    const fIdx = fileTickets.findIndex((t) => t.id === id || t.ticketId === id);
+    if (fIdx !== -1) {
+      if (payload.status !== undefined) fileTickets[fIdx].status = payload.status;
+      if (payload.priority !== undefined) fileTickets[fIdx].priority = payload.priority;
+      if (payload.assignedTo !== undefined) fileTickets[fIdx].assignedTo = payload.assignedTo;
+      if (payload.adminNotes !== undefined) fileTickets[fIdx].adminNotes = payload.adminNotes;
+      fileTickets[fIdx].updatedAt = now;
+      writeTicketsToFile(fileTickets);
     }
 
     try {
@@ -322,6 +368,10 @@ export class SupportService {
   static async deleteTicket(id: string) {
     memorySupportTickets = memorySupportTickets.filter((t) => t.id !== id && t.ticketId !== id);
 
+    const fileTickets = readTicketsFromFile();
+    const filtered = fileTickets.filter((t) => t.id !== id && t.ticketId !== id);
+    writeTicketsToFile(filtered);
+
     try {
       if (db.supportTicket) {
         await db.supportTicket.delete({ where: { id } });
@@ -338,3 +388,9 @@ export class SupportService {
     return { success: true, deletedId: id };
   }
 }
+
+export const createTicket = SupportService.createTicket.bind(SupportService);
+export const getAllTickets = SupportService.getAllTickets.bind(SupportService);
+export const getTicketById = SupportService.getTicketById.bind(SupportService);
+export const updateTicket = SupportService.updateTicket.bind(SupportService);
+export const deleteTicket = SupportService.deleteTicket.bind(SupportService);

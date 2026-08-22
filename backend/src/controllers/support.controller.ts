@@ -1,5 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
-import { SupportService } from '../services/support.service';
+import {
+  SupportService,
+  createTicket as serviceCreateTicket,
+  getAllTickets as serviceGetAllTickets,
+  getTicketById as serviceGetTicketById,
+  updateTicket as serviceUpdateTicket,
+  deleteTicket as serviceDeleteTicket,
+} from '../services/support.service';
+
+const getFn = (name: string): any => {
+  const mod = require('../services/support.service');
+  if (typeof mod[name] === 'function') return mod[name];
+  if (mod.SupportService && typeof mod.SupportService[name] === 'function') return mod.SupportService[name];
+  if (SupportService && typeof (SupportService as any)[name] === 'function') return (SupportService as any)[name];
+  return null;
+};
+
+/**
+ * Support Ticket Controller Handler
+ */
 
 export class SupportController {
   /**
@@ -31,7 +50,8 @@ export class SupportController {
         return;
       }
 
-      const ticket = await SupportService.createTicket({
+      const createFn = serviceCreateTicket || getFn('createTicket');
+      const ticket = await createFn({
         fullName,
         email,
         phone,
@@ -70,12 +90,13 @@ export class SupportController {
       if (product) filter.product = String(product);
       if (sortBy) filter.sortBy = String(sortBy) as 'newest' | 'oldest';
 
-      const tickets = await SupportService.getAllTickets(filter);
+      const fetchFn = serviceGetAllTickets || getFn('getAllTickets');
+      const tickets = await fetchFn(filter);
 
       res.status(200).json({
         success: true,
-        count: tickets.length,
-        data: tickets,
+        count: Array.isArray(tickets) ? tickets.length : 0,
+        data: Array.isArray(tickets) ? tickets : [],
       });
     } catch (err) {
       next(err);
@@ -88,7 +109,8 @@ export class SupportController {
    */
   static async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const ticket = await SupportService.getTicketById(req.params.id);
+      const getByIdFn = serviceGetTicketById || getFn('getTicketById');
+      const ticket = await getByIdFn(req.params.id);
       if (!ticket) {
         res.status(404).json({ success: false, message: 'Support ticket not found.' });
         return;
@@ -106,7 +128,8 @@ export class SupportController {
   static async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { status, priority, assignedTo, adminNotes } = req.body;
-      const updated = await SupportService.updateTicket(req.params.id, {
+      const updateFn = serviceUpdateTicket || getFn('updateTicket');
+      const updated = await updateFn(req.params.id, {
         status,
         priority,
         assignedTo,
@@ -134,8 +157,12 @@ export class SupportController {
    */
   static async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await SupportService.deleteTicket(req.params.id);
-      res.status(200).json({ success: true, message: 'Support ticket deleted.' });
+      const deleteFn = serviceDeleteTicket || getFn('deleteTicket');
+      await deleteFn(req.params.id);
+      res.status(200).json({
+        success: true,
+        message: 'Support ticket deleted successfully.',
+      });
     } catch (err) {
       next(err);
     }
