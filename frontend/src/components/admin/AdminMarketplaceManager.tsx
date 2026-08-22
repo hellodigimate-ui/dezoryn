@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -28,11 +28,18 @@ import {
   Layers,
   CheckSquare,
   MessageSquare,
-  Check
+  Check,
+  FileText,
+  File,
+  ExternalLink,
+  Film,
+  Loader2
 } from 'lucide-react';
 import { DEFAULT_HERO_CMS, type MarketplaceHeroCMSConfig } from '../marketplace/MarketplaceHero';
 import { AdminMarketplaceAnalytics } from './AdminMarketplaceAnalytics';
 import { PRODUCT_DETAILS_MAP, normalizeProductId } from '../marketplace/ProductDetailPage';
+import { MediaPickerModal } from './MediaPickerModal';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 import { API_URL, apiFetch } from '../../config/api.config';
 
@@ -156,6 +163,21 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
   // Drag & drop highlight state
   const [isDraggingThumbnail, setIsDraggingThumbnail] = useState<boolean>(false);
   const [isDraggingGallery, setIsDraggingGallery] = useState<boolean>(false);
+  const [isDraggingDoc, setIsDraggingDoc] = useState<boolean>(false);
+
+  // Uploading loading states
+  const [isUploadingThumbnail, setIsUploadingThumbnail] = useState<boolean>(false);
+  const [isUploadingGallery, setIsUploadingGallery] = useState<boolean>(false);
+  const [isUploadingDoc, setIsUploadingDoc] = useState<boolean>(false);
+
+  // File Input Refs for local file pickers
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+
+  // Media Picker Modal State
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState<boolean>(false);
+  const [mediaPickerTarget, setMediaPickerTarget] = useState<'thumbnail' | 'gallery' | 'document' | null>(null);
 
   // Filter lists configuration
   const [categoriesList, setCategoriesList] = useState<string[]>([
@@ -172,6 +194,102 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3500);
   }, []);
+
+  // ── LOCAL FILE UPLOADER TO BACKEND MEDIA API ──
+  const uploadFileToBackend = useCallback(async (file: File, folder = 'Products'): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', folder);
+      const res = await apiFetch(`${API_URL}/uploads/media`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && (data.data?.url || data.url)) {
+        return data.data?.url || data.url;
+      }
+    } catch (err) {
+      console.warn('Backend upload network error, fallback to local Data URL:', err);
+    }
+    // Fallback to Data URL if offline or network failure
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve((e.target?.result as string) || '');
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
+  const handleThumbnailFile = useCallback(async (file: File) => {
+    if (!file) return;
+    setIsUploadingThumbnail(true);
+    try {
+      const url = await uploadFileToBackend(file, 'Products');
+      setEditModalProduct((prev) => prev ? {
+        ...prev,
+        thumbnail: url,
+        image: url,
+      } : null);
+      showMsg('success', `Thumbnail "${file.name}" uploaded successfully!`);
+    } catch (_err) {
+      showMsg('error', 'Failed to upload thumbnail image.');
+    } finally {
+      setIsUploadingThumbnail(false);
+    }
+  }, [uploadFileToBackend, showMsg]);
+
+  const handleGalleryFiles = useCallback(async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+    setIsUploadingGallery(true);
+    try {
+      const uploadedUrls = await Promise.all(
+        fileArray.map((f) => uploadFileToBackend(f, 'Products'))
+      );
+      const validUrls = uploadedUrls.filter(Boolean);
+      setEditModalProduct((prev) => prev ? {
+        ...prev,
+        gallery: [...(prev.gallery || []), ...validUrls],
+      } : null);
+      showMsg('success', `${validUrls.length} file(s) added to gallery!`);
+    } catch (_err) {
+      showMsg('error', 'Failed to upload gallery images.');
+    } finally {
+      setIsUploadingGallery(false);
+    }
+  }, [uploadFileToBackend, showMsg]);
+
+  const handleDocFile = useCallback(async (file: File) => {
+    if (!file) return;
+    setIsUploadingDoc(true);
+    try {
+      const url = await uploadFileToBackend(file, 'Documents');
+      setEditModalProduct((prev) => prev ? {
+        ...prev,
+        documentation: url,
+      } : null);
+      showMsg('success', `Document "${file.name}" attached successfully!`);
+    } catch (_err) {
+      showMsg('error', 'Failed to upload document.');
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  }, [uploadFileToBackend, showMsg]);
+
+  const handleMediaPickerSelect = useCallback((url: string) => {
+    if (mediaPickerTarget === 'thumbnail') {
+      setEditModalProduct((prev) => prev ? { ...prev, thumbnail: url, image: url } : null);
+      showMsg('success', 'Selected asset as thumbnail!');
+    } else if (mediaPickerTarget === 'gallery') {
+      setEditModalProduct((prev) => prev ? { ...prev, gallery: [...(prev.gallery || []), url] } : null);
+      showMsg('success', 'Asset added to gallery!');
+    } else if (mediaPickerTarget === 'document') {
+      setEditModalProduct((prev) => prev ? { ...prev, documentation: url } : null);
+      showMsg('success', 'Asset selected as documentation!');
+    }
+    setIsMediaPickerOpen(false);
+    setMediaPickerTarget(null);
+  }, [mediaPickerTarget, showMsg]);
 
   // Load Hero CMS Config
   useEffect(() => {
@@ -2003,11 +2121,34 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
               {/* TAB 3: MEDIA & DRAG & DROP UPLOADER */}
               {modalTab === 'media' && (
                 <div className="space-y-6">
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                      Thumbnail / Cover Image (Drag & Drop or Cloudinary URL)
-                    </label>
+                  {/* 1. THUMBNAIL / COVER IMAGE */}
+                  <div className="p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-cyan-500" />
+                        <span>Thumbnail / Cover Image (Drag & Drop or Local File)</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider bg-cyan-500/10 px-2 py-0.5 rounded-md">
+                        Primary Product Cover
+                      </span>
+                    </div>
+
+                    {/* Hidden Native File Input */}
+                    <input
+                      type="file"
+                      ref={thumbnailInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleThumbnailFile(file);
+                        e.target.value = '';
+                      }}
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                    />
+
+                    {/* Dropzone Container */}
                     <div
+                      onClick={() => thumbnailInputRef.current?.click()}
                       onDragOver={(e) => {
                         e.preventDefault();
                         setIsDraggingThumbnail(true);
@@ -2017,63 +2158,165 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                         e.preventDefault();
                         setIsDraggingThumbnail(false);
                         const file = e.dataTransfer.files?.[0];
-                        if (file && file.type.startsWith('image/')) {
-                          const reader = new FileReader();
-                          reader.onload = (evt) => {
-                            const res = evt.target?.result as string;
-                            setEditModalProduct({ ...editModalProduct, thumbnail: res, image: res });
-                            showMsg('success', 'Thumbnail image dropped!');
-                          };
-                          reader.readAsDataURL(file);
-                        }
+                        if (file) handleThumbnailFile(file);
                       }}
-                      className={`p-6 rounded-2xl border-2 border-dashed transition flex flex-col items-center justify-center text-center cursor-pointer ${
+                      className={`relative p-6 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center text-center cursor-pointer group ${
                         isDraggingThumbnail
-                          ? 'border-cyan-500 bg-cyan-500/10'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:border-slate-300 dark:hover:border-slate-700'
+                          ? 'border-cyan-500 bg-cyan-500/15 scale-[1.01]'
+                          : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/90 hover:border-cyan-500 dark:hover:border-cyan-400 hover:bg-cyan-500/5 shadow-xs'
                       }`}
                     >
-                      {editModalProduct.thumbnail || editModalProduct.image ? (
-                        <div className="relative w-full h-32 rounded-xl overflow-hidden mb-2">
-                          <img
-                            src={editModalProduct.thumbnail || editModalProduct.image}
-                            alt="Thumbnail"
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditModalProduct({ ...editModalProduct, thumbnail: '', image: '' });
-                            }}
-                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-rose-600 text-white cursor-pointer"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                      {isUploadingThumbnail ? (
+                        <div className="py-6 flex flex-col items-center gap-2">
+                          <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">Uploading thumbnail image...</span>
+                          <span className="text-[10px] text-slate-500">Processing file from your device</span>
+                        </div>
+                      ) : editModalProduct.thumbnail || editModalProduct.image ? (
+                        <div className="w-full space-y-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative w-full max-w-md mx-auto h-44 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md group/img">
+                            {((editModalProduct.thumbnail || editModalProduct.image || '').toLowerCase().includes('.pdf') ||
+                              (editModalProduct.thumbnail || editModalProduct.image || '').toLowerCase().includes('application/pdf')) ? (
+                              <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-cyan-400 p-4">
+                                <FileText className="w-12 h-12 mb-2" />
+                                <span className="text-xs font-bold text-white">PDF Document Attached</span>
+                                <span className="text-[10px] text-slate-400 truncate max-w-full">
+                                  {editModalProduct.thumbnail || editModalProduct.image}
+                                </span>
+                              </div>
+                            ) : (
+                              <img
+                                src={resolveMediaUrl(editModalProduct.thumbnail || editModalProduct.image || '')}
+                                alt="Thumbnail Preview"
+                                className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300"
+                              />
+                            )}
+                            <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => thumbnailInputRef.current?.click()}
+                                className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg cursor-pointer flex items-center gap-1.5 transition"
+                              >
+                                <Upload className="w-3.5 h-3.5" />
+                                <span>Change Image</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditModalProduct({ ...editModalProduct, thumbnail: '', image: '' });
+                                  showMsg('info', 'Thumbnail cleared.');
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg cursor-pointer flex items-center gap-1.5 transition"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                <span>Remove</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => thumbnailInputRef.current?.click()}
+                              className="px-3.5 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 font-bold text-xs border border-cyan-500/30 transition flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Upload from Local</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMediaPickerTarget('thumbnail');
+                                setIsMediaPickerOpen(true);
+                              }}
+                              className="px-3.5 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold text-xs border border-blue-500/30 transition flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <FolderOpen className="w-3.5 h-3.5" />
+                              <span>Select from Media Library</span>
+                            </button>
+                          </div>
                         </div>
                       ) : (
-                        <>
-                          <Upload className="w-8 h-8 text-cyan-500 mb-2" />
-                          <div className="text-xs font-extrabold text-slate-900 dark:text-white">Drag & Drop Thumbnail Image Here</div>
-                          <div className="text-[10px] text-slate-500 mt-1">Supports PNG, JPG, WebP, or Cloudinary URL</div>
-                        </>
-                      )}
+                        <div className="space-y-3 py-3">
+                          <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center mx-auto border border-cyan-500/20 group-hover:scale-110 transition-transform">
+                            <Upload className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-black text-slate-900 dark:text-white">
+                              Click or Drag & Drop Thumbnail Image / Document Here
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                              Supports PNG, JPG, JPEG, WEBP, SVG, or PDF from your computer
+                            </div>
+                          </div>
 
+                          <div className="flex items-center justify-center gap-2 pt-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => thumbnailInputRef.current?.click()}
+                              className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-md shadow-cyan-500/20 transition cursor-pointer flex items-center gap-2"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Browse Local File</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMediaPickerTarget('thumbnail');
+                                setIsMediaPickerOpen(true);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-300 dark:border-slate-700 transition cursor-pointer flex items-center gap-2"
+                            >
+                              <FolderOpen className="w-3.5 h-3.5" />
+                              <span>Media Library</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Direct URL Input fallback */}
+                    <div className="pt-1">
                       <input
                         type="text"
-                        placeholder="Or paste Cloudinary URL (https://res.cloudinary.com/...)"
+                        placeholder="Or paste Cloudinary / Web CDN URL (https://res.cloudinary.com/...)"
                         value={editModalProduct.thumbnail || editModalProduct.image || ''}
                         onChange={(e) => setEditModalProduct({ ...editModalProduct, thumbnail: e.target.value, image: e.target.value })}
-                        className="w-full max-w-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-[11px] font-mono px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 mt-3 focus:outline-none"
+                        className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-cyan-500"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 block">
-                      Gallery Images (Multiple Drag & Drop)
-                    </label>
+                  {/* 2. GALLERY PRODUCT SCREENSHOTS & IMAGES (MULTIPLE) */}
+                  <div className="p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-purple-500" />
+                        <span>Gallery Images & Screenshots (Multiple Local Upload / Drag & Drop)</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md">
+                        {(editModalProduct.gallery || []).length} Attached
+                      </span>
+                    </div>
+
+                    {/* Hidden Native File Input for Multi-Select */}
+                    <input
+                      type="file"
+                      ref={galleryInputRef}
+                      multiple
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          handleGalleryFiles(e.target.files);
+                        }
+                        e.target.value = '';
+                      }}
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                    />
+
+                    {/* Gallery Dropzone */}
                     <div
+                      onClick={() => galleryInputRef.current?.click()}
                       onDragOver={(e) => {
                         e.preventDefault();
                         setIsDraggingGallery(true);
@@ -2082,63 +2325,296 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       onDrop={(e) => {
                         e.preventDefault();
                         setIsDraggingGallery(false);
-                        const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
-                        if (files.length > 0) {
-                          files.forEach((file) => {
-                            const reader = new FileReader();
-                            reader.onload = (evt) => {
-                              const res = evt.target?.result as string;
-                              setEditModalProduct((prev) => prev ? {
-                                ...prev,
-                                gallery: [...(prev.gallery || []), res]
-                              } : null);
-                            };
-                            reader.readAsDataURL(file);
-                          });
-                          showMsg('success', `${files.length} gallery image(s) dropped!`);
+                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                          handleGalleryFiles(e.dataTransfer.files);
                         }
                       }}
-                      className={`p-6 rounded-2xl border-2 border-dashed transition text-center cursor-pointer ${
+                      className={`relative p-6 rounded-2xl border-2 border-dashed transition-all text-center cursor-pointer group ${
                         isDraggingGallery
-                          ? 'border-purple-500 bg-purple-500/10'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:border-slate-300 dark:hover:border-slate-700'
+                          ? 'border-purple-500 bg-purple-500/15 scale-[1.01]'
+                          : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/90 hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-500/5 shadow-xs'
                       }`}
                     >
-                      <ImageIcon className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                      <div className="text-xs font-extrabold text-slate-900 dark:text-white">Drag & Drop Gallery Product Screenshots</div>
-                      <div className="text-[10px] text-slate-500 mt-1 mb-3">Drop multiple images simultaneously</div>
+                      {isUploadingGallery ? (
+                        <div className="py-4 flex flex-col items-center gap-2">
+                          <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">Uploading gallery image(s)...</span>
+                          <span className="text-[10px] text-slate-500">Processing files from local disk</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 py-2">
+                          <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center mx-auto border border-purple-500/20 group-hover:scale-110 transition-transform">
+                            <ImageIcon className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-black text-slate-900 dark:text-white">
+                              Click or Drag & Drop Multiple Gallery Images Here
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                              Select multiple screenshots, product workflows, or UI photos simultaneously
+                            </div>
+                          </div>
 
-                      <div className="flex flex-wrap gap-3 justify-center">
-                        {(editModalProduct.gallery || []).map((imgUrl, idx) => (
-                          <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 group">
-                            <img src={imgUrl} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                          <div className="flex items-center justify-center gap-2 pt-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => galleryInputRef.current?.click()}
+                              className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-500 hover:from-purple-500 hover:to-indigo-400 text-white font-extrabold text-xs shadow-md shadow-purple-500/20 transition cursor-pointer flex items-center gap-2"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Browse Local Images (Multi)</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
-                                setEditModalProduct({
-                                  ...editModalProduct,
-                                  gallery: (editModalProduct.gallery || []).filter((_, i) => i !== idx)
-                                });
+                                setMediaPickerTarget('gallery');
+                                setIsMediaPickerOpen(true);
                               }}
-                              className="absolute top-1 right-1 p-1 rounded-md bg-rose-600 text-white cursor-pointer"
+                              className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-300 dark:border-slate-700 transition cursor-pointer flex items-center gap-2"
                             >
-                              <X className="w-3 h-3" />
+                              <FolderOpen className="w-3.5 h-3.5" />
+                              <span>Choose from Library</span>
                             </button>
                           </div>
-                        ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Gallery Thumbnails Grid */}
+                    {(editModalProduct.gallery || []).length > 0 && (
+                      <div className="space-y-2 pt-2">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-bold">
+                          <span>Attached Gallery Images ({(editModalProduct.gallery || []).length}):</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditModalProduct({ ...editModalProduct, gallery: [] });
+                              showMsg('info', 'Gallery cleared.');
+                            }}
+                            className="text-rose-500 hover:underline cursor-pointer"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                          {(editModalProduct.gallery || []).map((imgUrl, idx) => (
+                            <div
+                              key={idx}
+                              className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 aspect-video shadow-xs"
+                            >
+                              {imgUrl.toLowerCase().includes('.pdf') ? (
+                                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-cyan-400 p-2">
+                                  <FileText className="w-6 h-6 mb-1" />
+                                  <span className="text-[9px] font-bold">PDF #{idx + 1}</span>
+                                </div>
+                              ) : (
+                                <img
+                                  src={resolveMediaUrl(imgUrl)}
+                                  alt={`Gallery ${idx + 1}`}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
+                                />
+                              )}
+                              <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-xs text-[9px] font-bold text-white">
+                                #{idx + 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditModalProduct({
+                                    ...editModalProduct,
+                                    gallery: (editModalProduct.gallery || []).filter((_, i) => i !== idx)
+                                  });
+                                  showMsg('info', 'Gallery image removed.');
+                                }}
+                                className="absolute top-1 right-1 p-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white shadow-md cursor-pointer transition opacity-90 hover:opacity-100"
+                                title="Remove Image"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
+                    )}
+                  </div>
+
+                  {/* 3. PRODUCT DOCUMENTATION / BROCHURE / WHITEPAPER (PDF & DOCS) */}
+                  <div className="p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-emerald-500" />
+                        <span>Product Documentation / Brochure / Whitepaper (PDF / Doc)</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                        {editModalProduct.documentation ? 'Document Linked' : 'Optional Document'}
+                      </span>
+                    </div>
+
+                    {/* Hidden Native File Input for Document */}
+                    <input
+                      type="file"
+                      ref={docInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleDocFile(file);
+                        e.target.value = '';
+                      }}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,application/pdf"
+                      className="hidden"
+                    />
+
+                    {/* Document Upload Box */}
+                    <div
+                      onClick={() => docInputRef.current?.click()}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDraggingDoc(true);
+                      }}
+                      onDragLeave={() => setIsDraggingDoc(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDraggingDoc(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) handleDocFile(file);
+                      }}
+                      className={`relative p-5 rounded-2xl border-2 border-dashed transition-all text-center cursor-pointer group ${
+                        isDraggingDoc
+                          ? 'border-emerald-500 bg-emerald-500/15 scale-[1.01]'
+                          : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/90 hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-500/5 shadow-xs'
+                      }`}
+                    >
+                      {isUploadingDoc ? (
+                        <div className="py-4 flex flex-col items-center gap-2">
+                          <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">Uploading local document...</span>
+                        </div>
+                      ) : editModalProduct.documentation ? (
+                        <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-left" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-500 shrink-0">
+                              <FileText className="w-6 h-6" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-black text-slate-900 dark:text-white truncate">
+                                Attached Product Documentation / Brochure
+                              </div>
+                              <a
+                                href={resolveMediaUrl(editModalProduct.documentation)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 hover:underline truncate block"
+                              >
+                                {editModalProduct.documentation}
+                              </a>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => docInputRef.current?.click()}
+                              className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-emerald-500 font-bold text-xs border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                            >
+                              Replace
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditModalProduct({ ...editModalProduct, documentation: '' });
+                                showMsg('info', 'Document unlinked.');
+                              }}
+                              className="p-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white cursor-pointer transition"
+                              title="Remove Document"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 py-2">
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                            <FileText className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-black text-slate-900 dark:text-white">
+                              Click or Drag & Drop Product Brochure / Documentation PDF
+                            </div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                              Supports PDF, DOC, DOCX, TXT from your computer
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-center gap-2 pt-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => docInputRef.current?.click()}
+                              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 transition cursor-pointer flex items-center gap-2"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Browse Local Document</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMediaPickerTarget('document');
+                                setIsMediaPickerOpen(true);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-300 dark:border-slate-700 transition cursor-pointer flex items-center gap-2"
+                            >
+                              <FolderOpen className="w-3.5 h-3.5" />
+                              <span>Media Library</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-1">
+                      <input
+                        type="text"
+                        placeholder="Or paste Documentation URL (https://docs.dezoryn.com/...)"
+                        value={editModalProduct.documentation || ''}
+                        onChange={(e) => setEditModalProduct({ ...editModalProduct, documentation: e.target.value })}
+                        className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-emerald-500"
+                      />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Video Embed URL (YouTube/Vimeo)</label>
+                  {/* 4. VIDEO EMBED URL (YOUTUBE/VIMEO) */}
+                  <div className="p-5 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 space-y-3">
+                    <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      <Film className="w-4 h-4 text-blue-500" />
+                      <span>Product Video Embed URL (YouTube, Vimeo, or MP4)</span>
+                    </label>
                     <input
                       type="text"
-                      placeholder="https://www.youtube.com/embed/..."
+                      placeholder="https://www.youtube.com/embed/... or https://res.cloudinary.com/video.mp4"
                       value={editModalProduct.videoUrl || editModalProduct.video || ''}
                       onChange={(e) => setEditModalProduct({ ...editModalProduct, videoUrl: e.target.value, video: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-slate-950 text-cyan-600 dark:text-cyan-300 text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
+                      className="w-full bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-300 text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-blue-500"
                     />
+
+                    {(editModalProduct.videoUrl || editModalProduct.video) && (
+                      <div className="pt-2">
+                        <div className="text-[11px] font-bold text-slate-500 mb-1.5">Live Video Preview:</div>
+                        <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-950 border border-slate-800 max-w-md mx-auto">
+                          {(editModalProduct.videoUrl || editModalProduct.video || '').includes('youtube') ||
+                          (editModalProduct.videoUrl || editModalProduct.video || '').includes('vimeo') ? (
+                            <iframe
+                              src={editModalProduct.videoUrl || editModalProduct.video}
+                              title="Product Video"
+                              className="w-full h-full border-0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          ) : (
+                            <video
+                              src={resolveMediaUrl(editModalProduct.videoUrl || editModalProduct.video || '')}
+                              controls
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -2299,6 +2775,24 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── Media Picker Modal ── */}
+      <MediaPickerModal
+        isOpen={isMediaPickerOpen}
+        onClose={() => {
+          setIsMediaPickerOpen(false);
+          setMediaPickerTarget(null);
+        }}
+        onSelect={handleMediaPickerSelect}
+        allowedTypes={mediaPickerTarget === 'document' ? ['raw', 'image'] : ['image', 'video', 'raw']}
+        title={
+          mediaPickerTarget === 'thumbnail'
+            ? 'Select Product Thumbnail Asset'
+            : mediaPickerTarget === 'gallery'
+            ? 'Select Gallery Image / Screenshot'
+            : 'Select Product Document / Brochure'
+        }
+      />
 
     </div>
   );
