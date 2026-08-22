@@ -30,8 +30,6 @@ import {
   MessageSquare,
   Check,
   FileText,
-  File,
-  ExternalLink,
   Film,
   Loader2
 } from 'lucide-react';
