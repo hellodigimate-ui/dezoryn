@@ -26,8 +26,8 @@ export interface SiteSettings {
 
 const DEFAULT_SETTINGS: SiteSettings = {
   websiteName: 'Dezoryn Technologies',
-  logoUrl: '/uploads/dezoryn-brand-logo.jpg',
-  faviconUrl: '/uploads/dezoryn-brand-logo.jpg',
+  logoUrl: '/dezoryn-brand-logo.png',
+  faviconUrl: '/dezoryn-brand-logo.png',
   domain: 'https://dezoryn.com',
   maintenanceMode: false,
   announcementBar: false,

@@ -373,23 +373,14 @@ export const Footer: React.FC = React.memo(() => {
                   onClick={() => navigateTo('/')}
                   className="flex items-center gap-3 mb-4 border-none bg-transparent cursor-pointer p-0 relative z-10 text-left"
                 >
-                  {siteSettings.logoUrl && !logoError ? (
-                    <img
-                      src={siteSettings.logoUrl}
-                      alt={siteSettings.websiteName || footer.footerLogo}
-                      className="h-10 w-auto object-contain rounded-xl shrink-0"
-                      onError={() => setLogoError(true)}
-                    />
-                  ) : (
-                    <motion.div
-                      animate={{ y: [0, -4, 0] }}
-                      transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-                      whileHover={{ rotate: 8, scale: 1.12 }}
-                      className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white font-black text-xl shadow-lg shadow-blue-600/30 shrink-0"
-                    >
-                      {(siteSettings.websiteName || footer.footerLogo || 'D')[0]}
-                    </motion.div>
-                  )}
+                  <img
+                    src={logoError ? '/dezoryn-brand-logo.png' : (siteSettings.logoUrl || '/dezoryn-brand-logo.png')}
+                    alt={siteSettings.websiteName || footer.footerLogo || 'Dezoryn Technologies'}
+                    className="h-10 w-auto max-w-[150px] object-contain rounded-xl shrink-0"
+                    onError={() => {
+                      if (!logoError) setLogoError(true);
+                    }}
+                  />
                   {/* High contrast crisp brand text */}
                   <span className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white group-hover/card:text-blue-600 dark:group-hover/card:text-cyan-400 transition-colors duration-300 leading-tight">
                     {siteSettings.websiteName || footer.footerLogo}

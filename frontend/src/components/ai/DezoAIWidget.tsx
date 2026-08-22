@@ -609,10 +609,10 @@ export const DezoAIWidget: React.FC = React.memo(() => {
             <div
               onClick={(e) => { e.stopPropagation(); setFabMenuOpen(prev => !prev); }}
               style={{ cursor: 'pointer' }}
-              className={`relative flex items-center justify-center w-[64px] h-[64px] rounded-full p-[2px] bg-gradient-to-tr from-cyan-400 via-blue-600 to-purple-600 transition-transform duration-300 hover:scale-105 transform-gpu ${
+              className={`relative flex items-center justify-center w-12 h-12 sm:w-[60px] sm:h-[60px] rounded-full p-[2px] bg-gradient-to-tr from-cyan-400 via-blue-600 to-purple-600 transition-transform duration-300 hover:scale-105 transform-gpu ${
                 isDark
-                  ? 'shadow-[0_0_25px_rgba(6,182,212,0.45)] hover:shadow-[0_0_40px_rgba(6,182,212,0.7)]'
-                  : 'shadow-[0_8px_25px_rgba(6,182,212,0.35)] hover:shadow-[0_12px_35px_rgba(6,182,212,0.5)]'
+                  ? 'shadow-[0_0_20px_rgba(6,182,212,0.45)] hover:shadow-[0_0_35px_rgba(6,182,212,0.7)]'
+                  : 'shadow-[0_6px_20px_rgba(6,182,212,0.35)] hover:shadow-[0_10px_30px_rgba(6,182,212,0.5)]'
               }`}
             >
               {/* Inner frosted glass */}
@@ -623,7 +623,7 @@ export const DezoAIWidget: React.FC = React.memo(() => {
                   isDark ? 'from-cyan-500/25 via-blue-500/15 to-purple-500/25' : 'from-cyan-400/20 via-blue-400/10 to-purple-400/20'
                 }`} />
                 <div className="relative z-10">
-                  <Bot className={`w-8 h-8 transition-colors duration-200 ${
+                  <Bot className={`w-6 h-6 sm:w-7 sm:h-7 transition-colors duration-200 ${
                     isDark ? 'text-cyan-300' : 'text-cyan-600'
                   }`} />
                 </div>

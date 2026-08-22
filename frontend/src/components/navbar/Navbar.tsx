@@ -151,25 +151,21 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
         <button
           type="button"
           onClick={() => navigateTo('/')}
-          className="flex items-center gap-3 group text-left cursor-pointer border-none bg-transparent"
+          className="flex items-center gap-2.5 sm:gap-3 group text-left cursor-pointer border-none bg-transparent min-w-0"
         >
-          {siteSettings.logoUrl && !logoError ? (
-            <img 
-              src={siteSettings.logoUrl} 
-              alt={siteSettings.websiteName} 
-              className="h-10 w-auto object-contain rounded-xl" 
-              onError={() => setLogoError(true)}
-            />
-          ) : (
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-600 text-white font-black text-xl shadow-md shadow-blue-600/25 group-hover:scale-105 transition-transform duration-300">
-              {(siteSettings.websiteName || 'D')[0]}
-            </div>
-          )}
-          <div className="flex flex-col text-left">
-            <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">
+          <img 
+            src={logoError ? '/dezoryn-brand-logo.png' : (siteSettings.logoUrl || '/dezoryn-brand-logo.png')} 
+            alt={siteSettings.websiteName || 'Dezoryn Technologies'} 
+            className="h-9 sm:h-11 w-auto max-w-[120px] sm:max-w-[150px] object-contain rounded-xl shrink-0" 
+            onError={() => {
+              if (!logoError) setLogoError(true);
+            }}
+          />
+          <div className="flex flex-col text-left truncate">
+            <span className="text-base sm:text-lg lg:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-none truncate">
               {siteSettings.websiteName || 'Dezoryn Technologies'}
             </span>
-            <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 tracking-wider mt-1 uppercase">
+            <span className="text-[8px] sm:text-[9px] font-bold text-slate-500 dark:text-slate-400 tracking-wider mt-0.5 sm:mt-1 uppercase truncate">
               Predictive Sales Platform
             </span>
           </div>

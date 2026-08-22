@@ -44,8 +44,8 @@ interface WebsiteSettings {
 
 const DEFAULT: WebsiteSettings = {
   websiteName: 'Dezoryn Technologies',
-  logoUrl: '',
-  faviconUrl: '',
+  logoUrl: '/dezoryn-brand-logo.png',
+  faviconUrl: '/dezoryn-brand-logo.png',
   domain: 'https://dezoryn.com',
   maintenanceMode: false,
   announcementBar: false,

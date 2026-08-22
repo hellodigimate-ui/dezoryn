@@ -146,7 +146,7 @@ const EnterpriseCTAButton: React.FC<EnterpriseCTAButtonProps> = ({
   const styleConfig = getVariantStyles();
 
   return (
-    <div className="perspective-1000 inline-block">
+    <div className="perspective-1000 w-full sm:w-auto inline-block">
       <motion.button
         ref={buttonRef}
         onMouseMove={handleMouseMove}
@@ -169,7 +169,7 @@ const EnterpriseCTAButton: React.FC<EnterpriseCTAButtonProps> = ({
           damping: 25,
           mass: 0.6,
         }}
-        className={`relative overflow-hidden inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm select-none cursor-pointer border ${styleConfig.button}`}
+        className={`relative overflow-hidden w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm select-none cursor-pointer border ${styleConfig.button}`}
       >
         {/* CURSOR SPOTLIGHT LAYER */}
         <div

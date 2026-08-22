@@ -386,7 +386,7 @@ export const PricingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 py-10 lg:py-16 font-['Plus_Jakarta_Sans',sans-serif] relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pt-28 pb-16 sm:pt-32 lg:pt-36 lg:pb-24 font-['Plus_Jakarta_Sans',sans-serif] relative overflow-hidden transition-colors duration-300">
       
       {/* Radial Backdrops */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-blue-500/15 via-cyan-500/10 dark:from-blue-600/20 dark:via-cyan-500/10 to-transparent blur-[140px] pointer-events-none -z-10" />
