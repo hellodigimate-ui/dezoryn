@@ -9,18 +9,18 @@ async function main() {
   console.log('🌱 Starting database seed...');
 
   // Create default Admin user if not present
-  const adminEmail = 'admin@dezoryn.com';
+  const adminEmail = 'dezoryntechnology@gmail.com';
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },
   });
 
   if (!existingAdmin) {
-    const hashedPassword = await bcrypt.hash('Admin@2026!', 12);
+    const hashedPassword = await bcrypt.hash('dezoryn@2025', 12);
     const admin = await prisma.user.create({
       data: {
         email: adminEmail,
         password: hashedPassword,
-        firstName: 'System',
+        firstName: 'Dezoryn',
         lastName: 'Admin',
         role: Role.ADMIN,
         isActive: true,

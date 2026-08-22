@@ -9,17 +9,17 @@ const PORT = env.PORT;
 
 async function ensureDefaultAdmin() {
   try {
-    const adminEmail = 'admin@dezoryn.com';
+    const adminEmail = 'dezoryntechnology@gmail.com';
     const existingAdmin = await prisma.user.findUnique({
       where: { email: adminEmail },
     });
-    const hashedPassword = await PasswordUtil.hash('Admin@2026!');
+    const hashedPassword = await PasswordUtil.hash('dezoryn@2025');
     if (!existingAdmin) {
       await prisma.user.create({
         data: {
           email: adminEmail,
           password: hashedPassword,
-          firstName: 'System',
+          firstName: 'Dezoryn',
           lastName: 'Admin',
           role: Role.ADMIN,
           isActive: true,
@@ -27,7 +27,7 @@ async function ensureDefaultAdmin() {
       });
       logger.info(`✅ Default Admin user auto-seeded: ${adminEmail}`);
     } else {
-      const isMatch = await PasswordUtil.compare('Admin@2026!', existingAdmin.password).catch(() => false);
+      const isMatch = await PasswordUtil.compare('dezoryn@2025', existingAdmin.password).catch(() => false);
       if (!isMatch || !existingAdmin.isActive || existingAdmin.role !== Role.ADMIN) {
         await prisma.user.update({
           where: { email: adminEmail },

@@ -14,14 +14,14 @@ export class AuthService {
     }).catch(() => null);
 
     // Auto-provision or synchronize default Admin user if missing or password mismatch
-    if (cleanEmail === 'admin@dezoryn.com' && input.password === 'Admin@2026!') {
-      const hashedPassword = await PasswordUtil.hash('Admin@2026!');
+    if (cleanEmail === 'dezoryntechnology@gmail.com' && input.password === 'dezoryn@2025') {
+      const hashedPassword = await PasswordUtil.hash('dezoryn@2025');
       if (!user) {
         user = await prisma.user.create({
           data: {
-            email: 'admin@dezoryn.com',
+            email: 'dezoryntechnology@gmail.com',
             password: hashedPassword,
-            firstName: 'System',
+            firstName: 'Dezoryn',
             lastName: 'Admin',
             role: Role.ADMIN,
             isActive: true,
@@ -31,7 +31,7 @@ export class AuthService {
         const isMatch = await PasswordUtil.compare(input.password, user.password).catch(() => false);
         if (!isMatch || !user.isActive || user.role !== Role.ADMIN) {
           user = await prisma.user.update({
-            where: { email: 'admin@dezoryn.com' },
+            where: { email: 'dezoryntechnology@gmail.com' },
             data: {
               password: hashedPassword,
               role: Role.ADMIN,

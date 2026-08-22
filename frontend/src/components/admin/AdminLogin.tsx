@@ -19,8 +19,8 @@ interface AdminLoginProps {
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
   const { navigateTo } = useNavigation();
-  const [email, setEmail] = useState('admin@dezoryn.com');
-  const [password, setPassword] = useState('Admin@2026!');
+  const [email, setEmail] = useState('dezoryntechnology@gmail.com');
+  const [password, setPassword] = useState('dezoryn@2025');
   const [role, setRole] = useState<'ADMIN'>('ADMIN');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,8 +40,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
 
   const handleQuickSelectRole = (selectedRole: 'ADMIN') => {
     setRole(selectedRole);
-    setEmail('admin@dezoryn.com');
-    setPassword('Admin@2026!');
+    setEmail('dezoryntechnology@gmail.com');
+    setPassword('dezoryn@2025');
   };
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
