@@ -161,13 +161,12 @@ export const AdminAboutCMS: React.FC = () => {
         body,
       });
       const json = await res.json();
-      const uploadedUrl = json.data?.url || json.data?.media?.url;
+      const uploadedUrl = json.data?.url || json.data?.media?.url || json.url;
       if (json.success && uploadedUrl) {
         const isVid = file.type.startsWith('video/') || file.name.endsWith('.mp4') || file.name.endsWith('.webm');
-        const finalUrl = resolveMediaUrl(uploadedUrl);
         const updated = {
           ...formData,
-          mediaUrl: finalUrl,
+          mediaUrl: uploadedUrl,
           mediaType: isVid ? 'VIDEO' : 'IMAGE',
         };
         setFormData(updated);

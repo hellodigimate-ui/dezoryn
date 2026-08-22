@@ -224,14 +224,17 @@ export const ServicesSection: React.FC = () => {
         }
       } catch (_e) {}
 
-      const stored = localStorage.getItem('dezo_services_cms');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            rawData = parsed.filter((item: any) => item.isEnabled ?? item.status === 'active');
-          }
-        } catch (_err) {}
+      // Fall back to local storage only if network fetch returned nothing
+      if (rawData.length === 0) {
+        const stored = localStorage.getItem('dezo_services_cms');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              rawData = parsed.filter((item: any) => item.isEnabled ?? item.status === 'active');
+            }
+          } catch (_err) {}
+        }
       }
 
       if (rawData.length > 0) {

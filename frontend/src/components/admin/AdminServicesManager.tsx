@@ -123,34 +123,22 @@ export const AdminServicesManager: React.FC = () => {
       // network
     }
 
-    const saved = localStorage.getItem('dezo_services_cms');
-    let localList: ServiceRecord[] = [];
-    if (saved) {
+    if (fetchedList.length > 0) {
+      setServices(fetchedList);
       try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) localList = parsed;
-      } catch (_err) {}
-    }
-
-    let combinedList: ServiceRecord[] = [];
-    if (fetchedList.length > 0 && localList.length > 0) {
-      const map = new Map<string, ServiceRecord>();
-      for (const item of fetchedList) {
-        if (item.id) map.set(item.id, item);
+        localStorage.setItem('dezo_services_cms', JSON.stringify(fetchedList));
+      } catch (_e) {}
+      window.dispatchEvent(new Event('dezo_services_updated'));
+    } else {
+      const saved = localStorage.getItem('dezo_services_cms');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setServices(parsed);
+          }
+        } catch (_err) {}
       }
-      for (const item of localList) {
-        if (item.id) map.set(item.id, item);
-      }
-      combinedList = Array.from(map.values());
-    } else if (localList.length > 0) {
-      combinedList = localList;
-    } else if (fetchedList.length > 0) {
-      combinedList = fetchedList;
-    }
-
-    if (combinedList.length > 0) {
-      setServices(combinedList);
-      syncLocalStorageAndNotify(combinedList);
     }
     setIsLoading(false);
   };

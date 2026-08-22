@@ -13,6 +13,7 @@ import {
   X
 } from 'lucide-react';
 import { useNavigation } from '../../utils/NavigationContext';
+import { apiFetch } from '../../config/api.config';
 import type { MarketplaceProduct } from './MarketplacePage';
 
 export interface MarketplaceHeroCMSConfig {
@@ -101,8 +102,17 @@ export const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
     setMousePos({ x, y });
   };
 
-  // Read hero CMS config from localStorage / Event
-  const loadHeroConfig = () => {
+  // Read hero CMS config from API / fallback to localStorage
+  const loadHeroConfig = async () => {
+    try {
+      const res = await apiFetch('/hero');
+      const data = await res.json();
+      if (data.success && data.data) {
+        setHeroConfig({ ...DEFAULT_HERO_CMS, ...data.data });
+        return;
+      }
+    } catch (_e) {}
+
     try {
       const saved = localStorage.getItem('dezoryn_hero_cms');
       if (saved) {

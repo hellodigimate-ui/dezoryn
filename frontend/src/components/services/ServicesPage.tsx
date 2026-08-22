@@ -293,15 +293,17 @@ export const ServicesPage: React.FC = () => {
         // network notice
       }
 
-      // Check local storage sync
-      const stored = localStorage.getItem('dezo_services_cms');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            rawData = parsed.filter((item: any) => item.isEnabled ?? item.status === 'active');
-          }
-        } catch (_e) {}
+      // Check local storage sync only if network returned nothing
+      if (rawData.length === 0) {
+        const stored = localStorage.getItem('dezo_services_cms');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              rawData = parsed.filter((item: any) => item.isEnabled ?? item.status === 'active');
+            }
+          } catch (_e) {}
+        }
       }
 
       if (rawData.length > 0) {
