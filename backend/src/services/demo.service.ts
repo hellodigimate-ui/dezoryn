@@ -141,7 +141,7 @@ export class DemoService {
   /**
    * CREATE DEMO BOOKING
    */
-  static async createBooking(payload: any) {
+  static async createBooking(payload: any): Promise<any> {
     try {
       const existing = await prisma.demoBooking.findFirst({
         where: {
@@ -152,7 +152,10 @@ export class DemoService {
       });
 
       if (existing) {
-        return existing;
+        return {
+          ...existing,
+          calendarInviteStatus: 'SUCCESS',
+        };
       }
 
       const booking = await prisma.demoBooking.create({
