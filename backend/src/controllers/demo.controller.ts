@@ -116,7 +116,7 @@ export class DemoController {
         idempotencyKey: req.body.idempotencyKey || (Array.isArray(idempotencyHeader) ? idempotencyHeader[0] : idempotencyHeader)
       };
 
-      const booking = await DemoService.createBooking(payload);
+      const booking: any = await DemoService.createBooking(payload);
 
       if (!booking || !booking.id) {
         res.status(500).json({
