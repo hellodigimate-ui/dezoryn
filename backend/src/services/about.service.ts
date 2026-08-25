@@ -1,35 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
-const dataDir = path.resolve(process.cwd(), 'src/data');
-const dataFilePath = path.join(dataDir, 'about.json');
-
-const ensureDataDir = () => {
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-};
-
-const readFileData = () => {
-  try {
-    ensureDataDir();
-    if (fs.existsSync(dataFilePath)) {
-      const raw = fs.readFileSync(dataFilePath, 'utf-8');
-      return JSON.parse(raw);
-    }
-  } catch (_e) {}
-  return null;
-};
-
-const writeFileData = (data: any) => {
-  try {
-    ensureDataDir();
-    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (_e) {}
-};
+import { prisma } from '../config/prisma.config';
 
 export interface AboutSectionInput {
   badge?: string;
@@ -53,7 +22,7 @@ export interface AboutSectionInput {
   isDraft?: boolean;
 }
 
-const DEFAULT_ABOUT: AboutSectionInput & { id: string; mediaUrl: string | null; mediaId: string | null } = {
+export const DEFAULT_ABOUT: AboutSectionInput & { id: string; mediaUrl: string | null; mediaId: string | null } = {
   id: 'default',
   badge: 'ABOUT DEZORYN TECHNOLOGIES',
   heading: 'Empowering Modern Enterprises with Intelligent Automation',
@@ -97,42 +66,52 @@ const DEFAULT_ABOUT: AboutSectionInput & { id: string; mediaUrl: string | null; 
 };
 
 export class AboutService {
+  /**
+   * GET ABOUT SECTION
+   * PostgreSQL is the only source of truth.
+   */
   public static async getAboutSection() {
-    const fileData = readFileData();
-    if (fileData) return fileData;
-
     try {
-      const data = await (prisma as any).aboutSection.findUnique({
+      let about = await prisma.aboutSection.findUnique({
         where: { id: 'default' },
       });
-      if (data) {
-        writeFileData(data);
-        return data;
-      }
-    } catch (_e) {}
 
-    writeFileData(DEFAULT_ABOUT);
-    return DEFAULT_ABOUT;
+      if (!about) {
+        about = await prisma.aboutSection.create({
+          data: DEFAULT_ABOUT,
+        });
+      }
+
+      return about;
+    } catch (error) {
+      console.error('GET ABOUT SECTION ERROR:', error);
+      throw error;
+    }
   }
 
+  /**
+   * UPDATE ABOUT SECTION
+   */
   public static async updateAboutSection(input: AboutSectionInput) {
-    const existing = await AboutService.getAboutSection();
-    const payload = {
-      ...existing,
-      ...input,
-    };
-
-    writeFileData(payload);
-
     try {
-      await (prisma as any).aboutSection.upsert({
+      const existing = await this.getAboutSection();
+      const payload = {
+        ...existing,
+        ...input,
+        updatedAt: new Date(),
+      };
+
+      const updated = await prisma.aboutSection.upsert({
         where: { id: 'default' },
-        create: { id: 'default', ...payload },
+        create: payload,
         update: payload,
       });
-    } catch (_e) {}
 
-    return payload;
+      return updated;
+    } catch (error) {
+      console.error('UPDATE ABOUT SECTION ERROR:', error);
+      throw error;
+    }
   }
 
   public static async updateMedia(mediaUrl: string, mediaType: string, mediaId?: string) {
@@ -143,4 +122,3 @@ export class AboutService {
     return this.updateAboutSection({ mediaUrl: '', mediaType: 'IMAGE', mediaId: '' });
   }
 }
-

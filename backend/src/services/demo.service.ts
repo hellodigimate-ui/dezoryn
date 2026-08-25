@@ -1,10 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-const db = prisma as any;
-const BOOKING_STORE: any[] = [];
-const IDEMPOTENCY_STORE = new Map<string, any>();
-const INFLIGHT_BOOKINGS = new Map<string, Promise<any>>();
+import { prisma } from '../config/prisma.config';
 
 export interface ProductDemoPayload {
   title: string;
@@ -16,7 +10,7 @@ export interface ProductDemoPayload {
   isActive?: boolean;
 }
 
-const DEFAULT_DEMOS = [
+export const DEFAULT_DEMOS = [
   {
     id: 'demo-1',
     title: 'SchoolyCore Demo',
@@ -59,326 +53,158 @@ const DEFAULT_DEMOS = [
   },
 ];
 
-let hasAttemptedDemoInitialSeed = false;
-
-async function seedInitialDemosRaw() {
-  for (const item of DEFAULT_DEMOS) {
-    try {
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO product_demos (id, title, description, "videoUrl", "thumbnailUrl", category, "order", "isActive", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
-         ON CONFLICT (id) DO NOTHING`,
-        item.id, item.title, item.description, item.videoUrl,
-        item.thumbnailUrl, item.category, item.order, item.isActive
-      );
-    } catch {
-      // ignore
-    }
-  }
-}
-
 export class DemoService {
+  /**
+   * GET ALL PRODUCT DEMOS
+   * PostgreSQL is the only source of truth.
+   */
   static async getAll(activeOnly: boolean = false) {
-    if (!hasAttemptedDemoInitialSeed) {
-      hasAttemptedDemoInitialSeed = true;
-      try {
-        const countRes: any = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM product_demos');
-        if (countRes[0]?.count === 0) {
-          await seedInitialDemosRaw();
-        }
-      } catch {
-        // ignore
-      }
-    }
-
     try {
-      if (db.productDemo) {
-        const where = activeOnly ? { isActive: true } : {};
-        return await db.productDemo.findMany({
-          where,
+      let demos = await prisma.productDemo.findMany({
+        where: activeOnly ? { isActive: true } : {},
+        orderBy: { order: 'asc' },
+      });
+
+      if (!demos || demos.length === 0) {
+        await prisma.productDemo.createMany({
+          data: DEFAULT_DEMOS,
+        });
+        demos = await prisma.productDemo.findMany({
+          where: activeOnly ? { isActive: true } : {},
           orderBy: { order: 'asc' },
         });
       }
-    } catch {
-      // Fall through to raw SQL
-    }
 
-    try {
-      let sql = 'SELECT * FROM product_demos';
-      if (activeOnly) {
-        sql += ' WHERE "isActive" = true';
-      }
-      sql += ' ORDER BY "order" ASC';
-
-      return await prisma.$queryRawUnsafe(sql);
-    } catch {
-      return DEFAULT_DEMOS;
+      return demos;
+    } catch (error) {
+      console.error('GET PRODUCT DEMOS ERROR:', error);
+      throw error;
     }
   }
 
   static async getById(id: string) {
     try {
-      if (db.productDemo) {
-        return await db.productDemo.findUnique({ where: { id } });
-      }
-    } catch {
-      // Fall through
+      const demo = await prisma.productDemo.findUnique({ where: { id } });
+      return demo;
+    } catch (error) {
+      console.error(`GET DEMO ${id} ERROR:`, error);
+      throw error;
     }
-
-    const rows: any = await prisma.$queryRawUnsafe('SELECT * FROM product_demos WHERE id = $1', id);
-    return rows ? rows[0] : null;
   }
 
   static async create(payload: ProductDemoPayload) {
-    const data = {
-      title: payload.title,
-      description: payload.description || '',
-      videoUrl: payload.videoUrl,
-      thumbnailUrl: payload.thumbnailUrl || '',
-      category: payload.category || 'General',
-      order: payload.order ?? 0,
-      isActive: payload.isActive ?? true,
-    };
-
     try {
-      if (db.productDemo) {
-        return await db.productDemo.create({ data });
-      }
-    } catch {
-      // Fall through to raw SQL
+      const count = await prisma.productDemo.count();
+      const demo = await prisma.productDemo.create({
+        data: {
+          title: payload.title,
+          description: payload.description || '',
+          videoUrl: payload.videoUrl,
+          thumbnailUrl: payload.thumbnailUrl || '',
+          category: payload.category || 'General',
+          order: payload.order ?? count,
+          isActive: payload.isActive ?? true,
+        },
+      });
+
+      return demo;
+    } catch (error) {
+      console.error('CREATE DEMO ERROR:', error);
+      throw error;
     }
-
-    const id = `demo_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO product_demos (id, title, description, "videoUrl", "thumbnailUrl", category, "order", "isActive", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
-      id, data.title, data.description, data.videoUrl,
-      data.thumbnailUrl, data.category, data.order, data.isActive
-    );
-
-    const rows: any = await prisma.$queryRawUnsafe('SELECT * FROM product_demos WHERE id = $1', id);
-    return rows[0] || { id, ...data };
   }
 
   static async update(id: string, payload: Partial<ProductDemoPayload>) {
     try {
-      if (db.productDemo) {
-        return await db.productDemo.update({
-          where: { id },
-          data: payload,
-        });
-      }
-    } catch {
-      // Fall through to raw SQL
+      const updated = await prisma.productDemo.update({
+        where: { id },
+        data: payload,
+      });
+
+      return updated;
+    } catch (error) {
+      console.error(`UPDATE DEMO ${id} ERROR:`, error);
+      throw error;
     }
-
-    const existing = await DemoService.getById(id);
-    if (!existing) throw new Error('Product demo not found');
-
-    const updatedData = {
-      title: payload.title ?? existing.title,
-      description: payload.description ?? existing.description,
-      videoUrl: payload.videoUrl ?? existing.videoUrl,
-      thumbnailUrl: payload.thumbnailUrl ?? existing.thumbnailUrl,
-      category: payload.category ?? existing.category,
-      order: payload.order ?? existing.order,
-      isActive: payload.isActive ?? existing.isActive,
-    };
-
-    await prisma.$executeRawUnsafe(
-      `UPDATE product_demos SET
-        title = $1, description = $2, "videoUrl" = $3, "thumbnailUrl" = $4,
-        category = $5, "order" = $6, "isActive" = $7, "updatedAt" = NOW()
-       WHERE id = $8`,
-      updatedData.title, updatedData.description, updatedData.videoUrl,
-      updatedData.thumbnailUrl, updatedData.category, updatedData.order,
-      updatedData.isActive, id
-    );
-
-    const rows: any = await prisma.$queryRawUnsafe('SELECT * FROM product_demos WHERE id = $1', id);
-    return rows[0];
   }
 
   static async delete(id: string) {
     try {
-      if (db.productDemo) {
-        await db.productDemo.delete({ where: { id } });
-        return { success: true };
-      }
-    } catch {
-      // Fall through
+      await prisma.productDemo.delete({ where: { id } });
+      return { success: true };
+    } catch (error) {
+      console.error(`DELETE DEMO ${id} ERROR:`, error);
+      throw error;
     }
-
-    await prisma.$executeRawUnsafe('DELETE FROM product_demos WHERE id = $1', id);
-    return { success: true };
   }
 
+  /**
+   * CREATE DEMO BOOKING
+   */
   static async createBooking(payload: any) {
-    const idempotencyKey = payload.idempotencyKey || payload.id || `${payload.email}_${payload.bookingDate}_${payload.bookingTimeSlot}`;
+    try {
+      const existing = await prisma.demoBooking.findFirst({
+        where: {
+          email: payload.email,
+          bookingDate: payload.bookingDate,
+          bookingTimeSlot: payload.bookingTimeSlot || '',
+        },
+      });
 
-    if (idempotencyKey && IDEMPOTENCY_STORE.has(idempotencyKey)) {
-      return IDEMPOTENCY_STORE.get(idempotencyKey);
-    }
-
-    if (idempotencyKey && INFLIGHT_BOOKINGS.has(idempotencyKey)) {
-      return await INFLIGHT_BOOKINGS.get(idempotencyKey);
-    }
-
-    const executionPromise = (async () => {
-      // Check duplicate by email + bookingDate + bookingTimeSlot in memory
-      const duplicateInStore = BOOKING_STORE.find(
-        (b) =>
-          b.email === payload.email &&
-          b.bookingDate === payload.bookingDate &&
-          b.bookingTimeSlot === payload.bookingTimeSlot
-      );
-      if (duplicateInStore) {
-        if (idempotencyKey) IDEMPOTENCY_STORE.set(idempotencyKey, duplicateInStore);
-        return duplicateInStore;
+      if (existing) {
+        return existing;
       }
 
-      // Check database for existing booking by email + bookingDate + bookingTimeSlot
+      const booking = await prisma.demoBooking.create({
+        data: {
+          fullName: payload.fullName,
+          email: payload.email,
+          phone: payload.phone || '',
+          company: payload.company || '',
+          productSelected: payload.productSelected || '',
+          teamSize: payload.teamSize || '',
+          expectedUsers: payload.expectedUsers || '',
+          notes: payload.notes || '',
+          bookingDate: payload.bookingDate,
+          formattedBookingDate: payload.formattedBookingDate || payload.bookingDate,
+          bookingTimeSlot: payload.bookingTimeSlot || '',
+          timeZone: payload.timeZone || '',
+          status: 'CONFIRMED',
+        },
+      });
+
       try {
-        const dbDuplicates: any = await prisma.$queryRawUnsafe(
-          'SELECT * FROM demo_bookings WHERE email = $1 AND "bookingDate" = $2 AND "bookingTimeSlot" = $3 LIMIT 1',
-          payload.email,
-          payload.bookingDate,
-          payload.bookingTimeSlot
-        );
-        if (dbDuplicates && Array.isArray(dbDuplicates) && dbDuplicates.length > 0) {
-          const existingRecord = dbDuplicates[0];
-          if (idempotencyKey) IDEMPOTENCY_STORE.set(idempotencyKey, existingRecord);
-          return existingRecord;
-        }
+        await prisma.analyticsEvent.create({
+          data: {
+            eventType: 'demo_request',
+            page: '/book-demo',
+            source: 'booking_form',
+            metadata: payload,
+          },
+        });
       } catch (_e) {}
 
-      const meetingRoomId = `dezoryn-demo-${Math.random().toString(36).substring(2, 8)}`;
-      const defaultMeetingLink = `https://meet.dezoryn.com/${meetingRoomId}`;
-
-      const booking = {
-        id: payload.id || `demo_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        fullName: payload.fullName,
-        email: payload.email,
-        phone: payload.phone || '',
-        company: payload.company || '',
-        productSelected: payload.productSelected || '',
-        teamSize: payload.teamSize || '',
-        expectedUsers: payload.expectedUsers || '',
-        notes: payload.notes || '',
-        bookingDate: payload.bookingDate,
-        formattedBookingDate: payload.formattedBookingDate || payload.bookingDate,
-        bookingTimeSlot: payload.bookingTimeSlot || '',
-        timeZone: payload.timeZone || '',
-        meetingLink: payload.meetingLink || defaultMeetingLink,
-        calendarInviteStatus: payload.calendarInviteStatus || 'SUCCESS',
-        createdAt: new Date().toISOString()
+      return {
+        ...booking,
+        calendarInviteStatus: 'SUCCESS',
       };
-
-      // 1. Persist using Prisma db.demoBooking if client has model
-      try {
-        if (db.demoBooking) {
-          const record = await db.demoBooking.create({
-            data: {
-              fullName: booking.fullName,
-              email: booking.email,
-              phone: booking.phone,
-              company: booking.company,
-              productSelected: booking.productSelected,
-              teamSize: booking.teamSize,
-              expectedUsers: booking.expectedUsers,
-              notes: booking.notes,
-              bookingDate: booking.bookingDate,
-              formattedBookingDate: booking.formattedBookingDate,
-              bookingTimeSlot: booking.bookingTimeSlot,
-              timeZone: booking.timeZone,
-            }
-          });
-          const fullRecord = { ...record, meetingLink: booking.meetingLink, calendarInviteStatus: booking.calendarInviteStatus };
-          BOOKING_STORE.unshift(fullRecord);
-          if (idempotencyKey) IDEMPOTENCY_STORE.set(idempotencyKey, fullRecord);
-          return fullRecord;
-        }
-      } catch (_e) {
-        // Fall through
-      }
-
-      // 2. Log event in Prisma AnalyticsEvent if model exists
-      try {
-        if (db.analyticsEvent) {
-          await db.analyticsEvent.create({
-            data: {
-              eventType: 'demo_request',
-              page: '/book-demo',
-              source: 'booking_form',
-              metadata: booking
-            }
-          });
-        }
-      } catch (_e) {
-        // Ignore fallback
-      }
-
-      // 3. Persist to PostgreSQL table demo_bookings via Raw SQL
-      try {
-        await prisma.$executeRawUnsafe(
-          `CREATE TABLE IF NOT EXISTS demo_bookings (
-            id TEXT PRIMARY KEY,
-            "fullName" TEXT,
-            email TEXT,
-            phone TEXT,
-            company TEXT,
-            "productSelected" TEXT,
-            "teamSize" TEXT,
-            "expectedUsers" TEXT,
-            notes TEXT,
-            "bookingDate" TEXT,
-            "formattedBookingDate" TEXT,
-            "bookingTimeSlot" TEXT,
-            "timeZone" TEXT,
-            "createdAt" TIMESTAMP DEFAULT NOW()
-          )`
-        );
-        await prisma.$executeRawUnsafe(
-          `INSERT INTO demo_bookings (id, "fullName", email, phone, company, "productSelected", "teamSize", "expectedUsers", notes, "bookingDate", "formattedBookingDate", "bookingTimeSlot", "timeZone")
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-          booking.id, booking.fullName, booking.email, booking.phone, booking.company,
-          booking.productSelected, booking.teamSize, booking.expectedUsers, booking.notes,
-          booking.bookingDate, booking.formattedBookingDate, booking.bookingTimeSlot, booking.timeZone
-        );
-      } catch (_e) {
-        // Fallback
-      }
-
-      BOOKING_STORE.unshift(booking);
-      if (idempotencyKey) IDEMPOTENCY_STORE.set(idempotencyKey, booking);
-      return booking;
-    })();
-
-    if (idempotencyKey) {
-      INFLIGHT_BOOKINGS.set(idempotencyKey, executionPromise);
-    }
-    try {
-      return await executionPromise;
-    } finally {
-      if (idempotencyKey) INFLIGHT_BOOKINGS.delete(idempotencyKey);
+    } catch (error) {
+      console.error('CREATE DEMO BOOKING ERROR:', error);
+      throw error;
     }
   }
 
   static async getBookings() {
     try {
-      if (db.demoBooking) {
-        const items = await db.demoBooking.findMany({ orderBy: { createdAt: 'desc' } });
-        if (items && items.length > 0) return items;
-      }
-    } catch (_e) {}
+      const bookings = await prisma.demoBooking.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
 
-    try {
-      const rows: any = await prisma.$queryRawUnsafe('SELECT * FROM demo_bookings ORDER BY "createdAt" DESC');
-      if (rows && Array.isArray(rows) && rows.length > 0) {
-        return rows;
-      }
-    } catch (_e) {}
-    return BOOKING_STORE;
+      return bookings;
+    } catch (error) {
+      console.error('GET DEMO BOOKINGS ERROR:', error);
+      throw error;
+    }
   }
 }
 
@@ -390,7 +216,6 @@ export function validateBookingDate(bookingDateStr: string): { isValid: boolean;
   let parsedDate: Date | null = null;
   const cleanStr = bookingDateStr.trim();
 
-  // YYYY-MM-DD format
   if (/^\d{4}-\d{2}-\d{2}$/.test(cleanStr)) {
     const [y, m, d] = cleanStr.split('-').map(Number);
     parsedDate = new Date(y, m - 1, d, 0, 0, 0, 0);
@@ -406,7 +231,6 @@ export function validateBookingDate(bookingDateStr: string): { isValid: boolean;
     return { isValid: false, parsedDate: null, error: 'Please select a current or future date.' };
   }
 
-  // Server current date at midnight (00:00:00)
   const now = new Date();
   const serverToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
 
@@ -416,4 +240,3 @@ export function validateBookingDate(bookingDateStr: string): { isValid: boolean;
 
   return { isValid: true, parsedDate };
 }
-

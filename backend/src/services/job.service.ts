@@ -1,11 +1,5 @@
 import { prisma } from '../config/prisma.config';
 
-const db = prisma as any;
-
-function generateId(): string {
-  return 'job_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
-}
-
 const DEFAULT_JOBS = [
   {
     id: 'job-seed-1',
@@ -85,99 +79,62 @@ const DEFAULT_JOBS = [
   },
 ];
 
-async function seedDefaultJobsRaw() {
-  for (const item of DEFAULT_JOBS) {
-    try {
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO jobs (id, title, department, location, salary, experience, "employmentType", description, requirements, responsibilities, status, "closingDate", "order", "isEnabled", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12, $13, $14, NOW(), NOW())
-         ON CONFLICT (id) DO NOTHING`,
-        item.id, item.title, item.department, item.location, item.salary, item.experience, item.employmentType,
-        item.description, JSON.stringify(item.requirements), JSON.stringify(item.responsibilities),
-        item.status, item.closingDate, item.order, item.isEnabled
-      );
-    } catch {
-      // ignore
-    }
-  }
-}
-
-let hasAttemptedJobInitialSeed = false;
-
 export class JobService {
+  /**
+   * GET ALL JOBS
+   * PostgreSQL is the only source of truth.
+   */
   static async getAll(filter?: { department?: string; status?: string; isEnabled?: boolean; search?: string }) {
-    if (!hasAttemptedJobInitialSeed) {
-      hasAttemptedJobInitialSeed = true;
-      try {
-        const countRes: any = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM jobs');
-        if (countRes[0]?.count === 0) {
-          await seedDefaultJobsRaw();
-        }
-      } catch {
-        // ignore initial seed error
-      }
-    }
-
     try {
-      if (db.job) {
-        const where: any = {};
-        if (filter?.department && filter.department !== 'All') where.department = { equals: filter.department, mode: 'insensitive' };
-        if (filter?.status && filter.status !== 'All') where.status = filter.status;
-        if (filter?.isEnabled !== undefined) where.isEnabled = filter.isEnabled;
-        if (filter?.search) {
-          where.OR = [
-            { title: { contains: filter.search, mode: 'insensitive' } },
-            { department: { contains: filter.search, mode: 'insensitive' } },
-            { location: { contains: filter.search, mode: 'insensitive' } },
-            { description: { contains: filter.search, mode: 'insensitive' } },
-          ];
-        }
-        return await db.job.findMany({ where, orderBy: { order: 'asc' } });
+      let jobs = await prisma.job.findMany({
+        orderBy: { order: 'asc' },
+      });
+
+      if (!jobs || jobs.length === 0) {
+        await prisma.job.createMany({
+          data: DEFAULT_JOBS as any,
+        });
+        jobs = await prisma.job.findMany({
+          orderBy: { order: 'asc' },
+        });
       }
-    } catch {
-      // Fall through to raw SQL
-    }
 
-    try {
-      let sql = 'SELECT * FROM jobs WHERE 1=1';
-
-      const params: any[] = [];
-      let idx = 1;
-
+      let filtered = [...jobs];
       if (filter?.department && filter.department !== 'All') {
-        sql += ` AND LOWER(department) = LOWER($${idx++})`;
-        params.push(filter.department);
+        filtered = filtered.filter(j => j.department.toLowerCase() === filter.department!.toLowerCase());
       }
       if (filter?.status && filter.status !== 'All') {
-        sql += ` AND status = $${idx++}`;
-        params.push(filter.status);
+        filtered = filtered.filter(j => j.status === filter.status);
       }
       if (filter?.isEnabled !== undefined) {
-        sql += ` AND "isEnabled" = $${idx++}`;
-        params.push(filter.isEnabled);
+        filtered = filtered.filter(j => j.isEnabled === filter.isEnabled);
       }
       if (filter?.search) {
-        sql += ` AND (LOWER(title) LIKE $${idx} OR LOWER(department) LIKE $${idx} OR LOWER(location) LIKE $${idx} OR LOWER(description) LIKE $${idx})`;
-        params.push(`%${filter.search.toLowerCase()}%`);
-        idx++;
+        const q = filter.search.toLowerCase();
+        filtered = filtered.filter(
+          j =>
+            j.title.toLowerCase().includes(q) ||
+            j.department.toLowerCase().includes(q) ||
+            j.location.toLowerCase().includes(q) ||
+            j.description.toLowerCase().includes(q)
+        );
       }
 
-      sql += ' ORDER BY "order" ASC';
-      const rows: any = await prisma.$queryRawUnsafe(sql, ...params);
-      return rows;
-    } catch (err) {
-      console.error('Raw SQL error in JobService.getAll:', err);
-      return DEFAULT_JOBS;
+      return filtered;
+    } catch (error) {
+      console.error('GET JOBS ERROR:', error);
+      throw error;
     }
   }
 
   static async getById(id: string) {
     try {
-      if (db.job) return await db.job.findUnique({ where: { id } });
-    } catch {}
-
-    const rows: any = await prisma.$queryRawUnsafe('SELECT * FROM jobs WHERE id = $1', id);
-    return rows[0] || null;
+      const job = await prisma.job.findUnique({ where: { id } });
+      return job;
+    } catch (error) {
+      console.error(`GET JOB ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async create(data: {
@@ -195,53 +152,41 @@ export class JobService {
     order?: number;
     isEnabled?: boolean;
   }) {
-    const parseList = (val: any) => {
-      if (Array.isArray(val)) return val;
-      if (typeof val === 'string') return val.split('\n').map(s => s.trim()).filter(Boolean);
-      return [];
-    };
-
-    const reqs = parseList(data.requirements);
-    const resps = parseList(data.responsibilities);
-    const closingDateVal = data.closingDate ? new Date(data.closingDate) : null;
-
     try {
-      if (db.job) {
-        const count = await db.job.count();
-        return await db.job.create({
-          data: {
-            title: data.title,
-            department: data.department || 'General',
-            location: data.location || 'Remote',
-            salary: data.salary || 'Competitive',
-            experience: data.experience || 'Mid-Senior',
-            employmentType: data.employmentType || 'Full-Time',
-            description: data.description,
-            requirements: reqs,
-            responsibilities: resps,
-            status: data.status || 'active',
-            closingDate: closingDateVal,
-            order: data.order ?? count,
-            isEnabled: data.isEnabled ?? (data.status !== 'closed'),
-          },
-        });
-      }
-    } catch {}
+      const parseList = (val: any) => {
+        if (Array.isArray(val)) return val;
+        if (typeof val === 'string') return val.split('\n').map(s => s.trim()).filter(Boolean);
+        return [];
+      };
 
-    const countRes: any = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM jobs');
-    const orderIndex = data.order ?? (countRes[0]?.count || 0);
-    const newId = generateId();
+      const reqs = parseList(data.requirements);
+      const resps = parseList(data.responsibilities);
+      const closingDateVal = data.closingDate ? new Date(data.closingDate) : null;
+      const count = await prisma.job.count();
 
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO jobs (id, title, department, location, salary, experience, "employmentType", description, requirements, responsibilities, status, "closingDate", "order", "isEnabled", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12, $13, $14, NOW(), NOW())`,
-      newId, data.title, data.department || 'General', data.location || 'Remote',
-      data.salary || 'Competitive', data.experience || 'Mid-Senior', data.employmentType || 'Full-Time',
-      data.description, JSON.stringify(reqs), JSON.stringify(resps),
-      data.status || 'active', closingDateVal, orderIndex, data.isEnabled ?? (data.status !== 'closed')
-    );
+      const created = await prisma.job.create({
+        data: {
+          title: data.title,
+          department: data.department || 'General',
+          location: data.location || 'Remote',
+          salary: data.salary || 'Competitive',
+          experience: data.experience || 'Mid-Senior',
+          employmentType: data.employmentType || 'Full-Time',
+          description: data.description,
+          requirements: reqs,
+          responsibilities: resps,
+          status: data.status || 'active',
+          closingDate: closingDateVal,
+          order: data.order ?? count,
+          isEnabled: data.isEnabled ?? (data.status !== 'closed'),
+        },
+      });
 
-    return this.getById(newId);
+      return created;
+    } catch (error) {
+      console.error('CREATE JOB ERROR:', error);
+      throw error;
+    }
   }
 
   static async update(id: string, data: Partial<{
@@ -259,88 +204,77 @@ export class JobService {
     order: number;
     isEnabled: boolean;
   }>) {
-    const parseList = (val: any) => {
-      if (Array.isArray(val)) return val;
-      if (typeof val === 'string') return val.split('\n').map(s => s.trim()).filter(Boolean);
-      return [];
-    };
-
     try {
-      if (db.job) {
-        const updateData: any = { ...data };
-        if (data.requirements !== undefined) updateData.requirements = parseList(data.requirements);
-        if (data.responsibilities !== undefined) updateData.responsibilities = parseList(data.responsibilities);
-        if (data.closingDate !== undefined) updateData.closingDate = data.closingDate ? new Date(data.closingDate) : null;
-        if (data.status !== undefined && data.isEnabled === undefined) updateData.isEnabled = data.status === 'active';
-        return await db.job.update({ where: { id }, data: updateData });
-      }
-    } catch {}
+      const parseList = (val: any) => {
+        if (Array.isArray(val)) return val;
+        if (typeof val === 'string') return val.split('\n').map(s => s.trim()).filter(Boolean);
+        return [];
+      };
 
-    const existing: any = await this.getById(id);
-    if (!existing) throw new Error('Job not found');
+      const updateData: any = { ...data };
+      if (data.requirements !== undefined) updateData.requirements = parseList(data.requirements);
+      if (data.responsibilities !== undefined) updateData.responsibilities = parseList(data.responsibilities);
+      if (data.closingDate !== undefined) updateData.closingDate = data.closingDate ? new Date(data.closingDate) : null;
+      if (data.status !== undefined && data.isEnabled === undefined) updateData.isEnabled = data.status === 'active';
 
-    const title = data.title ?? existing.title;
-    const department = data.department ?? existing.department;
-    const location = data.location ?? existing.location;
-    const salary = data.salary ?? existing.salary;
-    const experience = data.experience ?? existing.experience;
-    const employmentType = data.employmentType ?? existing.employmentType;
-    const description = data.description ?? existing.description;
-    const reqs = data.requirements !== undefined ? parseList(data.requirements) : existing.requirements;
-    const resps = data.responsibilities !== undefined ? parseList(data.responsibilities) : existing.responsibilities;
-    const status = data.status ?? existing.status;
-    const closingDateVal = data.closingDate !== undefined ? (data.closingDate ? new Date(data.closingDate) : null) : existing.closingDate;
-    const orderVal = data.order ?? existing.order;
-    const isEnabledVal = data.isEnabled ?? (status === 'active');
-
-    await prisma.$executeRawUnsafe(
-      `UPDATE jobs SET title = $1, department = $2, location = $3, salary = $4, experience = $5, "employmentType" = $6, description = $7, requirements = $8::jsonb, responsibilities = $9::jsonb, status = $10, "closingDate" = $11, "order" = $12, "isEnabled" = $13, "updatedAt" = NOW() WHERE id = $14`,
-      title, department, location, salary, experience, employmentType, description,
-      JSON.stringify(reqs), JSON.stringify(resps), status, closingDateVal, orderVal, isEnabledVal, id
-    );
-
-    return this.getById(id);
+      const updated = await prisma.job.update({ where: { id }, data: updateData });
+      return updated;
+    } catch (error) {
+      console.error(`UPDATE JOB ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async delete(id: string) {
     try {
-      if (db.job) return await db.job.delete({ where: { id } });
-    } catch {}
-
-    await prisma.$executeRawUnsafe('DELETE FROM jobs WHERE id = $1', id);
-    return { id };
+      await prisma.job.delete({ where: { id } });
+      return { id, success: true };
+    } catch (error) {
+      console.error(`DELETE JOB ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async toggleStatus(id: string) {
-    const existing: any = await this.getById(id);
-    if (!existing) throw new Error('Job not found');
+    try {
+      const existing = await prisma.job.findUnique({ where: { id } });
+      if (!existing) throw new Error('Job not found');
 
-    const newStatus = existing.status === 'active' ? 'closed' : 'active';
-    return this.update(id, { status: newStatus, isEnabled: newStatus === 'active' });
+      const newStatus = existing.status === 'active' ? 'closed' : 'active';
+      return this.update(id, { status: newStatus, isEnabled: newStatus === 'active' });
+    } catch (error) {
+      console.error(`TOGGLE JOB STATUS ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async duplicate(id: string) {
-    const existing: any = await this.getById(id);
-    if (!existing) throw new Error('Job not found');
+    try {
+      const existing = await prisma.job.findUnique({ where: { id } });
+      if (!existing) throw new Error('Job not found');
 
-    const { id: _id, createdAt: _ca, updatedAt: _ua, ...rest } = existing;
-    return this.create({
-      ...rest,
-      title: `${rest.title} (Copy)`,
-    });
+      const { id: _id, createdAt: _ca, updatedAt: _ua, ...rest } = existing;
+      return this.create({
+        ...rest,
+        title: `${rest.title} (Copy)`,
+        requirements: rest.requirements as any,
+        responsibilities: rest.responsibilities as any,
+      });
+    } catch (error) {
+      console.error(`DUPLICATE JOB ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async reorder(orderedIds: string[]) {
     try {
-      if (db.job) {
-        await Promise.all(orderedIds.map((id, index) => db.job.update({ where: { id }, data: { order: index } })));
-        return await db.job.findMany({ orderBy: { order: 'asc' } });
-      }
-    } catch {}
-
-    for (let index = 0; index < orderedIds.length; index++) {
-      await prisma.$executeRawUnsafe('UPDATE jobs SET "order" = $1 WHERE id = $2', index, orderedIds[index]);
+      await Promise.all(
+        orderedIds.map((id, index) => prisma.job.update({ where: { id }, data: { order: index } }))
+      );
+      return await prisma.job.findMany({ orderBy: { order: 'asc' } });
+    } catch (error) {
+      console.error('REORDER JOBS ERROR:', error);
+      throw error;
     }
-    return this.getAll();
   }
 }

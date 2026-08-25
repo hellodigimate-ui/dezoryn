@@ -1,7 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-const db = prisma as any;
+import { prisma } from '../config/prisma.config';
 
 export type EventType = 'visitor' | 'lead' | 'demo_request' | 'contact_form' | 'page_view' | 'conversion';
 export type TrafficSource = 'direct' | 'google' | 'linkedin' | 'twitter' | 'referral' | 'email';

@@ -1,7 +1,5 @@
 import { prisma } from '../config/prisma.config';
 
-const db = prisma as any;
-
 const DEFAULTS = [
   {
     id: 'starter-plan',
@@ -84,33 +82,34 @@ function formatPlanWithPricing(p: any) {
 }
 
 export class PricingService {
+  /**
+   * GET ALL PRICING PLANS
+   * PostgreSQL is the only source of truth.
+   */
   static async getAll(onlyEnabled = false) {
     try {
       const where = onlyEnabled ? { isEnabled: true } : {};
-      let plans = await db.pricingPlan.findMany({ where, orderBy: { order: 'asc' } });
+      let plans = await prisma.pricingPlan.findMany({ where, orderBy: { order: 'asc' } });
+
       if (!plans || plans.length === 0) {
-        try {
-          await db.pricingPlan.createMany({ data: DEFAULTS });
-          plans = await db.pricingPlan.findMany({ orderBy: { order: 'asc' } });
-        } catch {
-          plans = DEFAULTS;
-        }
+        await prisma.pricingPlan.createMany({ data: DEFAULTS });
+        plans = await prisma.pricingPlan.findMany({ orderBy: { order: 'asc' } });
       }
-      return (plans && plans.length > 0 ? plans : DEFAULTS).map(formatPlanWithPricing);
-    } catch {
-      return DEFAULTS.map(formatPlanWithPricing);
+
+      return plans.map(formatPlanWithPricing);
+    } catch (error) {
+      console.error('GET PRICING PLANS ERROR:', error);
+      throw error;
     }
   }
 
   static async getById(id: string) {
     try {
-      const plan = await db.pricingPlan.findUnique({ where: { id } });
-      if (plan) return formatPlanWithPricing(plan);
-      const defaultPlan = DEFAULTS.find(d => d.name.toLowerCase() === id.toLowerCase() || d.id === id);
-      return formatPlanWithPricing(defaultPlan);
-    } catch {
-      const defaultPlan = DEFAULTS.find(d => d.name.toLowerCase() === id.toLowerCase() || d.id === id);
-      return formatPlanWithPricing(defaultPlan);
+      const plan = await prisma.pricingPlan.findUnique({ where: { id } });
+      return formatPlanWithPricing(plan);
+    } catch (error) {
+      console.error(`GET PRICING PLAN ${id} ERROR:`, error);
+      throw error;
     }
   }
 
@@ -119,22 +118,29 @@ export class PricingService {
     buttonText?: string; buttonUrl?: string; isHighlight?: boolean;
     ribbon?: string; colorTheme?: string; order?: number; isEnabled?: boolean;
   }) {
-    const count = await db.pricingPlan.count();
-    return db.pricingPlan.create({
-      data: {
-        name: data.name,
-        price: data.price,
-        description: data.description,
-        features: data.features || [],
-        buttonText: data.buttonText || 'Get Started',
-        buttonUrl: data.buttonUrl || '/book-demo',
-        isHighlight: data.isHighlight || false,
-        ribbon: data.ribbon || null,
-        colorTheme: data.colorTheme || 'blue',
-        order: data.order ?? count,
-        isEnabled: data.isEnabled ?? true,
-      },
-    });
+    try {
+      const count = await prisma.pricingPlan.count();
+      const created = await prisma.pricingPlan.create({
+        data: {
+          name: data.name,
+          price: data.price,
+          description: data.description,
+          features: data.features || [],
+          buttonText: data.buttonText || 'Get Started',
+          buttonUrl: data.buttonUrl || '/book-demo',
+          isHighlight: data.isHighlight || false,
+          ribbon: data.ribbon || null,
+          colorTheme: data.colorTheme || 'blue',
+          order: data.order ?? count,
+          isEnabled: data.isEnabled ?? true,
+        },
+      });
+
+      return formatPlanWithPricing(created);
+    } catch (error) {
+      console.error('CREATE PRICING PLAN ERROR:', error);
+      throw error;
+    }
   }
 
   static async update(id: string, data: Partial<{
@@ -142,22 +148,48 @@ export class PricingService {
     buttonText: string; buttonUrl: string; isHighlight: boolean;
     ribbon: string; colorTheme: string; order: number; isEnabled: boolean;
   }>) {
-    return db.pricingPlan.update({ where: { id }, data });
+    try {
+      const updated = await prisma.pricingPlan.update({ where: { id }, data });
+      return formatPlanWithPricing(updated);
+    } catch (error) {
+      console.error(`UPDATE PRICING PLAN ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async delete(id: string) {
-    return db.pricingPlan.delete({ where: { id } });
+    try {
+      await prisma.pricingPlan.delete({ where: { id } });
+      return { success: true, deletedId: id };
+    } catch (error) {
+      console.error(`DELETE PRICING PLAN ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async toggleEnabled(id: string) {
-    const plan = await db.pricingPlan.findUnique({ where: { id } });
-    return db.pricingPlan.update({ where: { id }, data: { isEnabled: !plan.isEnabled } });
+    try {
+      const plan = await prisma.pricingPlan.findUnique({ where: { id } });
+      if (!plan) throw new Error('Pricing plan not found');
+
+      const updated = await prisma.pricingPlan.update({ where: { id }, data: { isEnabled: !plan.isEnabled } });
+      return formatPlanWithPricing(updated);
+    } catch (error) {
+      console.error(`TOGGLE PRICING PLAN ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async reorder(orderedIds: string[]) {
-    await Promise.all(
-      orderedIds.map((id, index) => db.pricingPlan.update({ where: { id }, data: { order: index } }))
-    );
-    return db.pricingPlan.findMany({ orderBy: { order: 'asc' } });
+    try {
+      await Promise.all(
+        orderedIds.map((id, index) => prisma.pricingPlan.update({ where: { id }, data: { order: index } }))
+      );
+      const plans = await prisma.pricingPlan.findMany({ orderBy: { order: 'asc' } });
+      return plans.map(formatPlanWithPricing);
+    } catch (error) {
+      console.error('REORDER PRICING PLANS ERROR:', error);
+      throw error;
+    }
   }
 }

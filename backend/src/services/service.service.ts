@@ -1,36 +1,4 @@
-import fs from 'fs';
-import path from 'path';
 import { prisma } from '../config/prisma.config';
-
-const db = prisma as any;
-
-const dataDir = path.resolve(process.cwd(), 'src/data');
-const dataFilePath = path.join(dataDir, 'services.json');
-
-const ensureDataDir = () => {
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-};
-
-const readFileData = (): ServiceItem[] | null => {
-  try {
-    ensureDataDir();
-    if (fs.existsSync(dataFilePath)) {
-      const raw = fs.readFileSync(dataFilePath, 'utf-8');
-      const items = JSON.parse(raw);
-      if (Array.isArray(items) && items.length > 0) return items;
-    }
-  } catch (_e) {}
-  return null;
-};
-
-const writeFileData = (data: ServiceItem[]) => {
-  try {
-    ensureDataDir();
-    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (_e) {}
-};
 
 export interface ServiceItem {
   id?: string;
@@ -39,15 +7,16 @@ export interface ServiceItem {
   title: string;
   description: string;
   icon: string;
-  services: string[];
+  services: any;
   ctaText: string;
   ctaLink: string;
+  imageUrl?: string | null;
   order: number;
   status: string;
   isEnabled: boolean;
 }
 
-const DEFAULT_SERVICES: ServiceItem[] = [
+export const DEFAULT_SERVICES: Omit<ServiceItem, 'id'>[] = [
   {
     category: 'Software Development',
     badge: 'ENTERPRISE ARCHITECTURE',
@@ -64,6 +33,7 @@ const DEFAULT_SERVICES: ServiceItem[] = [
     ],
     ctaText: 'Explore Software Services',
     ctaLink: '/contact-sales',
+    imageUrl: '',
     order: 0,
     status: 'active',
     isEnabled: true
@@ -84,6 +54,7 @@ const DEFAULT_SERVICES: ServiceItem[] = [
     ],
     ctaText: 'Explore Web Services',
     ctaLink: '/contact-sales',
+    imageUrl: '',
     order: 1,
     status: 'active',
     isEnabled: true
@@ -104,6 +75,7 @@ const DEFAULT_SERVICES: ServiceItem[] = [
     ],
     ctaText: 'Explore Mobile Services',
     ctaLink: '/contact-sales',
+    imageUrl: '',
     order: 2,
     status: 'active',
     isEnabled: true
@@ -126,6 +98,7 @@ const DEFAULT_SERVICES: ServiceItem[] = [
     ],
     ctaText: 'Explore Business Solutions',
     ctaLink: '/contact-sales',
+    imageUrl: '',
     order: 3,
     status: 'active',
     isEnabled: true
@@ -150,6 +123,7 @@ const DEFAULT_SERVICES: ServiceItem[] = [
     ],
     ctaText: 'Explore Industry Solutions',
     ctaLink: '/contact-sales',
+    imageUrl: '',
     order: 4,
     status: 'active',
     isEnabled: true
@@ -171,6 +145,7 @@ const DEFAULT_SERVICES: ServiceItem[] = [
     ],
     ctaText: 'Explore API Services',
     ctaLink: '/contact-sales',
+    imageUrl: '',
     order: 5,
     status: 'active',
     isEnabled: true
@@ -191,6 +166,7 @@ const DEFAULT_SERVICES: ServiceItem[] = [
     ],
     ctaText: 'Explore Digital Marketing',
     ctaLink: '/contact-sales',
+    imageUrl: '',
     order: 6,
     status: 'active',
     isEnabled: true
@@ -211,227 +187,180 @@ const DEFAULT_SERVICES: ServiceItem[] = [
     ],
     ctaText: 'Explore SEO Services',
     ctaLink: '/contact-sales',
+    imageUrl: '',
     order: 7,
     status: 'active',
     isEnabled: true
   }
 ];
 
-let memoryServicesStore: ServiceItem[] = DEFAULT_SERVICES.map((s, idx) => ({ ...s, id: `service-${idx + 1}` }));
-let hasAttemptedSeed = false;
-
 export class ServiceService {
+  /**
+   * GET ALL SERVICES
+   * PostgreSQL is the only source of truth.
+   */
   static async getAll(filter?: { category?: string; status?: string; isEnabled?: boolean; search?: string }) {
-    let items = readFileData();
-
-    if (!items) {
-      try {
-        if (db.service) {
-          const dbItems = await db.service.findMany({ orderBy: { order: 'asc' } });
-          if (dbItems && dbItems.length > 0) {
-            items = dbItems;
-          }
-        }
-      } catch (_err) {}
+    try {
+      let items = await prisma.service.findMany({
+        orderBy: { order: 'asc' },
+      });
 
       if (!items || items.length === 0) {
-        items = DEFAULT_SERVICES.map((s, idx) => ({ ...s, id: `service-${idx + 1}` }));
+        await prisma.service.createMany({
+          data: DEFAULT_SERVICES as any,
+        });
+        items = await prisma.service.findMany({
+          orderBy: { order: 'asc' },
+        });
       }
-      writeFileData(items);
-    }
 
-    let filtered = [...items];
-    if (filter?.isEnabled !== undefined) {
-      filtered = filtered.filter(s => s.isEnabled === filter.isEnabled);
+      let filtered = [...items];
+      if (filter?.isEnabled !== undefined) {
+        filtered = filtered.filter(s => s.isEnabled === filter.isEnabled);
+      }
+      if (filter?.status && filter.status !== 'All') {
+        filtered = filtered.filter(s => s.status === filter.status);
+      }
+      if (filter?.category && filter.category !== 'All') {
+        filtered = filtered.filter(s => s.category === filter.category);
+      }
+      if (filter?.search) {
+        const q = filter.search.toLowerCase();
+        filtered = filtered.filter(s => s.title.toLowerCase().includes(q) || s.description.toLowerCase().includes(q) || s.category.toLowerCase().includes(q));
+      }
+
+      return filtered;
+    } catch (error) {
+      console.error('GET SERVICES ERROR:', error);
+      throw error;
     }
-    if (filter?.status && filter.status !== 'All') {
-      filtered = filtered.filter(s => s.status === filter.status);
-    }
-    if (filter?.category && filter.category !== 'All') {
-      filtered = filtered.filter(s => s.category === filter.category);
-    }
-    if (filter?.search) {
-      const q = filter.search.toLowerCase();
-      filtered = filtered.filter(s => s.title.toLowerCase().includes(q) || s.description.toLowerCase().includes(q) || s.category.toLowerCase().includes(q));
-    }
-    return filtered.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }
 
   static async getById(id: string) {
-    const items = await ServiceService.getAll();
-    return items.find(s => s.id === id) || null;
+    try {
+      const item = await prisma.service.findUnique({ where: { id } });
+      return item;
+    } catch (error) {
+      console.error(`GET SERVICE ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async create(data: Partial<ServiceItem>) {
-    const current = await ServiceService.getAll();
-    const newItem: ServiceItem = {
-      id: `service-${Date.now()}`,
-      category: data.category || 'General',
-      badge: data.badge || '',
-      title: data.title || 'New Service',
-      description: data.description || '',
-      icon: data.icon || 'Code2',
-      services: data.services || [],
-      ctaText: data.ctaText || 'Explore Services',
-      ctaLink: data.ctaLink || '/contact-sales',
-      order: data.order ?? current.length,
-      status: data.status || 'active',
-      isEnabled: data.isEnabled ?? true,
-    };
-
-    const updated = [...current, newItem];
-    writeFileData(updated);
-
     try {
-      if (db.service) {
-        await db.service.create({ data: newItem });
-      }
-    } catch (_e) {}
+      const current = await prisma.service.count();
+      const newItem = await prisma.service.create({
+        data: {
+          category: data.category || 'General',
+          badge: data.badge || '',
+          title: data.title || 'New Service',
+          description: data.description || '',
+          icon: data.icon || 'Code2',
+          services: data.services || [],
+          ctaText: data.ctaText || 'Explore Services',
+          ctaLink: data.ctaLink || '/contact-sales',
+          imageUrl: data.imageUrl || '',
+          order: data.order ?? current,
+          status: data.status || 'active',
+          isEnabled: data.isEnabled ?? true,
+        },
+      });
 
-    return newItem;
+      return newItem;
+    } catch (error) {
+      console.error('CREATE SERVICE ERROR:', error);
+      throw error;
+    }
   }
 
   static async update(id: string, data: Partial<ServiceItem>) {
-    const current = await ServiceService.getAll();
-    let updatedItem: any = null;
-
-    const updatedList = current.map(item => {
-      if (item.id === id) {
-        updatedItem = { ...item, ...data };
-        if (data.status !== undefined && data.isEnabled === undefined) {
-          updatedItem.isEnabled = data.status === 'active';
-        }
-        return updatedItem;
-      }
-      return item;
-    });
-
-    if (!updatedItem) {
-      updatedItem = {
-        id,
-        category: data.category || 'General',
-        badge: data.badge || '',
-        title: data.title || 'Service',
-        description: data.description || '',
-        icon: data.icon || 'Code2',
-        services: data.services || [],
-        ctaText: data.ctaText || 'Explore Services',
-        ctaLink: data.ctaLink || '/contact-sales',
-        order: data.order ?? 0,
-        status: data.status || 'active',
-        isEnabled: data.isEnabled ?? true,
-      };
-      updatedList.push(updatedItem);
-    }
-
-    writeFileData(updatedList);
-
     try {
-      if (db.service) {
-        const updateData: any = { ...data };
-        delete updateData.id;
-        await db.service.upsert({
-          where: { id },
-          update: updateData,
-          create: updatedItem,
-        });
-      }
-    } catch (_e) {}
+      const updateData: any = { ...data };
+      delete updateData.id;
 
-    return updatedItem;
+      if (data.status !== undefined && data.isEnabled === undefined) {
+        updateData.isEnabled = data.status === 'active';
+      }
+
+      const updated = await prisma.service.update({
+        where: { id },
+        data: updateData,
+      });
+
+      return updated;
+    } catch (error) {
+      console.error(`UPDATE SERVICE ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async delete(id: string) {
-    const current = await ServiceService.getAll();
-    const updatedList = current.filter(s => s.id !== id);
-    writeFileData(updatedList);
-
     try {
-      if (db.service) {
-        await db.service.delete({ where: { id } });
-      }
-    } catch (_e) {}
-
-    return { success: true, deletedId: id };
+      await prisma.service.delete({ where: { id } });
+      return { success: true, deletedId: id };
+    } catch (error) {
+      console.error(`DELETE SERVICE ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async toggleStatus(id: string) {
-    const current = await ServiceService.getAll();
-    let toggled: any = null;
-
-    const updatedList = current.map(s => {
-      if (s.id === id) {
-        const newStatus = s.status === 'active' ? 'inactive' : 'active';
-        toggled = { ...s, status: newStatus, isEnabled: newStatus === 'active' };
-        return toggled;
-      }
-      return s;
-    });
-
-    writeFileData(updatedList);
-
     try {
-      if (db.service && toggled) {
-        await db.service.update({
-          where: { id },
-          data: { status: toggled.status, isEnabled: toggled.isEnabled },
-        });
-      }
-    } catch (_e) {}
+      const current = await prisma.service.findUnique({ where: { id } });
+      if (!current) throw new Error('Service not found');
 
-    return toggled || { id, status: 'toggled' };
+      const newStatus = current.status === 'active' ? 'inactive' : 'active';
+      const updated = await prisma.service.update({
+        where: { id },
+        data: { status: newStatus, isEnabled: newStatus === 'active' },
+      });
+
+      return updated;
+    } catch (error) {
+      console.error(`TOGGLE SERVICE STATUS ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async duplicate(id: string) {
-    const current = await ServiceService.getAll();
-    const target = current.find(s => s.id === id);
-    if (!target) return { id: `copy-${Date.now()}` };
-
-    const newItem: ServiceItem = {
-      ...target,
-      id: `service-${Date.now()}`,
-      title: `${target.title} (Copy)`,
-      order: current.length,
-    };
-
-    const updated = [...current, newItem];
-    writeFileData(updated);
-
     try {
-      if (db.service) {
-        await db.service.create({ data: newItem });
-      }
-    } catch (_e) {}
+      const target = await prisma.service.findUnique({ where: { id } });
+      if (!target) throw new Error('Service not found');
 
-    return newItem;
+      const count = await prisma.service.count();
+      const { id: _id, createdAt: _ca, updatedAt: _ua, ...rest } = target;
+
+      const duplicated = await prisma.service.create({
+        data: {
+          ...rest,
+          services: rest.services as any,
+          title: `${rest.title} (Copy)`,
+          order: count,
+        },
+      });
+
+      return duplicated;
+    } catch (error) {
+      console.error(`DUPLICATE SERVICE ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async reorder(orderedIds: string[]) {
-    const current = await ServiceService.getAll();
-    const map = new Map(current.map(s => [s.id, s]));
-    const updatedList = orderedIds
-      .map((id, index) => {
-        const item = map.get(id);
-        return item ? { ...item, order: index } : null;
-      })
-      .filter(Boolean) as ServiceItem[];
-
-    writeFileData(updatedList);
-
     try {
-      if (db.service) {
-        await Promise.all(
-          orderedIds.map((id, index) =>
-            db.service.update({
-              where: { id },
-              data: { order: index },
-            })
-          )
-        );
-      }
-    } catch (_e) {}
+      await Promise.all(
+        orderedIds.map((id, index) =>
+          prisma.service.update({
+            where: { id },
+            data: { order: index },
+          })
+        )
+      );
 
-    return updatedList;
+      return await prisma.service.findMany({ orderBy: { order: 'asc' } });
+    } catch (error) {
+      console.error('REORDER SERVICES ERROR:', error);
+      throw error;
+    }
   }
 }
-
