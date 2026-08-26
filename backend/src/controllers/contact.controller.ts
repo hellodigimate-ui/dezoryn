@@ -36,7 +36,7 @@ export class ContactController {
 
   static async submitInquiry(req: Request, res: Response): Promise<void> {
     try {
-      const { fullName, email, workEmail, phone, company, industry, employees, budget, productInterest, message, requirements } = req.body;
+      const { fullName, email, workEmail, phone, company, industry, employees, budget, productInterest, message, requirements, description, notes, comments, details } = req.body;
       const payload = {
         fullName: fullName || 'Anonymous Visitor',
         email: email || workEmail || '',
@@ -46,7 +46,7 @@ export class ContactController {
         employees: employees || '',
         budget: budget || '',
         productInterest: productInterest || '',
-        message: message || requirements || '',
+        message: message || requirements || description || notes || comments || details || '',
       };
 
       if (!payload.email) {
