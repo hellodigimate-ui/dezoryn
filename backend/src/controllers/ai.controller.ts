@@ -29,7 +29,7 @@ export class AIController {
 
   public static async getSettings(_req: Request, res: Response, next: NextFunction) {
     try {
-      const settings = AIService.getSettings();
+      const settings = await AIService.getSettings();
       res.status(200).json({
         success: true,
         data: settings,
@@ -41,7 +41,7 @@ export class AIController {
 
   public static async updateSettings(req: Request, res: Response, next: NextFunction) {
     try {
-      const updatedSettings = AIService.updateSettings(req.body);
+      const updatedSettings = await AIService.updateSettings(req.body);
       res.status(200).json({
         success: true,
         message: 'AI Assistant settings updated successfully',
