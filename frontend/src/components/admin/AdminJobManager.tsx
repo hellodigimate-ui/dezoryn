@@ -87,7 +87,7 @@ export const AdminJobManager: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
-  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info' | 'delete'; text: string } | null>(null);
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; item?: JobData } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
 
@@ -102,9 +102,9 @@ export const AdminJobManager: React.FC = () => {
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);
 
-  const showMsg = (type: 'success' | 'error' | 'info', text: string) => {
+  const showMsg = (type: 'success' | 'error' | 'info' | 'delete', text: string) => {
     setMessage({ type, text });
-    setTimeout(() => setMessage(null), 3500);
+    setTimeout(() => setMessage(null), 4000);
   };
 
   const fetchItems = async () => {
@@ -231,7 +231,7 @@ export const AdminJobManager: React.FC = () => {
       const res = await apiFetch(`${API}/${deleteConfirm.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        showMsg('success', 'Job posting removed');
+        showMsg('delete', `Job "${deleteConfirm.title}" successfully deleted from PostgreSQL database`);
         setItems(prev => prev.filter(i => i.id !== deleteConfirm.id));
         window.dispatchEvent(new CustomEvent('dezoryn-jobs-updated'));
       } else {
@@ -407,7 +407,9 @@ export const AdminJobManager: React.FC = () => {
             exit={{ opacity: 0, y: 16, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className={`fixed bottom-8 right-8 z-50 px-4 py-3.5 rounded-2xl border text-xs font-bold shadow-2xl backdrop-blur-2xl flex items-center gap-3 max-w-md ${
-              message.type === 'error'
+              message.type === 'delete'
+                ? 'bg-slate-900/95 text-white border-rose-500/40 shadow-rose-500/10'
+                : message.type === 'error'
                 ? 'bg-slate-900/95 text-white border-rose-500/40 shadow-rose-500/10'
                 : message.type === 'success'
                 ? 'bg-slate-900/95 text-white border-emerald-500/40 shadow-emerald-500/10'
@@ -415,13 +417,15 @@ export const AdminJobManager: React.FC = () => {
             }`}
           >
             <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border shrink-0 ${
-              message.type === 'error'
+              message.type === 'delete'
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                : message.type === 'error'
                 ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
                 : message.type === 'success'
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                 : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
             }`}>
-              {message.type === 'success' ? 'SUCCESS' : message.type === 'error' ? 'ERROR' : 'NOTICE'}
+              {message.type === 'delete' ? 'DELETED' : message.type === 'success' ? 'SUCCESS' : message.type === 'error' ? 'ERROR' : 'NOTICE'}
             </span>
 
             <span className="flex-1 leading-snug">{message.text}</span>
