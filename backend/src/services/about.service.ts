@@ -402,4 +402,3 @@ export class AboutService {
     return this.updateAboutSection({ mediaUrl: '', mediaType: 'IMAGE', mediaId: '' });
   }
 }
-
