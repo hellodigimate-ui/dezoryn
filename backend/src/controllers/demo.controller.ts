@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { DemoService, validateBookingDate } from '../services/demo.service';
+import { sendLeadDetailsToCRM } from '../utils/webhook.util';
 
 export class DemoController {
   static async getAll(req: Request, res: Response): Promise<void> {
@@ -116,7 +117,7 @@ export class DemoController {
         idempotencyKey: req.body.idempotencyKey || (Array.isArray(idempotencyHeader) ? idempotencyHeader[0] : idempotencyHeader)
       };
 
-      const booking = await DemoService.createBooking(payload);
+      const booking: any = await DemoService.createBooking(payload);
 
       if (!booking || !booking.id) {
         res.status(500).json({
@@ -134,6 +135,17 @@ export class DemoController {
         });
         return;
       }
+
+      await sendLeadDetailsToCRM({
+        inquiry: {
+          name: booking.fullName || payload.fullName,
+          email: booking.email || payload.email,
+          phone: booking.phone || payload.phone || '',
+          company: booking.companyName || payload.companyName || '',
+          message: `Demo Booking for ${booking.demoTitle || 'Product Demo'} on ${booking.bookingDate || targetDate}`,
+        },
+        software: 'WEBSITE',
+      });
 
       res.status(201).json({
         success: true,

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { ContactService } from '../services/contact.service';
+import { sendLeadDetailsToCRM } from '../utils/webhook.util';
 
 export class ContactController {
   static async get(req: Request, res: Response): Promise<void> {
@@ -35,7 +36,7 @@ export class ContactController {
 
   static async submitInquiry(req: Request, res: Response): Promise<void> {
     try {
-      const { fullName, email, workEmail, phone, company, industry, employees, budget, productInterest, message, requirements } = req.body;
+      const { fullName, email, workEmail, phone, company, industry, employees, budget, productInterest, message, requirements, description, notes, comments, details } = req.body;
       const payload = {
         fullName: fullName || 'Anonymous Visitor',
         email: email || workEmail || '',
@@ -45,7 +46,7 @@ export class ContactController {
         employees: employees || '',
         budget: budget || '',
         productInterest: productInterest || '',
-        message: message || requirements || '',
+        message: message || requirements || description || notes || comments || details || '',
       };
 
       if (!payload.email) {
@@ -57,6 +58,18 @@ export class ContactController {
       }
 
       const data = await ContactService.submitInquiry(payload);
+
+      await sendLeadDetailsToCRM({
+        inquiry: {
+          name: payload.fullName,
+          email: payload.email,
+          phone: payload.phone,
+          company: payload.company,
+          message: payload.message || payload.productInterest || '',
+        },
+        software: 'WEBSITE',
+      });
+
       res.status(200).json({
         success: true,
         message: 'Thank you! Your inquiry has been submitted successfully.',

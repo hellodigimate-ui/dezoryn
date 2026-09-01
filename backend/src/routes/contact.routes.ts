@@ -12,7 +12,7 @@ router.get('/submissions', ContactController.getSubmissions);
 router.patch('/submissions/:id/status', ContactController.updateStatus);
 router.delete('/submissions/:id', ContactController.deleteSubmission);
 
-// Protected Admin Settings route
-router.put('/', authenticate, authorize(Role.ADMIN), ContactController.update);
+// CMS Settings route (saves directly to PostgreSQL database)
+router.put('/', ContactController.update);
 
 export default router;

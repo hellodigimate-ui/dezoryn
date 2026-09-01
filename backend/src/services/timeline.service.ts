@@ -1,7 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-const db = prisma as any;
+import { prisma } from '../config/prisma.config';
 
 export interface TimelineMilestonePayload {
   id?: string;
@@ -15,7 +12,6 @@ export interface TimelineMilestonePayload {
 
 export const DEFAULT_TIMELINE = [
   {
-    id: 't-1',
     year: '2020',
     title: 'Founded',
     description: 'Started with a vision to unify ERP, CRM, and AI operations into a single intelligent platform.',
@@ -24,7 +20,6 @@ export const DEFAULT_TIMELINE = [
     enabled: true,
   },
   {
-    id: 't-2',
     year: '2023',
     title: 'Product Suite Expansion',
     description: 'Launched SchoolyCore ERP and Hospitality HMS modules serving 200+ clients.',
@@ -33,7 +28,6 @@ export const DEFAULT_TIMELINE = [
     enabled: true,
   },
   {
-    id: 't-3',
     year: '2025',
     title: 'AI Platform Launch',
     description: 'Unveiled DezoAI Predictive Sales Engine with autonomous copilot workflows.',
@@ -42,7 +36,6 @@ export const DEFAULT_TIMELINE = [
     enabled: true,
   },
   {
-    id: 't-4',
     year: '2026',
     title: 'Global Expansion',
     description: 'Scaled to 10M+ active workflows across global enterprise fleets.',
@@ -52,104 +45,91 @@ export const DEFAULT_TIMELINE = [
   },
 ];
 
-let memoryTimeline = [...DEFAULT_TIMELINE];
-
 export class TimelineService {
+  /**
+   * GET ALL TIMELINE MILESTONES
+   * PostgreSQL is the only source of truth.
+   */
   static async getAll() {
     try {
-      if (db.companyTimeline) {
-        const items = await db.companyTimeline.findMany({
-          orderBy: { orderIndex: 'asc' },
-        });
-        if (items && items.length > 0) return items;
-        // Seed default if empty
-        for (const item of DEFAULT_TIMELINE) {
-          await db.companyTimeline.create({ data: item });
-        }
-        return await db.companyTimeline.findMany({ orderBy: { orderIndex: 'asc' } });
-      }
-    } catch {
-      // Fall through
+      const items = await prisma.companyTimeline.findMany({
+        orderBy: { orderIndex: 'asc' },
+      });
+      return items;
+    } catch (error) {
+      console.error('GET TIMELINE ERROR:', error);
+      throw error;
     }
-    return memoryTimeline;
   }
 
   static async create(payload: TimelineMilestonePayload) {
-    const newItem = {
-      id: payload.id || `t-${Date.now()}`,
-      year: payload.year || '2026',
-      title: payload.title || 'New Milestone',
-      description: payload.description || 'Milestone description',
-      icon: payload.icon || 'Rocket',
-      orderIndex: payload.orderIndex ?? memoryTimeline.length,
-      enabled: payload.enabled ?? true,
-    };
-
-    memoryTimeline.push(newItem);
-
     try {
-      if (db.companyTimeline) {
-        return await db.companyTimeline.create({ data: newItem });
-      }
-    } catch {
-      // Fall through
+      const count = await prisma.companyTimeline.count();
+      const newItem = await prisma.companyTimeline.create({
+        data: {
+          year: payload.year || '2026',
+          title: payload.title || 'New Milestone',
+          description: payload.description || 'Milestone description',
+          icon: payload.icon || 'Rocket',
+          orderIndex: payload.orderIndex ?? count,
+          enabled: payload.enabled ?? true,
+        },
+      });
+
+      return newItem;
+    } catch (error) {
+      console.error('CREATE TIMELINE MILESTONE ERROR:', error);
+      throw error;
     }
-    return newItem;
   }
 
   static async update(id: string, payload: Partial<TimelineMilestonePayload>) {
-    const idx = memoryTimeline.findIndex((i) => i.id === id);
-    if (idx !== -1) {
-      memoryTimeline[idx] = { ...memoryTimeline[idx], ...payload };
-    }
-
     try {
-      if (db.companyTimeline) {
-        return await db.companyTimeline.update({
-          where: { id },
-          data: payload,
-        });
-      }
-    } catch {
-      // Fall through
+      const updateData: any = { ...payload };
+      delete updateData.id;
+
+      const updated = await prisma.companyTimeline.update({
+        where: { id },
+        data: updateData,
+      });
+
+      return updated;
+    } catch (error) {
+      console.error(`UPDATE TIMELINE MILESTONE ${id} ERROR:`, error);
+      throw error;
     }
-    return memoryTimeline.find((i) => i.id === id) || payload;
   }
 
   static async delete(id: string) {
-    memoryTimeline = memoryTimeline.filter((i) => i.id !== id);
     try {
-      if (db.companyTimeline) {
-        await db.companyTimeline.delete({ where: { id } });
-      }
-    } catch {
-      // Fall through
+      await prisma.companyTimeline.delete({ where: { id } });
+      return { success: true };
+    } catch (error) {
+      console.error(`DELETE TIMELINE MILESTONE ${id} ERROR:`, error);
+      throw error;
     }
-    return { success: true };
   }
 
   static async saveAll(items: TimelineMilestonePayload[]) {
-    memoryTimeline = items.map((item, idx) => ({
-      id: item.id || `t-${Date.now()}-${idx}`,
-      year: item.year || '2026',
-      title: item.title || 'New Milestone',
-      description: item.description || '',
-      icon: item.icon || 'Rocket',
-      orderIndex: idx,
-      enabled: item.enabled ?? true,
-    }));
-
     try {
-      if (db.companyTimeline) {
-        await db.companyTimeline.deleteMany({});
-        for (const item of memoryTimeline) {
-          await db.companyTimeline.create({ data: item });
-        }
-        return await db.companyTimeline.findMany({ orderBy: { orderIndex: 'asc' } });
-      }
-    } catch {
-      // Fall through
+      await prisma.companyTimeline.deleteMany({});
+      const formattedItems = items.map((item, idx) => ({
+        year: item.year || '2026',
+        title: item.title || 'New Milestone',
+        description: item.description || '',
+        icon: item.icon || 'Rocket',
+        orderIndex: idx,
+        enabled: item.enabled ?? true,
+      }));
+
+      await prisma.companyTimeline.createMany({
+        data: formattedItems,
+      });
+
+      return await prisma.companyTimeline.findMany({ orderBy: { orderIndex: 'asc' } });
+    } catch (error) {
+      console.error('SAVE ALL TIMELINE MILESTONES ERROR:', error);
+      throw error;
     }
-    return memoryTimeline;
   }
 }

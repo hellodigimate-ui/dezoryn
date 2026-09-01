@@ -77,16 +77,26 @@ export const CompanyTimeline: React.FC = () => {
   const [items, setItems] = useState<TimelineItem[]>(DEFAULT_TIMELINE_ITEMS);
 
   useEffect(() => {
-    apiFetch('/timeline')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          setItems(data.data.filter((i: TimelineItem) => i.enabled !== false));
-        }
-      })
-      .catch(() => {
-        // Fallback
-      });
+    const fetchTimeline = () => {
+      apiFetch('/timeline')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+            setItems(data.data.filter((i: TimelineItem) => i.enabled !== false));
+          }
+        })
+        .catch(() => {
+          // Fallback
+        });
+    };
+
+    fetchTimeline();
+    window.addEventListener('focus', fetchTimeline);
+    window.addEventListener('dezoryn-about-updated', fetchTimeline);
+    return () => {
+      window.removeEventListener('focus', fetchTimeline);
+      window.removeEventListener('dezoryn-about-updated', fetchTimeline);
+    };
   }, []);
 
   return (

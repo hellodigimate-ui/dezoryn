@@ -2,8 +2,6 @@ import { prisma } from '../config/prisma.config';
 import path from 'path';
 import fs from 'fs';
 
-const db = prisma as any;
-
 const DEFAULTS = [
   {
     name: 'James Whitfield',
@@ -38,67 +36,110 @@ const DEFAULTS = [
 ];
 
 export class TestimonialService {
+  /**
+   * GET ALL TESTIMONIALS
+   * PostgreSQL is the only source of truth.
+   */
   static async getAll(onlyEnabled = false) {
     try {
       const where = onlyEnabled ? { isEnabled: true } : {};
-      const items = await db.testimonial.findMany({ where, orderBy: { order: 'asc' } });
-      if (items.length === 0) {
-        await db.testimonial.createMany({ data: DEFAULTS });
-        return db.testimonial.findMany({ orderBy: { order: 'asc' } });
+      let items = await prisma.testimonial.findMany({ where, orderBy: { order: 'asc' } });
+      if (!items || items.length === 0) {
+        await prisma.testimonial.createMany({ data: DEFAULTS });
+        items = await prisma.testimonial.findMany({ orderBy: { order: 'asc' } });
       }
       return items;
-    } catch { return []; }
+    } catch (error) {
+      console.error('GET TESTIMONIALS ERROR:', error);
+      throw error;
+    }
   }
 
   static async getById(id: string) {
-    return db.testimonial.findUnique({ where: { id } });
+    try {
+      const item = await prisma.testimonial.findUnique({ where: { id } });
+      return item;
+    } catch (error) {
+      console.error(`GET TESTIMONIAL ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async create(data: {
     name: string; company?: string; designation?: string; review: string;
     rating?: number; photo?: string; order?: number; isEnabled?: boolean;
   }) {
-    const count = await db.testimonial.count();
-    return db.testimonial.create({
-      data: {
-        name: data.name,
-        company: data.company || '',
-        designation: data.designation || '',
-        review: data.review,
-        rating: Math.min(5, Math.max(1, data.rating ?? 5)),
-        photo: data.photo || null,
-        order: data.order ?? count,
-        isEnabled: data.isEnabled ?? true,
-      },
-    });
+    try {
+      const count = await prisma.testimonial.count();
+      const created = await prisma.testimonial.create({
+        data: {
+          name: data.name,
+          company: data.company || '',
+          designation: data.designation || '',
+          review: data.review,
+          rating: Math.min(5, Math.max(1, data.rating ?? 5)),
+          photo: data.photo || null,
+          order: data.order ?? count,
+          isEnabled: data.isEnabled ?? true,
+        },
+      });
+      return created;
+    } catch (error) {
+      console.error('CREATE TESTIMONIAL ERROR:', error);
+      throw error;
+    }
   }
 
   static async update(id: string, data: Partial<{
     name: string; company: string; designation: string; review: string;
     rating: number; photo: string; order: number; isEnabled: boolean;
   }>) {
-    return db.testimonial.update({ where: { id }, data });
+    try {
+      const updated = await prisma.testimonial.update({ where: { id }, data });
+      return updated;
+    } catch (error) {
+      console.error(`UPDATE TESTIMONIAL ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async delete(id: string) {
-    // Delete associated photo file if local
-    const item = await db.testimonial.findUnique({ where: { id } });
-    if (item?.photo && item.photo.startsWith('/uploads/')) {
-      const filePath = path.join(process.cwd(), 'public', item.photo);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    try {
+      const item = await prisma.testimonial.findUnique({ where: { id } });
+      if (item?.photo && item.photo.startsWith('/uploads/')) {
+        const filePath = path.join(process.cwd(), 'public', item.photo);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+      await prisma.testimonial.delete({ where: { id } });
+      return { success: true, deletedId: id };
+    } catch (error) {
+      console.error(`DELETE TESTIMONIAL ${id} ERROR:`, error);
+      throw error;
     }
-    return db.testimonial.delete({ where: { id } });
   }
 
   static async toggleEnabled(id: string) {
-    const item = await db.testimonial.findUnique({ where: { id } });
-    return db.testimonial.update({ where: { id }, data: { isEnabled: !item.isEnabled } });
+    try {
+      const item = await prisma.testimonial.findUnique({ where: { id } });
+      if (!item) throw new Error('Testimonial not found');
+
+      const updated = await prisma.testimonial.update({ where: { id }, data: { isEnabled: !item.isEnabled } });
+      return updated;
+    } catch (error) {
+      console.error(`TOGGLE TESTIMONIAL ENABLED ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async reorder(orderedIds: string[]) {
-    await Promise.all(
-      orderedIds.map((id, index) => db.testimonial.update({ where: { id }, data: { order: index } }))
-    );
-    return db.testimonial.findMany({ orderBy: { order: 'asc' } });
+    try {
+      await Promise.all(
+        orderedIds.map((id, index) => prisma.testimonial.update({ where: { id }, data: { order: index } }))
+      );
+      return await prisma.testimonial.findMany({ orderBy: { order: 'asc' } });
+    } catch (error) {
+      console.error('REORDER TESTIMONIALS ERROR:', error);
+      throw error;
+    }
   }
 }

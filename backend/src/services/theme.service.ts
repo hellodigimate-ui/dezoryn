@@ -1,7 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-const db = prisma as any;
+import { prisma } from '../config/prisma.config';
 
 export interface AdvancedColorSettings {
   primary: string;
@@ -148,7 +145,7 @@ export const DEFAULT_TYPOGRAPHY: TypographySettings = {
   },
 };
 
-const DEFAULT_THEME = {
+export const DEFAULT_THEME = {
   id: 'default',
   primaryColor: '#2563eb',
   secondaryColor: '#4f46e5',
@@ -199,94 +196,70 @@ const DEFAULT_THEME = {
   footerEffects: DEFAULT_FOOTER_EFFECTS,
 };
 
-import fs from 'fs';
-import path from 'path';
-
-const dataDir = path.resolve(process.cwd(), 'src/data');
-const dataFilePath = path.join(dataDir, 'theme.json');
-
-const ensureDataDir = () => {
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-};
-
-const readFileData = () => {
-  try {
-    ensureDataDir();
-    if (fs.existsSync(dataFilePath)) {
-      const raw = fs.readFileSync(dataFilePath, 'utf-8');
-      return JSON.parse(raw);
-    }
-  } catch (_e) {}
-  return null;
-};
-
-const writeFileData = (data: any) => {
-  try {
-    ensureDataDir();
-    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (_e) {}
-};
-
 export class ThemeService {
+  /**
+   * GET THEME SETTINGS
+   * PostgreSQL is the only source of truth.
+   */
   static async get() {
-    const fileData = readFileData();
-    if (fileData) return fileData;
-
     try {
-      if (db.themeSettings) {
-        let settings = await db.themeSettings.findUnique({ where: { id: 'default' } });
-        if (settings) {
-          writeFileData(settings);
-          return settings;
-        }
-      }
-    } catch (_e) {}
+      let settings = await prisma.themeSettings.findUnique({
+        where: { id: 'default' },
+      });
 
-    writeFileData(DEFAULT_THEME);
-    return DEFAULT_THEME;
-  }
-
-  static async update(payload: ThemeSettingsPayload) {
-    const existing = await ThemeService.get();
-
-    const updatedData = {
-      primaryColor: payload.colorSettings?.primary ?? payload.primaryColor ?? existing.primaryColor ?? DEFAULT_THEME.primaryColor,
-      secondaryColor: payload.colorSettings?.secondary ?? payload.secondaryColor ?? existing.secondaryColor ?? DEFAULT_THEME.secondaryColor,
-      accentColor: payload.colorSettings?.accent ?? payload.accentColor ?? existing.accentColor ?? DEFAULT_THEME.accentColor,
-      fontFamily: payload.fontFamily ?? existing.fontFamily ?? DEFAULT_THEME.fontFamily,
-      borderRadius: payload.borderRadius ?? existing.borderRadius ?? DEFAULT_THEME.borderRadius,
-      buttonStyle: payload.buttonStyle ?? existing.buttonStyle ?? DEFAULT_THEME.buttonStyle,
-      defaultMode: payload.defaultMode ?? payload.activeMode ?? existing.defaultMode ?? DEFAULT_THEME.defaultMode,
-      activeMode: payload.activeMode ?? payload.defaultMode ?? existing.activeMode ?? DEFAULT_THEME.activeMode,
-      lightTheme: payload.lightTheme || existing.lightTheme || DEFAULT_THEME.lightTheme,
-      darkTheme: payload.darkTheme || existing.darkTheme || DEFAULT_THEME.darkTheme,
-      colorSettings: payload.colorSettings
-        ? { ...DEFAULT_DARK_COLORS, ...existing.colorSettings, ...payload.colorSettings }
-        : existing.colorSettings || DEFAULT_DARK_COLORS,
-      savedPalettes: payload.savedPalettes || existing.savedPalettes || DEFAULT_THEME.savedPalettes,
-      typographySettings: payload.typographySettings
-        ? { ...DEFAULT_TYPOGRAPHY, ...existing.typographySettings, ...payload.typographySettings }
-        : existing.typographySettings || DEFAULT_TYPOGRAPHY,
-      footerEffects: payload.footerEffects
-        ? { ...DEFAULT_FOOTER_EFFECTS, ...existing.footerEffects, ...payload.footerEffects }
-        : existing.footerEffects || DEFAULT_FOOTER_EFFECTS,
-    };
-
-    writeFileData(updatedData);
-
-    try {
-      if (db.themeSettings) {
-        await db.themeSettings.upsert({
-          where: { id: 'default' },
-          update: updatedData,
-          create: { id: 'default', ...updatedData },
+      if (!settings) {
+        settings = await prisma.themeSettings.create({
+          data: DEFAULT_THEME as any,
         });
       }
-    } catch (_e) {}
 
-    return updatedData;
+      return settings;
+    } catch (error) {
+      console.error('GET THEME ERROR:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * UPDATE THEME SETTINGS
+   */
+  static async update(payload: ThemeSettingsPayload) {
+    try {
+      const existing: any = await ThemeService.get();
+
+      const updatedData = {
+        primaryColor: payload.colorSettings?.primary ?? payload.primaryColor ?? existing.primaryColor ?? DEFAULT_THEME.primaryColor,
+        secondaryColor: payload.colorSettings?.secondary ?? payload.secondaryColor ?? existing.secondaryColor ?? DEFAULT_THEME.secondaryColor,
+        accentColor: payload.colorSettings?.accent ?? payload.accentColor ?? existing.accentColor ?? DEFAULT_THEME.accentColor,
+        fontFamily: payload.fontFamily ?? existing.fontFamily ?? DEFAULT_THEME.fontFamily,
+        borderRadius: payload.borderRadius ?? existing.borderRadius ?? DEFAULT_THEME.borderRadius,
+        buttonStyle: payload.buttonStyle ?? existing.buttonStyle ?? DEFAULT_THEME.buttonStyle,
+        defaultMode: payload.defaultMode ?? payload.activeMode ?? existing.defaultMode ?? DEFAULT_THEME.defaultMode,
+        activeMode: payload.activeMode ?? payload.defaultMode ?? existing.activeMode ?? DEFAULT_THEME.activeMode,
+        lightTheme: payload.lightTheme || existing.lightTheme || DEFAULT_THEME.lightTheme,
+        darkTheme: payload.darkTheme || existing.darkTheme || DEFAULT_THEME.darkTheme,
+        colorSettings: payload.colorSettings
+          ? { ...DEFAULT_DARK_COLORS, ...existing.colorSettings, ...payload.colorSettings }
+          : existing.colorSettings || DEFAULT_DARK_COLORS,
+        savedPalettes: payload.savedPalettes || existing.savedPalettes || DEFAULT_THEME.savedPalettes,
+        typographySettings: payload.typographySettings
+          ? { ...DEFAULT_TYPOGRAPHY, ...existing.typographySettings, ...payload.typographySettings }
+          : existing.typographySettings || DEFAULT_TYPOGRAPHY,
+        footerEffects: payload.footerEffects
+          ? { ...DEFAULT_FOOTER_EFFECTS, ...existing.footerEffects, ...payload.footerEffects }
+          : existing.footerEffects || DEFAULT_FOOTER_EFFECTS,
+      };
+
+      const updated = await prisma.themeSettings.upsert({
+        where: { id: 'default' },
+        create: { id: 'default', ...updatedData } as any,
+        update: updatedData as any,
+      });
+
+      return updated;
+    } catch (error) {
+      console.error('UPDATE THEME ERROR:', error);
+      throw error;
+    }
   }
 }
-

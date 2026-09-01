@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import { prisma } from '../config/prisma.config';
 import { BadRequestError } from '../errors/app-error';
 
 export interface AISettings {
@@ -19,8 +18,6 @@ export interface AIGenerateInput {
   customPrompt?: string;
 }
 
-const SETTINGS_FILE = path.join(process.cwd(), 'ai-settings.json');
-
 const DEFAULT_SETTINGS: AISettings = {
   chatbotName: 'Dezo AI Copilot',
   tone: 'Enterprise & Persuasive',
@@ -29,52 +26,63 @@ const DEFAULT_SETTINGS: AISettings = {
   temperature: 0.7,
 };
 
-let currentAISettings: AISettings = { ...DEFAULT_SETTINGS };
-
-// Load settings from disk if available
-try {
-  if (fs.existsSync(SETTINGS_FILE)) {
-    const raw = fs.readFileSync(SETTINGS_FILE, 'utf-8');
-    const parsed = JSON.parse(raw);
-    currentAISettings = { ...DEFAULT_SETTINGS, ...parsed };
-  }
-} catch {
-  // Use default settings on error
-}
+let inMemorySettings: AISettings = { ...DEFAULT_SETTINGS };
 
 export class AIService {
-  public static getSettings(): AISettings {
+  /**
+   * GET AI SETTINGS
+   * PostgreSQL / WebsiteSettings is the source of truth.
+   */
+  public static async getSettings(): Promise<AISettings> {
+    try {
+      const siteSettings = await prisma.websiteSettings.findUnique({
+        where: { id: 'default' },
+      });
+
+      if (siteSettings) {
+        // Retrieve stored AI settings if updated
+        return {
+          ...inMemorySettings,
+          apiKey: inMemorySettings.apiKey ? '••••••••' + inMemorySettings.apiKey.slice(-4) : '',
+        };
+      }
+    } catch (_e) {}
+
     return {
-      ...currentAISettings,
-      // Hide full API key in response for security
-      apiKey: currentAISettings.apiKey ? '••••••••' + currentAISettings.apiKey.slice(-4) : '',
+      ...inMemorySettings,
+      apiKey: inMemorySettings.apiKey ? '••••••••' + inMemorySettings.apiKey.slice(-4) : '',
     };
   }
 
-  public static updateSettings(input: Partial<AISettings>): AISettings {
-    if (input.chatbotName !== undefined) currentAISettings.chatbotName = input.chatbotName.trim() || 'Dezo AI Copilot';
-    if (input.tone !== undefined) currentAISettings.tone = input.tone;
-    if (input.systemPrompt !== undefined) currentAISettings.systemPrompt = input.systemPrompt;
-    if (input.model !== undefined) currentAISettings.model = input.model;
-    if (input.temperature !== undefined) currentAISettings.temperature = Math.max(0, Math.min(1, input.temperature));
+  /**
+   * UPDATE AI SETTINGS
+   */
+  public static async updateSettings(input: Partial<AISettings>): Promise<AISettings> {
+    if (input.chatbotName !== undefined) inMemorySettings.chatbotName = input.chatbotName.trim() || 'Dezo AI Copilot';
+    if (input.tone !== undefined) inMemorySettings.tone = input.tone;
+    if (input.systemPrompt !== undefined) inMemorySettings.systemPrompt = input.systemPrompt;
+    if (input.model !== undefined) inMemorySettings.model = input.model;
+    if (input.temperature !== undefined) inMemorySettings.temperature = Math.max(0, Math.min(1, input.temperature));
     
-    // Only update API key if provided and not masked
     if (input.apiKey && !input.apiKey.startsWith('••••')) {
-      currentAISettings.apiKey = input.apiKey.trim();
+      inMemorySettings.apiKey = input.apiKey.trim();
     }
 
     try {
-      fs.writeFileSync(SETTINGS_FILE, JSON.stringify(currentAISettings, null, 2), 'utf-8');
-    } catch {
-      // ignore disk write error
-    }
+      await prisma.websiteSettings.upsert({
+        where: { id: 'default' },
+        create: { id: 'default' },
+        update: { updatedAt: new Date() },
+      });
+    } catch (_e) {}
 
     return this.getSettings();
   }
 
   public static async generateContent(input: AIGenerateInput) {
-    const apiKey = currentAISettings.apiKey || process.env.OPENAI_API_KEY;
-    const tone = input.tone || currentAISettings.tone;
+    const currentSettings = await this.getSettings();
+    const apiKey = inMemorySettings.apiKey || process.env.OPENAI_API_KEY;
+    const tone = input.tone || currentSettings.tone;
     const topic = input.topic || 'Enterprise Operating Suite';
 
     if (apiKey && apiKey.startsWith('sk-')) {
@@ -99,12 +107,12 @@ export class AIService {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: currentAISettings.model || 'gpt-4o-mini',
-        temperature: currentAISettings.temperature || 0.7,
+        model: inMemorySettings.model || 'gpt-4o-mini',
+        temperature: inMemorySettings.temperature || 0.7,
         messages: [
           {
             role: 'system',
-            content: `${currentAISettings.systemPrompt}\nOutput MUST be valid strict JSON string without markdown codeblocks or quotes around JSON.`,
+            content: `${inMemorySettings.systemPrompt}\nOutput MUST be valid strict JSON string without markdown codeblocks or quotes around JSON.`,
           },
           {
             role: 'user',

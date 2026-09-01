@@ -1,9 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-const db = prisma as any;
+import { prisma } from '../config/prisma.config';
 
 export interface StatItem {
   id: string;
@@ -43,95 +38,76 @@ export const DEFAULT_HOMEPAGE_STATS = {
   ],
 };
 
-const dataDir = path.resolve(process.cwd(), 'src/data');
-const dataFilePath = path.join(dataDir, 'homepage_stats.json');
-
-const ensureDataDir = () => {
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-};
-
-const readFileData = () => {
-  try {
-    ensureDataDir();
-    if (fs.existsSync(dataFilePath)) {
-      const raw = fs.readFileSync(dataFilePath, 'utf-8');
-      return JSON.parse(raw);
-    }
-  } catch (_e) {}
-  return null;
-};
-
-const writeFileData = (data: any) => {
-  try {
-    ensureDataDir();
-    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (_e) {}
-};
-
 export class HomepageStatsService {
+  /**
+   * GET HOMEPAGE STATS
+   * PostgreSQL is the only source of truth.
+   */
   static async get() {
-    const fileData = readFileData();
-    if (fileData) return fileData;
-
     try {
-      if (db.homepageStats) {
-        let record = await db.homepageStats.findUnique({ where: { id: 'default' } });
-        if (!record) {
-          record = await db.homepageStats.create({ data: DEFAULT_HOMEPAGE_STATS });
-        }
-        writeFileData(record);
-        return record;
-      }
-    } catch (_e) {}
+      let record = await prisma.homepageStats.findUnique({
+        where: { id: 'default' },
+      });
 
-    writeFileData(DEFAULT_HOMEPAGE_STATS);
-    return DEFAULT_HOMEPAGE_STATS;
+      if (!record) {
+        record = await prisma.homepageStats.create({
+          data: DEFAULT_HOMEPAGE_STATS,
+        });
+      }
+
+      return record;
+    } catch (error) {
+      console.error('GET HOMEPAGE STATS ERROR:', error);
+      throw error;
+    }
   }
 
+  /**
+   * UPDATE HOMEPAGE STATS
+   */
   static async update(payload: HomepageStatsPayload) {
-    const existing = await HomepageStatsService.get();
-
-    const merged = {
-      id: 'default',
-      statsEnabled: payload.statsEnabled ?? existing.statsEnabled ?? DEFAULT_HOMEPAGE_STATS.statsEnabled,
-      aiAssistantEnabled: payload.aiAssistantEnabled ?? existing.aiAssistantEnabled ?? DEFAULT_HOMEPAGE_STATS.aiAssistantEnabled,
-      aiAssistantTitle: payload.aiAssistantTitle ?? existing.aiAssistantTitle ?? DEFAULT_HOMEPAGE_STATS.aiAssistantTitle,
-      aiAssistantGreeting: payload.aiAssistantGreeting ?? existing.aiAssistantGreeting ?? DEFAULT_HOMEPAGE_STATS.aiAssistantGreeting,
-      aiAssistantButtonLabel: payload.aiAssistantButtonLabel ?? existing.aiAssistantButtonLabel ?? DEFAULT_HOMEPAGE_STATS.aiAssistantButtonLabel,
-      aiAssistantButtonLink: payload.aiAssistantButtonLink ?? existing.aiAssistantButtonLink ?? DEFAULT_HOMEPAGE_STATS.aiAssistantButtonLink,
-      stats: payload.stats ?? existing.stats ?? DEFAULT_HOMEPAGE_STATS.stats,
-    };
-
-    writeFileData(merged);
-
     try {
-      if (db.homepageStats) {
-        await db.homepageStats.upsert({
-          where: { id: 'default' },
-          update: merged,
-          create: merged,
-        });
-      }
-    } catch (_e) {}
+      const existing: any = await HomepageStatsService.get();
 
-    return merged;
+      const merged = {
+        id: 'default',
+        statsEnabled: payload.statsEnabled ?? existing.statsEnabled ?? DEFAULT_HOMEPAGE_STATS.statsEnabled,
+        aiAssistantEnabled: payload.aiAssistantEnabled ?? existing.aiAssistantEnabled ?? DEFAULT_HOMEPAGE_STATS.aiAssistantEnabled,
+        aiAssistantTitle: payload.aiAssistantTitle ?? existing.aiAssistantTitle ?? DEFAULT_HOMEPAGE_STATS.aiAssistantTitle,
+        aiAssistantGreeting: payload.aiAssistantGreeting ?? existing.aiAssistantGreeting ?? DEFAULT_HOMEPAGE_STATS.aiAssistantGreeting,
+        aiAssistantButtonLabel: payload.aiAssistantButtonLabel ?? existing.aiAssistantButtonLabel ?? DEFAULT_HOMEPAGE_STATS.aiAssistantButtonLabel,
+        aiAssistantButtonLink: payload.aiAssistantButtonLink ?? existing.aiAssistantButtonLink ?? DEFAULT_HOMEPAGE_STATS.aiAssistantButtonLink,
+        stats: payload.stats ?? existing.stats ?? DEFAULT_HOMEPAGE_STATS.stats,
+      };
+
+      const updated = await prisma.homepageStats.upsert({
+        where: { id: 'default' },
+        create: merged,
+        update: merged,
+      });
+
+      return updated;
+    } catch (error) {
+      console.error('UPDATE HOMEPAGE STATS ERROR:', error);
+      throw error;
+    }
   }
 
+  /**
+   * RESET HOMEPAGE STATS
+   */
   static async reset() {
-    writeFileData(DEFAULT_HOMEPAGE_STATS);
-
     try {
-      if (db.homepageStats) {
-        await db.homepageStats.upsert({
-          where: { id: 'default' },
-          update: DEFAULT_HOMEPAGE_STATS,
-          create: DEFAULT_HOMEPAGE_STATS,
-        });
-      }
-    } catch (_e) {}
+      const resetRecord = await prisma.homepageStats.upsert({
+        where: { id: 'default' },
+        create: DEFAULT_HOMEPAGE_STATS,
+        update: DEFAULT_HOMEPAGE_STATS,
+      });
 
-    return DEFAULT_HOMEPAGE_STATS;
+      return resetRecord;
+    } catch (error) {
+      console.error('RESET HOMEPAGE STATS ERROR:', error);
+      throw error;
+    }
   }
 }

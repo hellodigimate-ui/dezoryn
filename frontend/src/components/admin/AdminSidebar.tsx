@@ -21,7 +21,8 @@ import {
   Tv,
   Cog,
   BarChart3,
-  LifeBuoy
+  LifeBuoy,
+  Building2
 } from 'lucide-react';
 import { useNavigation } from '../../utils/NavigationContext';
 
@@ -51,13 +52,13 @@ const MENU_CATEGORIES: MenuCategory[] = [
       { id: 'pages', label: 'Hero Section CMS', icon: FileText },
       { id: 'homepage-stats', label: 'Stats & AI Trust Bar', icon: BarChart3 },
       { id: 'services', label: 'Technology Solutions', icon: Layers },
-      { id: 'about', label: 'About Section CMS', icon: Layers },
+      { id: 'about', label: 'About Section CMS', icon: Building2 },
     ],
   },
   {
     categoryTitle: 'MARKETPLACE & PRODUCTS',
     items: [
-      { id: 'products', label: 'SaaS Marketplace Manager', icon: Package },
+      { id: 'products', label: 'SaaS Marketplace Manager', icon: Package, badge: 'Live DB', badgeColor: 'bg-emerald-500/20 text-emerald-400' },
       { id: 'pricing', label: 'Pricing Plans & Tiers', icon: DollarSign },
     ],
   },

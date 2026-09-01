@@ -1,25 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Sparkles,
-  Save,
-  RotateCcw,
-  Upload,
-  FolderOpen,
-  Trash2,
-  CheckCircle2,
-  AlertCircle,
+  Building2,
+  Target,
   Eye,
-  Palette,
-  Layout,
-  Image as ImageIcon,
-  ShieldCheck,
+  Zap,
+  Rocket,
+  Users,
+  Plus,
+  Trash2,
+  Save,
   RefreshCw,
-  X
+  X,
+  ChevronUp,
+  ChevronDown,
+  Image as ImageIcon,
+  FolderOpen,
+  Sparkles,
+  ArrowRight,
+  Layout
 } from 'lucide-react';
 import { AboutSection } from '../about/AboutSection';
+import { AboutUsPage, DEFAULT_ABOUT_PAGE, type AboutUsPageConfig } from '../about/AboutUsPage';
 import type { AboutSectionData } from '../about/AboutSection';
-import { openAdminAIAssistant } from './AdminLayout';
 
 import { API_URL, apiFetch } from '../../config/api.config';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
@@ -27,14 +30,13 @@ import { resolveMediaUrl } from '../../utils/mediaUrl';
 const API_ABOUT = `${API_URL}/about`;
 const API_MEDIA = `${API_URL}/uploads`;
 
-
-const DEFAULT_FORM: AboutSectionData = {
-  badge: 'ABOUT DEZORYN TECHNOLOGIES ENTERPRISE',
-  heading: 'Pioneering Predictive AI Workflows for Modern Enterprise',
-  descriptionOne: 'Dezoryn Technologies Enterprise is an innovation-driven platform delivering next-generation intelligent automation software for Education, Healthcare, Business and Enterprises.',
-  descriptionTwo: 'We are committed to digital transformation through technology, AI workflows, and operational excellence across global markets.',
-  buttonText: 'Learn More About Our Mission',
-  buttonUrl: '/about',
+const DEFAULT_HOMEPAGE_ABOUT: AboutSectionData = {
+  badge: 'ABOUT DEZORYN TECHNOLOGIES',
+  heading: 'Engineering Intelligent Systems for the Way Businesses Work',
+  descriptionOne: 'Dezoryn Technologies builds intelligent digital platforms that connect people, processes, and data — helping organizations simplify complexity, improve operational visibility, and scale with confidence.',
+  descriptionTwo: 'Our approach is simple: understand how your business works, engineer technology around it, and build solutions that are secure, scalable and ready for what comes next.',
+  buttonText: 'Discover Our Solutions',
+  buttonUrl: '/products',
   buttonEnabled: true,
   mediaUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
   mediaType: 'IMAGE',
@@ -42,7 +44,7 @@ const DEFAULT_FORM: AboutSectionData = {
   cardTitle: 'Global Enterprise HQ',
   cardSubtitle: 'Innovation Center',
   cardLocation: 'San Francisco, CA',
-  cardIcon: 'ShieldCheck',
+  cardIcon: 'Building',
   layoutSettings: {
     imagePosition: 'right',
     imageWidth: '100%',
@@ -68,22 +70,37 @@ const DEFAULT_FORM: AboutSectionData = {
   },
 };
 
-export const AdminAboutCMS: React.FC = () => {
-  const [formData, setFormData] = useState<AboutSectionData>(DEFAULT_FORM);
-  const [savedData, setSavedData] = useState<AboutSectionData>(DEFAULT_FORM);
-  const [activeTab, setActiveTab] = useState<'content' | 'media' | 'card' | 'layout' | 'style' | 'preview'>('content');
+interface FullAboutState extends AboutSectionData {
+  aboutPage: AboutUsPageConfig;
+}
+
+const AVAILABLE_ICONS = [
+  'Zap', 'ShieldCheck', 'TrendingUp', 'Globe', 'Target', 'Eye', 'Award', 'Sparkles', 'Building2', 'Rocket', 'Users', 'Layers'
+];
+
+interface AdminAboutCMSProps {
+  initialTab?: string;
+}
+
+export const AdminAboutCMS: React.FC<AdminAboutCMSProps> = ({ initialTab }) => {
+  const [activeTab, setActiveTab] = useState<string>(initialTab || 'story');
+  const [formData, setFormData] = useState<FullAboutState>({
+    ...DEFAULT_HOMEPAGE_ABOUT,
+    aboutPage: DEFAULT_ABOUT_PAGE,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error' | 'delete' | 'notice'; text: string } | null>(null);
+  const [previewMode, setPreviewMode] = useState<'about-page' | 'homepage-section'>('about-page');
 
-  // Media Library Picker Modal
+  // Media Library Picker Modal State
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [mediaTarget, setMediaTarget] = useState<'homepage-media' | 'leader-image' | null>(null);
+  const [activeLeaderId, setActiveLeaderId] = useState<string | null>(null);
   const [mediaList, setMediaList] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  const isDirty = JSON.stringify(formData) !== JSON.stringify(savedData);
-
-  const showStatus = (type: 'success' | 'error', text: string) => {
+  const showStatus = (type: 'success' | 'error' | 'delete' | 'notice', text: string) => {
     setStatusMsg({ type, text });
     setTimeout(() => setStatusMsg(null), 4000);
   };
@@ -94,18 +111,35 @@ export const AdminAboutCMS: React.FC = () => {
       const res = await apiFetch(API_ABOUT);
       const json = await res.json();
       if (json.success && json.data) {
-        const merged = {
-          ...DEFAULT_FORM,
-          ...json.data,
-          layoutSettings: { ...DEFAULT_FORM.layoutSettings, ...json.data.layoutSettings },
-          styleSettings: { ...DEFAULT_FORM.styleSettings, ...json.data.styleSettings },
-          animationSettings: { ...DEFAULT_FORM.animationSettings, ...json.data.animationSettings },
+        const rawData = json.data;
+        const rawAboutPage = rawData.aboutPage || rawData.layoutSettings?.aboutPage;
+        const aboutPageData: AboutUsPageConfig = {
+          ...DEFAULT_ABOUT_PAGE,
+          ...(rawAboutPage || {}),
+          coreValues: Array.isArray(rawAboutPage?.coreValues)
+            ? rawAboutPage.coreValues
+            : DEFAULT_ABOUT_PAGE.coreValues,
+          milestones: Array.isArray(rawAboutPage?.milestones)
+            ? rawAboutPage.milestones
+            : DEFAULT_ABOUT_PAGE.milestones,
+          leadership: Array.isArray(rawAboutPage?.leadership)
+            ? rawAboutPage.leadership
+            : DEFAULT_ABOUT_PAGE.leadership,
         };
+
+        const merged: FullAboutState = {
+          ...DEFAULT_HOMEPAGE_ABOUT,
+          ...rawData,
+          layoutSettings: { ...DEFAULT_HOMEPAGE_ABOUT.layoutSettings, ...rawData.layoutSettings },
+          styleSettings: { ...DEFAULT_HOMEPAGE_ABOUT.styleSettings, ...rawData.styleSettings },
+          animationSettings: { ...DEFAULT_HOMEPAGE_ABOUT.animationSettings, ...rawData.animationSettings },
+          aboutPage: aboutPageData,
+        };
+
         setFormData(merged);
-        setSavedData(merged);
       }
     } catch {
-      // keep default
+      // Keep defaults
     } finally {
       setIsLoading(false);
     }
@@ -115,840 +149,1235 @@ export const AdminAboutCMS: React.FC = () => {
     fetchAbout();
   }, [fetchAbout]);
 
+  // Handle saving full About CMS to PostgreSQL database
   const handleSave = async () => {
     setIsSaving(true);
-    localStorage.setItem('dezo-about-data', JSON.stringify(formData));
-    window.dispatchEvent(new CustomEvent('dezo-about-updated', { detail: formData }));
-
     try {
+      const payload = {
+        badge: formData.badge,
+        heading: formData.heading,
+        descriptionOne: formData.descriptionOne,
+        descriptionTwo: formData.descriptionTwo,
+        buttonText: formData.buttonText,
+        buttonUrl: formData.buttonUrl,
+        buttonEnabled: formData.buttonEnabled,
+        mediaUrl: formData.mediaUrl,
+        mediaType: formData.mediaType,
+        cardEnabled: formData.cardEnabled,
+        cardTitle: formData.cardTitle,
+        cardSubtitle: formData.cardSubtitle,
+        cardLocation: formData.cardLocation,
+        cardIcon: formData.cardIcon,
+        layoutSettings: formData.layoutSettings,
+        styleSettings: formData.styleSettings,
+        animationSettings: formData.animationSettings,
+        aboutPage: formData.aboutPage,
+      };
+
       const res = await apiFetch(API_ABOUT, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
-      const json = await res.json();
-      if (json.success) {
-        setSavedData(formData);
-        showStatus('success', 'About section saved and published successfully!');
+      const data = await res.json();
+
+      if (data.success) {
+        showStatus('success', 'About Page & Company CMS published to PostgreSQL');
+        window.dispatchEvent(new CustomEvent('dezoryn-about-updated'));
+        window.dispatchEvent(new CustomEvent('dezo-about-updated'));
       } else {
-        showStatus('error', json.message || 'Failed to save About section.');
+        showStatus('error', data.message || 'Failed to save changes');
       }
     } catch {
-      showStatus('error', 'Saved locally and broadcasted to website.');
+      showStatus('error', 'Network error occurred while saving to database');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleReset = () => {
-    setFormData(savedData);
-    showStatus('success', 'Changes reset to last saved state.');
+  // Helper to update nested aboutPage fields
+  const updateAboutPage = (fields: Partial<AboutUsPageConfig>) => {
+    setFormData(prev => ({
+      ...prev,
+      aboutPage: {
+        ...prev.aboutPage,
+        ...fields,
+      },
+    }));
   };
 
-  // Upload File Handler (JPG, PNG, WEBP, SVG, MP4, WEBM)
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // ── CORE VALUES CRUD ──
+  const addCoreValue = () => {
+    const newItem = {
+      id: `val-${Date.now()}`,
+      title: 'New Core Principle',
+      desc: 'Describe what drives your enterprise and company culture.',
+      icon: 'Zap',
+      style: 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30',
+    };
+    updateAboutPage({
+      coreValues: [...formData.aboutPage.coreValues, newItem],
+    });
+  };
 
-    setIsUploading(true);
-    const body = new FormData();
-    body.append('file', file);
-    body.append('folder', 'AboutSection');
+  const updateCoreValueItem = (index: number, updated: Partial<typeof formData.aboutPage.coreValues[0]>) => {
+    const list = [...formData.aboutPage.coreValues];
+    list[index] = { ...list[index], ...updated };
+    updateAboutPage({ coreValues: list });
+  };
+
+  const removeCoreValue = async (index: number) => {
+    const itemToDelete = formData.aboutPage.coreValues[index];
+    const newValues = formData.aboutPage.coreValues.filter((_, i) => i !== index);
+    const newAboutPage = { ...formData.aboutPage, coreValues: newValues };
+    
+    setFormData(prev => ({ ...prev, aboutPage: newAboutPage }));
 
     try {
-      const res = await apiFetch(API_MEDIA, {
-        method: 'POST',
-        body,
+      await apiFetch(API_ABOUT, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aboutPage: newAboutPage }),
       });
-      const json = await res.json();
-      const uploadedUrl = json.data?.url || json.data?.media?.url || json.url;
-      if (json.success && uploadedUrl) {
-        const isVid = file.type.startsWith('video/') || file.name.endsWith('.mp4') || file.name.endsWith('.webm');
-        const updated = {
-          ...formData,
-          mediaUrl: uploadedUrl,
-          mediaType: isVid ? 'VIDEO' : 'IMAGE',
-        };
-        setFormData(updated);
-        setSavedData(updated);
-        localStorage.setItem('dezo-about-data', JSON.stringify(updated));
-        window.dispatchEvent(new CustomEvent('dezo-about-updated', { detail: updated }));
+      showStatus('delete', `Deleted principle "${itemToDelete.title}" from database`);
+      window.dispatchEvent(new CustomEvent('dezoryn-about-updated'));
+    } catch {
+      showStatus('error', 'Failed to delete principle from database');
+    }
+  };
 
-        // Auto-save to backend API so live site updates immediately
-        try {
-          await apiFetch(API_ABOUT, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updated),
-          });
-        } catch {
-          // ignore
-        }
-        showStatus('success', `Uploaded & saved ${file.name} successfully!`);
-      } else {
-        showStatus('error', json.message || 'Failed to upload media file.');
+  // ── MILESTONES CRUD ──
+  const addMilestone = () => {
+    const newItem = {
+      id: `mile-${Date.now()}`,
+      year: `${new Date().getFullYear()}`,
+      title: 'New Company Milestone',
+      desc: 'Key growth achievement driving our mission to transform enterprise software.',
+      icon: 'Rocket',
+      enabled: true,
+    };
+    updateAboutPage({
+      milestones: [...formData.aboutPage.milestones, newItem],
+    });
+  };
+
+  const updateMilestoneItem = (index: number, updated: Partial<typeof formData.aboutPage.milestones[0]>) => {
+    const list = [...formData.aboutPage.milestones];
+    list[index] = { ...list[index], ...updated };
+    updateAboutPage({ milestones: list });
+  };
+
+  const removeMilestone = async (index: number) => {
+    const itemToDelete = formData.aboutPage.milestones[index];
+    const newMilestones = formData.aboutPage.milestones.filter((_, i) => i !== index);
+    const newAboutPage = { ...formData.aboutPage, milestones: newMilestones };
+    
+    setFormData(prev => ({ ...prev, aboutPage: newAboutPage }));
+
+    try {
+      await apiFetch(API_ABOUT, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aboutPage: newAboutPage }),
+      });
+      showStatus('delete', `Deleted milestone "${itemToDelete.year} ${itemToDelete.title}" from database`);
+      window.dispatchEvent(new CustomEvent('dezoryn-about-updated'));
+    } catch {
+      showStatus('error', 'Failed to delete milestone from database');
+    }
+  };
+
+  const moveMilestone = (index: number, direction: 'up' | 'down') => {
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= formData.aboutPage.milestones.length) return;
+    const list = [...formData.aboutPage.milestones];
+    const temp = list[index];
+    list[index] = list[targetIdx];
+    list[targetIdx] = temp;
+    updateAboutPage({ milestones: list });
+  };
+
+  // ── LEADERSHIP CRUD ──
+  const addLeader = () => {
+    const newItem = {
+      id: `lead-${Date.now()}`,
+      name: 'Leader Name',
+      role: 'Executive Title',
+      bio: 'Executive background and expertise in scaling technology platforms.',
+      avatar: 'LN',
+      image: '',
+    };
+    updateAboutPage({
+      leadership: [...formData.aboutPage.leadership, newItem],
+    });
+  };
+
+  const updateLeaderItem = (index: number, updated: Partial<typeof formData.aboutPage.leadership[0]>) => {
+    const list = [...formData.aboutPage.leadership];
+    list[index] = { ...list[index], ...updated };
+    updateAboutPage({ leadership: list });
+  };
+
+  const removeLeader = async (index: number) => {
+    const itemToDelete = formData.aboutPage.leadership[index];
+    const newLeadership = formData.aboutPage.leadership.filter((_, i) => i !== index);
+    const newAboutPage = { ...formData.aboutPage, leadership: newLeadership };
+    
+    setFormData(prev => ({ ...prev, aboutPage: newAboutPage }));
+
+    try {
+      await apiFetch(API_ABOUT, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aboutPage: newAboutPage }),
+      });
+      showStatus('delete', `Deleted team member "${itemToDelete.name}" from database`);
+      window.dispatchEvent(new CustomEvent('dezoryn-about-updated'));
+    } catch {
+      showStatus('error', 'Failed to delete team member from database');
+    }
+  };
+
+  // ── MEDIA PICKER ──
+  const openMediaPicker = (target: 'homepage-media' | 'leader-image', leaderId?: string) => {
+    setMediaTarget(target);
+    if (leaderId) setActiveLeaderId(leaderId);
+    setIsMediaModalOpen(true);
+    fetchMediaFiles();
+  };
+
+  const fetchMediaFiles = async () => {
+    try {
+      const res = await apiFetch(API_MEDIA);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setMediaList(data.data);
       }
     } catch {
-      showStatus('error', 'Error uploading media file.');
+      // Fallback
+    }
+  };
+
+  const handleSelectMedia = (url: string) => {
+    if (mediaTarget === 'homepage-media') {
+      setFormData(prev => ({ ...prev, mediaUrl: url }));
+    } else if (mediaTarget === 'leader-image' && activeLeaderId) {
+      const list = formData.aboutPage.leadership.map(l => l.id === activeLeaderId ? { ...l, image: url } : l);
+      updateAboutPage({ leadership: list });
+    }
+    setIsMediaModalOpen(false);
+    setMediaTarget(null);
+    setActiveLeaderId(null);
+  };
+
+  const handleUploadMedia = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      body.append('folder', 'AboutPage');
+      const res = await apiFetch(`${API_MEDIA}/upload`, { method: 'POST', body });
+      const data = await res.json();
+      if (data.success && data.data?.url) {
+        handleSelectMedia(data.data.url);
+        showStatus('success', 'File uploaded successfully');
+      }
+    } catch {
+      showStatus('error', 'Upload failed');
     } finally {
       setIsUploading(false);
     }
   };
 
-  // Fetch Media Library list
-  const openMediaPicker = async () => {
-    setIsMediaModalOpen(true);
-    try {
-      const res = await apiFetch(API_MEDIA);
-      const json = await res.json();
-      if (json.success) {
-        const list = Array.isArray(json.data) ? json.data : (Array.isArray(json.data?.media) ? json.data.media : []);
-        setMediaList(list);
-      }
-    } catch {
-      // fallback
-    }
-  };
-
-  const selectMediaItem = async (item: any) => {
-    const isVid = item.mimeType?.startsWith('video/') || item.url?.endsWith('.mp4') || item.url?.endsWith('.webm');
-    const fullUrl = resolveMediaUrl(item.url);
-    const updated = {
-      ...formData,
-      mediaUrl: fullUrl,
-      mediaType: isVid ? 'VIDEO' : 'IMAGE',
-    };
-    setFormData(updated);
-    setSavedData(updated);
-    localStorage.setItem('dezo-about-data', JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('dezo-about-updated', { detail: updated }));
-    setIsMediaModalOpen(false);
-
-    // Auto-save to backend API so live site updates immediately
-    try {
-      await apiFetch(API_ABOUT, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      });
-    } catch {
-      // ignore
-    }
-    showStatus('success', 'Selected & saved media asset from Library.');
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 text-cyan-500 font-bold text-sm">
-          <RefreshCw className="w-5 h-5 animate-spin" />
-          <span>Loading About Section CMS Configuration...</span>
-        </div>
-      </div>
-    );
-  }
+  const TABS = [
+    { id: 'story', label: 'Company Story & Hero', icon: Sparkles },
+    { id: 'mission', label: 'Mission & Vision', icon: Target },
+    { id: 'values', label: 'Core Principles', icon: Zap, badge: `${formData.aboutPage.coreValues.length}` },
+    { id: 'milestones', label: 'Milestones & Journey', icon: Rocket, badge: `${formData.aboutPage.milestones.length}` },
+    { id: 'leadership', label: 'Meet the Minds (Team)', icon: Users, badge: `${formData.aboutPage.leadership.length}` },
+    { id: 'cta', label: 'Pre-Footer CTA Banner', icon: ArrowRight },
+    { id: 'homepage', label: 'Homepage Snippet', icon: Layout },
+    { id: 'preview', label: 'Live Preview', icon: Eye },
+  ];
 
   return (
-    <div className="max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
-      {/* Compact Top Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 px-6 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 backdrop-blur-xl shadow-xs">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-[10px] font-black uppercase tracking-wider">
-              Homepage CMS
-            </span>
-            {isDirty ? (
-              <span className="px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-extrabold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                Unsaved changes
-              </span>
-            ) : (
-              <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold flex items-center gap-1.5">
-                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                Saved
-              </span>
-            )}
-          </div>
-          <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            About Section
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Manage the content and visual presentation of the About section on your homepage.
-          </p>
-        </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-['Plus_Jakarta_Sans',sans-serif] p-4 sm:p-6 lg:p-8 transition-colors duration-200">
+      <div className="w-full max-w-[1550px] mx-auto space-y-6">
 
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => openAdminAIAssistant({ type: 'hero', topic: 'Dezoryn Enterprise About Section' })}
-            className="px-3.5 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/20 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-purple-500" />
-            <span>AI Copywriter</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleReset}
-            disabled={!isDirty}
-            className={`px-4 py-2 rounded-xl border font-bold text-xs transition flex items-center gap-1.5 ${
-              isDirty
-                ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700'
-                : 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 text-slate-400 border-slate-200/80 dark:border-slate-800'
-            }`}
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset to Default</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:via-indigo-500 hover:to-cyan-500 text-white font-extrabold text-xs shadow-md shadow-blue-500/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            {isSaving ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Status Toast Notice */}
-      <AnimatePresence>
-        {statusMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={`p-4 rounded-2xl border text-xs font-bold flex items-center justify-between shadow-sm ${
-              statusMsg.type === 'success'
-                ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
-                : 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              {statusMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-              <span>{statusMsg.text}</span>
-            </div>
-            <button type="button" onClick={() => setStatusMsg(null)} className="p-1 hover:opacity-70">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Compact Horizontal Tab Bar Container */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 backdrop-blur-xl overflow-x-auto shadow-xs scrollbar-none">
-        {[
-          { id: 'content', label: 'Content & Copy', icon: Sparkles },
-          { id: 'media', label: 'Media & Video', icon: ImageIcon },
-          { id: 'card', label: 'Floating Info Card', icon: ShieldCheck },
-          { id: 'layout', label: 'Layout & Spacing', icon: Layout },
-          { id: 'style', label: 'Colors & Animations', icon: Palette },
-          { id: 'preview', label: 'Live Preview', icon: Eye },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              type="button"
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-xl font-bold text-xs transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-                isActive
-                  ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white shadow-md shadow-blue-500/20'
-                  : 'bg-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+        {/* Floating Status Toast */}
+        <AnimatePresence>
+          {statusMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className={`fixed bottom-8 right-8 z-50 px-4 py-3.5 rounded-2xl border text-xs font-bold shadow-2xl backdrop-blur-2xl flex items-center gap-3 max-w-md ${
+                statusMsg.type === 'delete'
+                  ? 'bg-slate-900/95 text-white border-rose-500/40 shadow-rose-500/10'
+                  : statusMsg.type === 'success'
+                  ? 'bg-slate-900/95 text-white border-emerald-500/40 shadow-emerald-500/10'
+                  : statusMsg.type === 'error'
+                  ? 'bg-slate-900/95 text-white border-rose-500/40 shadow-rose-500/10'
+                  : 'bg-slate-900/95 text-white border-cyan-500/40 shadow-cyan-500/10'
               }`}
             >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{tab.label}</span>
+              <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border shrink-0 ${
+                statusMsg.type === 'delete'
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                  : statusMsg.type === 'success'
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  : statusMsg.type === 'error'
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                  : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+              }`}>
+                {statusMsg.type === 'delete' ? 'DELETED' : statusMsg.type === 'success' ? 'SAVED' : statusMsg.type === 'error' ? 'ERROR' : 'NOTICE'}
+              </span>
+              <span className="flex-1 leading-snug">{statusMsg.text}</span>
+              <button
+                type="button"
+                onClick={() => setStatusMsg(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Header Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+          <div>
+            <div className="flex items-center gap-2 text-blue-600 dark:text-cyan-400 text-xs font-black uppercase tracking-wider mb-1">
+              <Building2 className="w-4 h-4" />
+              <span>Company Brand, Story & Team CMS</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              About Us & Company Management
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
+              Fully customize the public /about page, company milestones, core principles, leadership team, and pre-footer CTA banner.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 self-stretch sm:self-auto">
+            <button
+              type="button"
+              onClick={fetchAbout}
+              disabled={isLoading}
+              className="px-4 py-2.5 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-xs transition cursor-pointer flex items-center gap-2 border border-slate-200 dark:border-slate-800"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>Sync</span>
             </button>
-          );
-        })}
-      </div>
 
-      {/* Two-Column Desktop Layout (60% Left Form / 40% Right Preview) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* LEFT COLUMN: Content Editor (~60% width) */}
-        <div className={activeTab === 'preview' ? 'lg:col-span-12' : 'lg:col-span-7 xl:col-span-7 space-y-6'}>
-          {activeTab === 'content' && (
-            <div className="space-y-6">
-              {/* Card 1: Section Content */}
-              <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
-                <div className="border-b border-slate-100 dark:border-slate-800/80 pb-3">
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-cyan-500" />
-                    Section Content
-                  </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Define the main text copy and headers rendered in the homepage About section.
-                  </p>
-                </div>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-black text-xs shadow-md shadow-blue-500/25 transition cursor-pointer flex items-center gap-2"
+            >
+              <Save className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
+              <span>{isSaving ? 'Publishing...' : 'Save & Publish to DB'}</span>
+            </button>
+          </div>
+        </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Section Badge Text
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.badge}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, badge: e.target.value }))}
-                      className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-sm font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
-                      placeholder="ABOUT DEZORYN TECHNOLOGIES"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Main Heading
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.heading}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, heading: e.target.value }))}
-                      className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-sm font-extrabold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
-                      placeholder="Empowering Modern Enterprises with Intelligent Automation"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Description Paragraph 1 (Highlight Text)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={formData.descriptionOne}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, descriptionOne: e.target.value }))}
-                      className="w-full min-h-[100px] p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all leading-relaxed shadow-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Description Paragraph 2 (Secondary Subtext)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={formData.descriptionTwo}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, descriptionTwo: e.target.value }))}
-                      className="w-full min-h-[100px] p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-normal text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all leading-relaxed shadow-xs"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2: Primary Action */}
-              <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3">
-                  <div>
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                      Primary Action Button
-                    </h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Configure the call-to-action button displayed in the section.
-                    </p>
-                  </div>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.buttonEnabled}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, buttonEnabled: e.target.checked }))}
-                      className="w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 cursor-pointer"
-                    />
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                      Enable Button
-                    </span>
-                  </label>
-                </div>
-
-                {formData.buttonEnabled && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                        Button Text
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.buttonText}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, buttonText: e.target.value }))}
-                        className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[12px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                        Button Link URL
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.buttonUrl}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, buttonUrl: e.target.value }))}
-                        className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'media' && (
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                <ImageIcon className="w-4 h-4 text-blue-500" />
-                Media Management (Images & Videos)
-              </h3>
-
-              <div className="space-y-5">
-                {/* Active Media Card & Preview */}
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-                    <span>Active Media Asset Preview</span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-cyan-950 text-blue-600 dark:text-cyan-400 text-[10px] uppercase font-black border border-blue-200 dark:border-cyan-800">
-                      {formData.mediaType}
-                    </span>
-                  </div>
-
-                  <div className="relative w-full h-[240px] rounded-xl overflow-hidden bg-slate-900 border border-slate-700 flex items-center justify-center shadow-inner">
-                    {formData.mediaUrl ? (
-                      formData.mediaType === 'VIDEO' || formData.mediaUrl.endsWith('.mp4') || formData.mediaUrl.endsWith('.webm') ? (
-                        <video src={formData.mediaUrl} autoPlay muted loop className="w-full h-full object-cover" />
-                      ) : (
-                        <img src={formData.mediaUrl} alt="Active Media Preview" className="w-full h-full object-cover" />
-                      )
-                    ) : (
-                      <div className="text-center text-xs font-semibold text-slate-400 space-y-2 p-6">
-                        <ImageIcon className="w-10 h-10 mx-auto text-slate-600 animate-pulse" />
-                        <p className="font-bold text-slate-300">No media asset assigned.</p>
-                        <p className="text-[11px] text-slate-500">Upload a file, pick from library, or restore default image below.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Direct Media URL Input & Type Selector */}
-                  <div className="space-y-2 pt-2">
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                      Direct Media URL / File Path
-                    </label>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="text"
-                        value={formData.mediaUrl || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const isVid = val.endsWith('.mp4') || val.endsWith('.webm');
-                          setFormData((prev) => ({
-                            ...prev,
-                            mediaUrl: val,
-                            mediaType: isVid ? 'VIDEO' : prev.mediaType,
-                          }));
-                        }}
-                        placeholder="https://images.unsplash.com/... or /uploads/..."
-                        className="flex-1 h-11 px-4 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                      />
-                      <select
-                        value={formData.mediaType}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, mediaType: e.target.value as any }))}
-                        className="h-11 px-4 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                      >
-                        <option value="IMAGE">IMAGE</option>
-                        <option value="VIDEO">VIDEO</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Media Action Buttons */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800/80">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          mediaUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
-                          mediaType: 'IMAGE',
-                        }));
-                        showStatus('success', 'Restored default enterprise building image.');
-                      }}
-                      className="px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-600 dark:text-cyan-400 font-bold text-xs transition border border-blue-200 dark:border-blue-800 flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Restore Default Image</span>
-                    </button>
-
-                    {formData.mediaUrl && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            mediaUrl: '',
-                            mediaType: 'IMAGE',
-                          }));
-                          try {
-                            await apiFetch('/about/media', { method: 'DELETE' });
-                          } catch {
-                            // ignore
-                          }
-                          showStatus('success', 'Media asset deleted successfully.');
-                        }}
-                        className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 font-bold text-xs transition border border-rose-500/20 flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Delete / Clear Media Asset</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Upload & Select Options */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <label className="p-5 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-cyan-500 dark:hover:border-cyan-500 transition text-center cursor-pointer space-y-2 block bg-slate-50/50 dark:bg-slate-950/50">
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/svg+xml,video/mp4,video/webm"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <Upload className="w-6 h-6 mx-auto text-cyan-500" />
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">
-                      {isUploading ? 'Uploading Media File...' : 'Upload File (Image/Video)'}
-                    </div>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                      Supports JPG, PNG, WEBP, SVG, MP4, WEBM
-                    </p>
-                  </label>
-
-                  <button
-                    type="button"
-                    onClick={openMediaPicker}
-                    className="p-5 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 transition text-center cursor-pointer space-y-2 block bg-slate-50/50 dark:bg-slate-950/50"
-                  >
-                    <FolderOpen className="w-6 h-6 mx-auto text-blue-500" />
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">
-                      Select from Media Library
-                    </div>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                      Browse uploaded system assets
-                    </p>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'card' && (
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  Floating Information Card Settings
-                </h3>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.cardEnabled}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, cardEnabled: e.target.checked }))}
-                    className="w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 cursor-pointer"
-                  />
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Enable Floating Card
+        {/* Tabs Selector Strip */}
+        <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800/80 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2.5 rounded-2xl text-xs font-black transition cursor-pointer flex items-center gap-2 shrink-0 border ${
+                  isActive
+                    ? 'bg-blue-600/10 dark:bg-blue-600/20 text-blue-600 dark:text-cyan-300 border-blue-500/30 dark:border-cyan-400/50 shadow-xs'
+                    : 'bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600 dark:text-cyan-400' : 'text-slate-400'}`} />
+                <span>{tab.label}</span>
+                {tab.badge && (
+                  <span className="px-2 py-0.5 rounded-full bg-blue-500/10 dark:bg-cyan-500/20 text-blue-600 dark:text-cyan-400 text-[10px] font-black border border-blue-500/20 dark:border-cyan-500/30">
+                    {tab.badge}
                   </span>
-                </label>
-              </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-              {formData.cardEnabled && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Card Title
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.cardTitle}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, cardTitle: e.target.value }))}
-                      className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-extrabold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
-                      placeholder="Global Enterprise HQ"
-                    />
-                  </div>
+        {/* ── TAB 1: COMPANY STORY & HERO ── */}
+        {activeTab === 'story' && (
+          <div className="w-full space-y-6">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-5">
+              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                <span>Hero Story & Brand Mission (Top of /about)</span>
+              </h2>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                        Card Subtitle
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.cardSubtitle}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, cardSubtitle: e.target.value }))}
-                        className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
-                        placeholder="Innovation Center"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                        Location Badge Text
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.cardLocation}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, cardLocation: e.target.value }))}
-                        className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
-                        placeholder="San Francisco, CA"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-                      Card Icon
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {['ShieldCheck', 'Globe', 'Building', 'Award', 'CheckCircle2', 'Zap', 'Star', 'Layers'].map((iconName) => (
-                        <button
-                          type="button"
-                          key={iconName}
-                          onClick={() => setFormData((prev) => ({ ...prev, cardIcon: iconName }))}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 border transition cursor-pointer ${
-                            formData.cardIcon === iconName
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-blue-500'
-                          }`}
-                        >
-                          <span>{iconName}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'layout' && (
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                <Layout className="w-4 h-4 text-purple-500" />
-                Layout & Spacing Configuration
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Image / Video Position
-                  </label>
-                  <select
-                    value={formData.layoutSettings?.imagePosition || 'right'}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        layoutSettings: { ...prev.layoutSettings, imagePosition: e.target.value as any },
-                      }))
-                    }
-                    className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
-                  >
-                    <option value="right">Right Column (Default)</option>
-                    <option value="left">Left Column</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Border Radius
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+                    Top Story Pill Badge
                   </label>
                   <input
                     type="text"
-                    value={formData.layoutSettings?.borderRadius || '1.5rem'}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        layoutSettings: { ...prev.layoutSettings, borderRadius: e.target.value },
-                      }))
-                    }
-                    className="w-full h-11 px-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-xs"
-                    placeholder="1.5rem"
+                    value={formData.aboutPage.storyBadge}
+                    onChange={(e) => updateAboutPage({ storyBadge: e.target.value })}
+                    placeholder="e.g. THE DEZORYN TECHNOLOGIES STORY & MISSION"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+                    Main Headline
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.storyHeading}
+                    onChange={(e) => updateAboutPage({ storyHeading: e.target.value })}
+                    placeholder="e.g. Building the Future of Enterprise Software Intelligence"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+                  Story Description
+                </label>
+                <textarea
+                  rows={4}
+                  value={formData.aboutPage.storyDescription}
+                  onChange={(e) => updateAboutPage({ storyDescription: e.target.value })}
+                  placeholder="Explain your company's origin, philosophy, and international scale."
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-medium leading-relaxed"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                Quick Action Buttons
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                  <span className="text-[11px] font-extrabold text-blue-600 dark:text-cyan-400 uppercase">Primary Button</span>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.storyCtaPrimaryText}
+                    onChange={(e) => updateAboutPage({ storyCtaPrimaryText: e.target.value })}
+                    placeholder="Button text"
+                    className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                  <input
+                    type="text"
+                    value={formData.aboutPage.storyCtaPrimaryLink}
+                    onChange={(e) => updateAboutPage({ storyCtaPrimaryLink: e.target.value })}
+                    placeholder="Link URL e.g. /products"
+                    className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300"
+                  />
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                  <span className="text-[11px] font-extrabold text-blue-600 dark:text-cyan-400 uppercase">Secondary Button</span>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.storyCtaSecondaryText}
+                    onChange={(e) => updateAboutPage({ storyCtaSecondaryText: e.target.value })}
+                    placeholder="Button text"
+                    className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                  <input
+                    type="text"
+                    value={formData.aboutPage.storyCtaSecondaryLink}
+                    onChange={(e) => updateAboutPage({ storyCtaSecondaryLink: e.target.value })}
+                    placeholder="Link URL e.g. /book-demo"
+                    className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300"
+                  />
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                  <span className="text-[11px] font-extrabold text-blue-600 dark:text-cyan-400 uppercase">Contact Button</span>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.storyCtaContactText}
+                    onChange={(e) => updateAboutPage({ storyCtaContactText: e.target.value })}
+                    placeholder="Button text"
+                    className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                  <input
+                    type="text"
+                    value={formData.aboutPage.storyCtaContactLink}
+                    onChange={(e) => updateAboutPage({ storyCtaContactLink: e.target.value })}
+                    placeholder="Link URL e.g. /contact-sales"
+                    className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300"
                   />
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {activeTab === 'style' && (
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
-              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                <Palette className="w-4 h-4 text-amber-500" />
-                Colors & Framer Motion Animations
-              </h3>
+        {/* ── TAB 2: MISSION & VISION ── */}
+        {activeTab === 'mission' && (
+          <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
+              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Target className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                <span>Our Mission Card</span>
+              </h2>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Accent Color
-                    </label>
-                    <input
-                      type="color"
-                      value={formData.styleSettings?.accentColor || '#2563eb'}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          styleSettings: { ...prev.styleSettings, accentColor: e.target.value },
-                        }))
-                      }
-                      className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 cursor-pointer bg-slate-50 dark:bg-slate-950"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Overlay Opacity ({formData.styleSettings?.overlayOpacity ?? 0.2})
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={formData.styleSettings?.overlayOpacity ?? 0.2}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          styleSettings: { ...prev.styleSettings, overlayOpacity: parseFloat(e.target.value) },
-                        }))
-                      }
-                      className="w-full accent-cyan-500 cursor-pointer"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Card Title</label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.missionTitle}
+                    onChange={(e) => updateAboutPage({ missionTitle: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                  <span className="text-xs font-extrabold text-slate-900 dark:text-white block">
-                    Framer Motion Animation Settings
-                  </span>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                  <textarea
+                    rows={4}
+                    value={formData.aboutPage.missionDesc}
+                    onChange={(e) => updateAboutPage({ missionDesc: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium leading-relaxed"
+                  />
+                </div>
 
-                  <div className="flex flex-wrap gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.animationSettings?.fadeEnabled ?? true}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            animationSettings: { ...prev.animationSettings, fadeEnabled: e.target.checked },
-                          }))
-                        }
-                        className="w-4 h-4 rounded text-cyan-600"
-                      />
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Fade In</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.animationSettings?.slideEnabled ?? true}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            animationSettings: { ...prev.animationSettings, slideEnabled: e.target.checked },
-                          }))
-                        }
-                        className="w-4 h-4 rounded text-cyan-600"
-                      />
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Slide In</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.animationSettings?.scaleEnabled ?? false}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            animationSettings: { ...prev.animationSettings, scaleEnabled: e.target.checked },
-                          }))
-                        }
-                        className="w-4 h-4 rounded text-cyan-600"
-                      />
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Scale Zoom</span>
-                    </label>
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Key Highlight Metric</label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.missionHighlight}
+                    onChange={(e) => updateAboutPage({ missionHighlight: e.target.value })}
+                    placeholder="e.g. 10x Operational Efficiency Target"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-blue-600 dark:text-cyan-400"
+                  />
                 </div>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* RIGHT COLUMN: Sticky Live Preview Panel (~40% width) */}
-        <div className={activeTab === 'preview' ? 'lg:col-span-12' : 'lg:col-span-5 xl:col-span-5'}>
-          <div className="sticky top-24 space-y-3">
-            {/* Live Preview Header Badge */}
-            <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-xs backdrop-blur-xl">
-              <span className="text-xs font-extrabold text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5">
-                <Eye className="w-4 h-4" /> LIVE PREVIEW
-              </span>
-              <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Real-time
-              </span>
-            </div>
+            <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-4">
+              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Eye className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <span>Our Vision Card</span>
+              </h2>
 
-            {/* Proportional Interactive Device Frame */}
-            <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-slate-950 p-2 shadow-2xl overflow-hidden">
-              <div className="max-h-[660px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent rounded-2xl">
-                <div className="transform scale-[0.88] origin-top-left w-[113.6%]">
-                  <AboutSection initialData={formData} />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Card Title</label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.visionTitle}
+                    onChange={(e) => updateAboutPage({ visionTitle: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                  <textarea
+                    rows={4}
+                    value={formData.aboutPage.visionDesc}
+                    onChange={(e) => updateAboutPage({ visionDesc: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium leading-relaxed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Key Highlight Metric</label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.visionHighlight}
+                    onChange={(e) => updateAboutPage({ visionHighlight: e.target.value })}
+                    placeholder="e.g. Global 24/7 Unified Cloud Infrastructure"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-emerald-600 dark:text-emerald-400"
+                  />
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Media Library Picker Modal */}
-      <AnimatePresence>
-        {isMediaModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="max-w-2xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4 text-white"
-            >
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-sm font-extrabold flex items-center gap-2">
-                  <FolderOpen className="w-4 h-4 text-cyan-400" />
-                  Select Media Asset from Library
-                </h3>
-                <button type="button" onClick={() => setIsMediaModalOpen(false)} className="p-1 hover:opacity-70">
-                  <X className="w-4 h-4" />
+        {/* ── TAB 3: CORE PRINCIPLES & VALUES ── */}
+        {activeTab === 'values' && (
+          <div className="w-full space-y-6">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                    <span>Core Principles & Values</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Custom principles that showcase your culture, commitment, and engineering standards.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addCoreValue}
+                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer self-start sm:self-auto shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Principle</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[360px] overflow-y-auto pr-1">
-                {mediaList.map((item) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Section Badge</label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.coreValuesBadge}
+                    onChange={(e) => updateAboutPage({ coreValuesBadge: e.target.value })}
+                    placeholder="e.g. WHAT DRIVES US"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Section Title</label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.coreValuesTitle}
+                    onChange={(e) => updateAboutPage({ coreValuesTitle: e.target.value })}
+                    placeholder="e.g. Our Core Principles"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-4">
+                {formData.aboutPage.coreValues.map((val, idx) => (
                   <div
-                    key={item.id}
-                    onClick={() => selectMediaItem(item)}
-                    className="group relative h-28 rounded-xl overflow-hidden border border-slate-800 bg-slate-950 cursor-pointer hover:border-cyan-500 transition"
+                    key={val.id || idx}
+                    className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4 relative group"
                   >
-                    {item.mimeType?.startsWith('video/') || item.url?.endsWith('.mp4') ? (
-                      <video src={resolveMediaUrl(item.url)} className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={resolveMediaUrl(item.url)} alt={item.filename} className="w-full h-full object-cover" />
-                    )}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px] font-bold text-cyan-300">
-                      Select
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-blue-600 dark:text-cyan-400">Principle #{idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeCoreValue(idx)}
+                        className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition cursor-pointer"
+                        title="Delete Principle"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Principle Title</label>
+                        <input
+                          type="text"
+                          value={val.title}
+                          onChange={(e) => updateCoreValueItem(idx, { title: e.target.value })}
+                          className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Icon</label>
+                        <select
+                          value={val.icon}
+                          onChange={(e) => updateCoreValueItem(idx, { icon: e.target.value })}
+                          className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold cursor-pointer"
+                        >
+                          {AVAILABLE_ICONS.map(ic => (
+                            <option key={ic} value={ic}>{ic}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Description</label>
+                      <textarea
+                        rows={2}
+                        value={val.desc}
+                        onChange={(e) => updateCoreValueItem(idx, { desc: e.target.value })}
+                        className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium leading-relaxed"
+                      />
                     </div>
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           </div>
         )}
-      </AnimatePresence>
+
+        {/* ── TAB 4: COMPANY MILESTONES & JOURNEY ── */}
+        {activeTab === 'milestones' && (
+          <div className="w-full space-y-6">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Rocket className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                    <span>Company Milestones & Journey Timeline</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Key historical moments, funding, product launches, and expansion steps (appears on /about & pre-footer).
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addMilestone}
+                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer self-start sm:self-auto shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Milestone</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Section Badge</label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.milestonesBadge}
+                    onChange={(e) => updateAboutPage({ milestonesBadge: e.target.value })}
+                    placeholder="e.g. OUR JOURNEY"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Section Title</label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.milestonesTitle}
+                    onChange={(e) => updateAboutPage({ milestonesTitle: e.target.value })}
+                    placeholder="e.g. Company Milestones"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-4">
+                {formData.aboutPage.milestones.map((m, idx) => (
+                  <div
+                    key={m.id || idx}
+                    className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4 relative group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 rounded-lg bg-blue-600 text-white text-xs font-black">{m.year}</span>
+                        <span className="text-xs font-extrabold text-slate-900 dark:text-white">{m.title}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => moveMilestone(idx, 'up')}
+                          disabled={idx === 0}
+                          className="p-1.5 rounded bg-white dark:bg-slate-900 border text-slate-500 hover:text-white disabled:opacity-30 cursor-pointer"
+                          title="Move Up"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveMilestone(idx, 'down')}
+                          disabled={idx === formData.aboutPage.milestones.length - 1}
+                          className="p-1.5 rounded bg-white dark:bg-slate-900 border text-slate-500 hover:text-white disabled:opacity-30 cursor-pointer"
+                          title="Move Down"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeMilestone(idx)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition cursor-pointer ml-1"
+                          title="Delete Milestone"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Year / Period</label>
+                        <input
+                          type="text"
+                          value={m.year}
+                          onChange={(e) => updateMilestoneItem(idx, { year: e.target.value })}
+                          placeholder="e.g. 2023"
+                          className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Milestone Title</label>
+                        <input
+                          type="text"
+                          value={m.title}
+                          onChange={(e) => updateMilestoneItem(idx, { title: e.target.value })}
+                          placeholder="e.g. AI Platform Launch"
+                          className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Description</label>
+                      <textarea
+                        rows={2}
+                        value={m.desc}
+                        onChange={(e) => updateMilestoneItem(idx, { desc: e.target.value })}
+                        placeholder="What was achieved or launched during this phase?"
+                        className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium leading-relaxed"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 5: EXECUTIVE LEADERSHIP TEAM ── */}
+        {activeTab === 'leadership' && (
+          <div className="w-full space-y-6">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                    <span>Meet the Minds Behind Dezoryn (Executive Leadership)</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Manage founders, directors, and department heads displayed on the About Us page.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addLeader}
+                  className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer self-start sm:self-auto shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Leader</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Section Badge</label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.leadershipBadge}
+                    onChange={(e) => updateAboutPage({ leadershipBadge: e.target.value })}
+                    placeholder="e.g. EXECUTIVE LEADERSHIP"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Section Title</label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.leadershipTitle}
+                    onChange={(e) => updateAboutPage({ leadershipTitle: e.target.value })}
+                    placeholder="e.g. Meet the Minds Behind Dezoryn Technologies"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-4">
+                {formData.aboutPage.leadership.map((person, idx) => (
+                  <div
+                    key={person.id || idx}
+                    className="p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4 relative group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {person.image ? (
+                          <img
+                            src={resolveMediaUrl(person.image)}
+                            alt={person.name}
+                            className="w-12 h-12 rounded-full object-cover border border-blue-500/30 shadow-xs"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                            {person.avatar || person.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white">{person.name}</h4>
+                          <p className="text-xs font-bold text-blue-600 dark:text-cyan-400">{person.role}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openMediaPicker('leader-image', person.id)}
+                          className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-white transition cursor-pointer flex items-center gap-1.5"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5" />
+                          <span>Photo</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeLeader(idx)}
+                          className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition cursor-pointer"
+                          title="Delete Leader"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Full Name</label>
+                        <input
+                          type="text"
+                          value={person.name}
+                          onChange={(e) => updateLeaderItem(idx, { name: e.target.value })}
+                          className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Role / Executive Title</label>
+                        <input
+                          type="text"
+                          value={person.role}
+                          onChange={(e) => updateLeaderItem(idx, { role: e.target.value })}
+                          className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Initials / Avatar</label>
+                        <input
+                          type="text"
+                          value={person.avatar}
+                          onChange={(e) => updateLeaderItem(idx, { avatar: e.target.value })}
+                          placeholder="e.g. DV"
+                          className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold uppercase"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Executive Bio</label>
+                      <textarea
+                        rows={2}
+                        value={person.bio}
+                        onChange={(e) => updateLeaderItem(idx, { bio: e.target.value })}
+                        placeholder="Brief background and career highlights..."
+                        className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium leading-relaxed"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 6: PRE-FOOTER CTA BANNER ── */}
+        {activeTab === 'cta' && (
+          <div className="w-full space-y-6">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-5">
+              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <ArrowRight className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                <span>Pre-Footer Cross-Promotion CTA Banner (Till Footer)</span>
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                The high-converting cross-promotion banner situated at the bottom of the /about page before the footer.
+              </p>
+
+              <div className="space-y-4 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">CTA Main Heading</label>
+                  <input
+                    type="text"
+                    value={formData.aboutPage.ctaHeading}
+                    onChange={(e) => updateAboutPage({ ctaHeading: e.target.value })}
+                    placeholder="e.g. Ready to Explore Our Enterprise Products?"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">CTA Subtext / Description</label>
+                  <textarea
+                    rows={3}
+                    value={formData.aboutPage.ctaDescription}
+                    onChange={(e) => updateAboutPage({ ctaDescription: e.target.value })}
+                    placeholder="e.g. Take a personalized tour of Dezoryn Technologies, SchoolyCore, HMS, and InventoryPro with our engineering team."
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium leading-relaxed"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <span className="text-[11px] font-extrabold text-blue-600 dark:text-cyan-400 uppercase">Primary Action Button</span>
+                    <input
+                      type="text"
+                      value={formData.aboutPage.ctaPrimaryText}
+                      onChange={(e) => updateAboutPage({ ctaPrimaryText: e.target.value })}
+                      placeholder="Button text"
+                      className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                    />
+                    <input
+                      type="text"
+                      value={formData.aboutPage.ctaPrimaryLink}
+                      onChange={(e) => updateAboutPage({ ctaPrimaryLink: e.target.value })}
+                      placeholder="Link URL e.g. /products"
+                      className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium"
+                    />
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <span className="text-[11px] font-extrabold text-blue-600 dark:text-cyan-400 uppercase">Secondary Action Button</span>
+                    <input
+                      type="text"
+                      value={formData.aboutPage.ctaSecondaryText}
+                      onChange={(e) => updateAboutPage({ ctaSecondaryText: e.target.value })}
+                      placeholder="Button text"
+                      className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                    />
+                    <input
+                      type="text"
+                      value={formData.aboutPage.ctaSecondaryLink}
+                      onChange={(e) => updateAboutPage({ ctaSecondaryLink: e.target.value })}
+                      placeholder="Link URL e.g. /book-demo"
+                      className="w-full px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 7: HOMEPAGE SNIPPET ── */}
+        {activeTab === 'homepage' && (
+          <div className="w-full space-y-6">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-5">
+              <h2 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <Layout className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                <span>Homepage About Section Snippet</span>
+              </h2>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Badge Text</label>
+                  <input
+                    type="text"
+                    value={formData.badge}
+                    onChange={(e) => setFormData(prev => ({ ...prev, badge: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Main Heading</label>
+                  <input
+                    type="text"
+                    value={formData.heading}
+                    onChange={(e) => setFormData(prev => ({ ...prev, heading: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Paragraph 1</label>
+                  <textarea
+                    rows={3}
+                    value={formData.descriptionOne}
+                    onChange={(e) => setFormData(prev => ({ ...prev, descriptionOne: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium leading-relaxed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Paragraph 2</label>
+                  <textarea
+                    rows={3}
+                    value={formData.descriptionTwo}
+                    onChange={(e) => setFormData(prev => ({ ...prev, descriptionTwo: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium leading-relaxed"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Button Label</label>
+                  <input
+                    type="text"
+                    value={formData.buttonText}
+                    onChange={(e) => setFormData(prev => ({ ...prev, buttonText: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Button Route</label>
+                  <input
+                    type="text"
+                    value={formData.buttonUrl}
+                    onChange={(e) => setFormData(prev => ({ ...prev, buttonUrl: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Media Image URL / Asset</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={formData.mediaUrl || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, mediaUrl: e.target.value }))}
+                    placeholder="https://... or /uploads/..."
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openMediaPicker('homepage-media')}
+                    className="px-4 py-2.5 rounded-xl bg-blue-600 text-white font-extrabold text-xs flex items-center gap-1.5 cursor-pointer hover:bg-blue-500 shadow-sm shrink-0"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Media Library</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 8: LIVE INTERACTIVE PREVIEW ── */}
+        {activeTab === 'preview' && (
+          <div className="w-full space-y-6">
+            <div className="flex items-center justify-between flex-wrap gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Eye className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                <span className="text-xs font-black uppercase tracking-wider">Live Preview Mode:</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode('about-page')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    previewMode === 'about-page'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  Full /about Page
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewMode('homepage-section')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    previewMode === 'homepage-section'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  Homepage Snippet
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-300 dark:border-slate-800 overflow-hidden shadow-2xl bg-white dark:bg-slate-950">
+              {previewMode === 'about-page' ? (
+                <AboutUsPage />
+              ) : (
+                <AboutSection initialData={formData} />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── MEDIA PICKER MODAL ── */}
+        <AnimatePresence>
+          {isMediaModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 max-w-2xl w-full max-h-[85vh] overflow-y-auto space-y-4 shadow-2xl"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                  <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <FolderOpen className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                    <span>Choose Media Asset</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsMediaModalOpen(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Upload Input */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-dashed border-slate-300 dark:border-slate-800 text-center">
+                  <label className="cursor-pointer block text-xs font-bold text-blue-600 dark:text-cyan-400 hover:underline">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleUploadMedia(f);
+                      }}
+                      className="hidden"
+                    />
+                    <span>{isUploading ? 'Uploading file...' : '+ Upload new image to server'}</span>
+                  </label>
+                </div>
+
+                {/* Media Grid */}
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-96 overflow-y-auto p-1">
+                  {mediaList.map((m) => (
+                    <button
+                      key={m.id || m.url}
+                      type="button"
+                      onClick={() => handleSelectMedia(m.url)}
+                      className="group relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-blue-500 aspect-square cursor-pointer bg-slate-100 dark:bg-slate-950"
+                    >
+                      <img
+                        src={resolveMediaUrl(m.url)}
+                        alt={m.filename || 'asset'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+      </div>
     </div>
   );
 };

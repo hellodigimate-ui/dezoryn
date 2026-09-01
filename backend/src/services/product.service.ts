@@ -1,7 +1,5 @@
 import { prisma } from '../config/prisma.config';
 
-const db = prisma as any;
-
 export interface BackendProductFilter {
   category?: string;
   search?: string;
@@ -22,801 +20,346 @@ export interface BackendProductFilter {
   isEnabled?: boolean;
 }
 
-const DEFAULT_PRODUCTS = [
-  {
-    id: 'schoolycore',
-    title: 'SchoolyCore ERP',
-    subtitle: 'FEATURED',
-    description: 'Complete K-12 and Higher-Ed Institute Management platform with automated fee collection, exams, and parent portal.',
-    icon: 'GraduationCap',
-    gradient: 'from-blue-600 to-cyan-500',
-    category: 'industry',
-    categoryLabel: 'Industry Vertical',
-    industry: 'Education & Academics',
-    badge: 'FEATURED',
-    tag: 'Education',
-    tags: ['school', 'education', 'students', 'exams', 'fees', 'timetable', 'attendance', 'k12', 'institute', 'academy'],
-    status: 'Featured',
-    rating: 4.9,
-    reviewsCount: 1420,
-    price: 'From ₹49/mo',
-    priceValue: 49,
-    pricingType: 'Monthly',
-    businessSizes: ['SMB (10-50)', 'Mid-Market (50-250)', 'Enterprise (250+)'],
-    deployment: ['Cloud Hosted (SaaS)', 'Hybrid Cloud'],
-    platforms: ['Web App (Browser)', 'iOS App (iPhone/iPad)', 'Android App'],
-    aiPowered: false,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: true,
-    languages: ['English', 'Hindi', 'Multi-Lingual'],
-    countries: ['Global', 'India (GST Ready)', 'United States'],
-    features: [
-      'Student Lifecycle & Online Admissions',
-      'Automated Fee Collection Gateway & Auto Receipts',
-      'Exams, Grading & Custom Report Card Generator',
-      'Parent & Student iOS / Android Mobile App'
-    ],
-    pricingTiers: [
-      { name: 'Starter Institute', price: '₹29', period: '/month', features: ['Up to 500 Students', 'Student & Staff Records', 'Basic Fee Billing & Receipts', 'Exam Grading Engine', 'Email Support'], ctaText: 'Start 14-Day Free Trial' },
-      { name: 'Professional Campus', price: '₹49', period: '/month', popular: true, features: ['Up to 2,000 Students', 'Parent & Student Mobile Apps', 'WhatsApp Payment Reminders', 'Biometric Attendance Sync', 'Transport GPS Fleet Tracker', '24/7 Priority Support'], ctaText: 'Start Free Trial' },
-      { name: 'Enterprise Network', price: '₹99', period: '/month', features: ['Unlimited Students & Campuses', 'Dedicated Private Cloud Cluster', 'Custom Webhooks & REST API', 'Single Sign-On (SSO / SAML 2.0)', 'Custom Board Report Cards', 'Dedicated Success Manager'], ctaText: 'Contact Enterprise Team' }
-    ],
-    order: 0,
-    isEnabled: true
-  },
-  {
-    id: 'schoolycore-lite',
-    title: 'SchoolyCore Lite',
-    subtitle: 'LITE MODULE',
-    description: 'Lightweight institute management system for core attendance, basic fee billing, parent alerts, and student records.',
-    icon: 'Building',
-    gradient: 'from-emerald-600 to-teal-500',
-    category: 'industry',
-    categoryLabel: 'Education & Academics',
-    industry: 'Education & Academics',
-    badge: 'LITE MODULE',
-    tag: 'Education',
-    tags: ['schoolycore-lite', 'lite', 'school', 'education', 'attendance', 'fees'],
-    status: 'Available',
-    rating: 4.8,
-    reviewsCount: 610,
-    price: 'From ₹24/mo',
-    priceValue: 24,
-    pricingType: 'Monthly',
-    businessSizes: ['Startup (1-10)', 'SMB (10-50)'],
-    deployment: ['Cloud Hosted (SaaS)'],
-    platforms: ['Web App (Browser)', 'Android App'],
-    aiPowered: false,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: true,
-    languages: ['English', 'Hindi'],
-    countries: ['Global', 'India (GST Ready)'],
-    features: [
-      'Core Student Roster & Contact Directory',
-      'Basic Fee Receipt Generator & Payment Tracking',
-      'Daily Attendance Logging & SMS Parent Alerts',
-      '1-Click CSV Student Data Import / Export'
-    ],
-    pricingTiers: [
-      { name: 'Lite Campus', price: '₹24', period: '/month', popular: true, features: ['Up to 250 Students', 'Basic Fee Receipts', 'Attendance Logging', 'SMS Parent Alerts'], ctaText: 'Start Free Trial' },
-      { name: 'Expanded Campus', price: '₹49', period: '/month', features: ['Up to 800 Students', 'Report Cards', 'Parent Portal', 'Priority Email Support'], ctaText: 'Start Free Trial' }
-    ],
-    order: 1,
-    isEnabled: true
-  },
-  {
-    id: 'hms-health',
-    title: 'Dezo Care HMS',
-    subtitle: 'POPULAR',
-    description: 'Enterprise Hospital Management System covering OPD/IPD, Electronic Health Records, Pharmacy, and Telehealth.',
-    icon: 'Cross',
-    gradient: 'from-emerald-600 to-teal-500',
-    category: 'industry',
-    categoryLabel: 'Industry Vertical',
-    industry: 'Healthcare & Telemedicine',
-    badge: 'POPULAR',
-    tag: 'Healthcare',
-    tags: ['hospital', 'health', 'healthcare', 'hms', 'opd', 'ipd', 'ehr', 'pharmacy', 'doctors', 'patient', 'medical', 'billing'],
-    status: 'Featured',
-    rating: 4.8,
-    reviewsCount: 890,
-    price: 'From ₹89/mo',
-    priceValue: 89,
-    pricingType: 'Monthly',
-    businessSizes: ['Mid-Market (50-250)', 'Enterprise (250+)'],
-    deployment: ['Cloud Hosted (SaaS)', 'On-Premise', 'Dedicated Private Cluster'],
-    platforms: ['Web App (Browser)', 'iOS App (iPhone/iPad)', 'Android App', 'Windows Desktop'],
-    aiPowered: true,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: true,
-    languages: ['English', 'Hindi', 'Spanish'],
-    countries: ['Global', 'India (GST Ready)', 'United States', 'European Union (GDPR)'],
-    features: [
-      'OPD / IPD Patient Management & Bed Allocation',
-      'EHR & Digital Doctor Prescriptions Engine',
-      'Pharmacy & Pathology Lab Billing Integration',
-      'NABH Compliance Audit Trail Logs'
-    ],
-    pricingTiers: [
-      { name: 'Clinic Standard', price: '₹89', period: '/month', features: ['Up to 5 OPD Counters', 'Digital Prescriptions', 'Basic EHR & Billing', 'Standard Support'], ctaText: 'Start Free Trial' },
-      { name: 'Hospital Enterprise', price: '₹249', period: '/month', popular: true, features: ['Unlimited Beds & OPD', 'NABH Compliance Audit', 'IPD & ICU Bed Matrix', '24/7 Priority Support'], ctaText: 'Start Free Trial' }
-    ],
-    order: 1,
-    isEnabled: true
-  },
-  {
-    id: 'dezoryn-hrms',
-    title: 'Dezoryn HRMS Pulse',
-    subtitle: 'ENTERPRISE',
-    description: 'Automated Human Resource suite for payroll processing, biometric attendance, performance tracking, and hiring.',
-    icon: 'Users2',
-    gradient: 'from-purple-600 to-indigo-500',
-    category: 'erp',
-    categoryLabel: 'ERP & Operations',
-    industry: 'HR & People Operations',
-    badge: 'ENTERPRISE',
-    tag: 'HR & Payroll',
-    tags: ['hrms', 'hr', 'payroll', 'attendance', 'employees', 'biometric', 'leaves', 'hiring', 'salary', 'pf', 'tax'],
-    status: 'Available',
-    rating: 4.9,
-    reviewsCount: 2100,
-    price: 'From ₹39/mo',
-    priceValue: 39,
-    pricingType: 'Monthly',
-    businessSizes: ['Startup (1-10)', 'SMB (10-50)', 'Mid-Market (50-250)', 'Enterprise (250+)'],
-    deployment: ['Cloud Hosted (SaaS)', 'Hybrid Cloud'],
-    platforms: ['Web App (Browser)', 'iOS App (iPhone/iPad)', 'Android App'],
-    aiPowered: false,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: true,
-    languages: ['English', 'Hindi', 'Spanish', 'French', 'Multi-Lingual'],
-    countries: ['Global', 'India (GST Ready)', 'United States', 'European Union (GDPR)', 'Asia Pacific'],
-    features: [
-      '1-Click Multi-State Automated Payroll Run',
-      'Biometric & Geo-Fenced Mobile Attendance',
-      'Employee Self-Service (ESS) Leave Portal',
-      'Performance Appraisals & Goal Tracking (OKRs)'
-    ],
-    pricingTiers: [
-      { name: 'Starter HR', price: '₹39', period: '/month', features: ['Up to 50 Employees', 'Automated Payroll Run', 'Biometric Attendance', 'Email Support'], ctaText: 'Start Free Trial' },
-      { name: 'Growth Enterprise', price: '₹89', period: '/month', popular: true, features: ['Up to 250 Employees', 'Biometric Device Integration', 'ESS Mobile App', '24/7 Support'], ctaText: 'Start Free Trial' },
-      { name: 'Enterprise Unlimited', price: '₹199', period: '/month', features: ['Unlimited Headcount', 'Multi-Entity Payroll', 'Custom Performance OKRs', 'Dedicated Success Manager'], ctaText: 'Contact Enterprise Team' }
-    ],
-    order: 2,
-    isEnabled: true
-  },
-  {
-    id: 'inventory-pro',
-    title: 'InventoryPro Matrix',
-    subtitle: 'CORE',
-    description: 'Multi-warehouse stock control, barcode scanner integration, automated purchase ordering, and low-stock alerts.',
-    icon: 'Boxes',
-    gradient: 'from-amber-600 to-orange-500',
-    category: 'erp',
-    categoryLabel: 'ERP & Operations',
-    industry: 'Supply Chain & Logistics',
-    badge: 'CORE',
-    tag: 'Supply Chain',
-    tags: ['inventory', 'stock', 'warehouse', 'purchase', 'barcode', 'supply chain', 'pos', 'vendor', 'materials'],
-    status: 'Available',
-    rating: 4.7,
-    reviewsCount: 650,
-    price: 'From ₹35/mo',
-    priceValue: 35,
-    pricingType: 'Monthly',
-    businessSizes: ['Startup (1-10)', 'SMB (10-50)', 'Mid-Market (50-250)'],
-    deployment: ['Cloud Hosted (SaaS)'],
-    platforms: ['Web App (Browser)', 'Android App', 'Windows Desktop'],
-    aiPowered: false,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: false,
-    languages: ['English', 'Hindi'],
-    countries: ['Global', 'India (GST Ready)', 'United States'],
-    features: [
-      'Multi-Location Stock Sync & Batch Tracking',
-      'Barcode & QR Scanner Hardware Integration',
-      'Automated Purchase Reordering & PO Generation',
-      'Low Stock & Batch Expiry Real-Time Alerts'
-    ],
-    pricingTiers: [
-      { name: 'Single Warehouse', price: '₹35', period: '/month', features: ['Up to 5,000 SKUs', 'Barcode Scanning', 'Purchase Orders', 'Email Support'], ctaText: 'Start Free Trial' },
-      { name: 'Multi-Warehouse Pro', price: '₹89', period: '/month', popular: true, features: ['Up to 50,000 SKUs', '5 Global Warehouses', 'Auto Purchase Orders', '24/7 Priority Support'], ctaText: 'Start Free Trial' }
-    ],
-    order: 3,
-    isEnabled: true
-  },
-  {
-    id: 'sales-ai-copilot',
-    title: 'DezoAI Sales Copilot',
-    subtitle: 'AI DRIVEN',
-    description: 'Autonomous AI agent to score leads, generate personalized multi-channel outreach, and predict pipeline deal win rates.',
-    icon: 'Zap',
-    gradient: 'from-cyan-600 to-blue-500',
-    category: 'ai',
-    categoryLabel: 'AI Suite',
-    industry: 'Sales & Revenue Operations',
-    badge: 'AI DRIVEN',
-    tag: 'AI Intelligence',
-    tags: ['ai', 'copilot', 'sales', 'leads', 'scoring', 'email', 'cadence', 'predictive', 'revenue', 'automation', 'llm'],
-    status: 'Featured',
-    rating: 4.95,
-    reviewsCount: 3400,
-    price: 'From ₹79/mo',
-    priceValue: 79,
-    pricingType: 'Monthly',
-    businessSizes: ['SMB (10-50)', 'Mid-Market (50-250)', 'Enterprise (250+)'],
-    deployment: ['Cloud Hosted (SaaS)'],
-    platforms: ['Web App (Browser)', 'iOS App (iPhone/iPad)', 'Android App'],
-    aiPowered: true,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: true,
-    languages: ['English', 'Spanish', 'German', 'French', 'Multi-Lingual'],
-    countries: ['Global', 'United States', 'European Union (GDPR)'],
-    features: [
-      '50+ Real-Time Behavioral Intent Signal Scoring',
-      'Multi-Channel Automated Email & WhatsApp Cadences',
-      'Predictive Pipeline Deal Close Forecasting',
-      'Bi-Directional CRM 1-Click Sync'
-    ],
-    pricingTiers: [
-      { name: 'Starter AI', price: '₹79', period: '/month', features: ['Up to 1,000 Scored Leads/mo', 'Email Cadence Generator', 'CRM 1-Click Sync', 'Standard Support'], ctaText: 'Start 14-Day Free Trial' },
-      { name: 'Pro Copilot', price: '₹199', period: '/month', popular: true, features: ['Up to 10,000 Scored Leads/mo', 'Autonomous WhatsApp & Email Cadences', 'Predictive Deal Close Analytics', '24/7 Priority Support'], ctaText: 'Start Free Trial' },
-      { name: 'Autonomous Enterprise', price: '₹499', period: '/month', features: ['Unlimited Leads & Custom LLMs', 'Dedicated Fine-Tuned Model Cluster', 'Custom API Webhooks & SLA', 'Dedicated Success Manager'], ctaText: 'Contact Enterprise Team' }
-    ],
-    order: 4,
-    isEnabled: true
-  },
-  {
-    id: 'dezo-crm-suite',
-    title: 'Dezo CRM 360',
-    subtitle: 'HIGH DEMAND',
-    description: 'Unified customer relationship management with deal Kanban, omnichannel communication, custom webhooks, and SLAs.',
-    icon: 'Building2',
-    gradient: 'from-blue-600 to-cyan-500',
-    category: 'crm',
-    categoryLabel: 'CRM & Sales',
-    industry: 'Customer Relationship Management',
-    badge: 'HIGH DEMAND',
-    tag: 'CRM & Sales',
-    tags: ['crm', 'pipeline', 'deals', 'contacts', 'kanban', 'leads', 'sales', 'inbox', 'accounts'],
-    status: 'Available',
-    rating: 4.85,
-    reviewsCount: 1850,
-    price: 'From ₹29/mo',
-    priceValue: 29,
-    pricingType: 'Monthly',
-    businessSizes: ['Startup (1-10)', 'SMB (10-50)', 'Mid-Market (50-250)'],
-    deployment: ['Cloud Hosted (SaaS)'],
-    platforms: ['Web App (Browser)', 'iOS App (iPhone/iPad)', 'Android App'],
-    aiPowered: true,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: true,
-    languages: ['English', 'Spanish', 'Hindi'],
-    countries: ['Global', 'United States', 'India (GST Ready)'],
-    features: [
-      'Visual Drag-and-Drop Deal Kanban Board',
-      'Unified Omnichannel Customer Inbox',
-      'Custom Webhooks & REST API Integrations',
-      'Sales Rep Quota Attainment Leaderboards'
-    ],
-    pricingTiers: [
-      { name: 'Starter CRM', price: '₹29', period: '/month', features: ['Up to 5 Sales Rep Seats', 'Visual Drag & Drop Kanban', 'Contact & Lead Records', 'Standard Email Support'], ctaText: 'Start 14-Day Free Trial' },
-      { name: 'Growth CRM', price: '₹79', period: '/month', popular: true, features: ['Up to 25 Sales Rep Seats', 'Omnichannel Customer Inbox', 'Automated Deal Stage Triggers', '24/7 Priority Support'], ctaText: 'Start Free Trial' },
-      { name: 'Enterprise 360', price: '₹169', period: '/month', features: ['Unlimited Rep Seats & Pipelines', 'Custom Webhooks & REST API', 'Quota Attainment Leaderboards', 'Dedicated Account Manager'], ctaText: 'Contact Enterprise Team' }
-    ],
-    order: 5,
-    isEnabled: true
-  },
-  {
-    id: 'dezo-sec-vault',
-    title: 'DezoVault Security',
-    subtitle: 'SECURITY',
-    description: 'Bank-grade compliance, identity access management, single sign-on (SSO), and immutable encrypted audit logs.',
-    icon: 'ShieldCheck',
-    gradient: 'from-indigo-600 to-purple-600',
-    category: 'security',
-    categoryLabel: 'Security & Tools',
-    industry: 'Cybersecurity & Governance',
-    badge: 'SECURITY',
-    tag: 'Security & Auth',
-    tags: ['security', 'auth', 'sso', 'saml', 'gdpr', 'soc2', 'audit', 'rbac', 'vault', 'encryption', 'identity', 'more'],
-    status: 'Available',
-    rating: 4.9,
-    reviewsCount: 920,
-    price: 'From ₹59/mo',
-    priceValue: 59,
-    pricingType: 'Monthly',
-    businessSizes: ['Mid-Market (50-250)', 'Enterprise (250+)'],
-    deployment: ['Cloud Hosted (SaaS)', 'On-Premise', 'Dedicated Private Cluster'],
-    platforms: ['Web App (Browser)', 'Windows Desktop', 'macOS App'],
-    aiPowered: false,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: false,
-    whatsAppIntegration: false,
-    languages: ['English', 'German'],
-    countries: ['Global', 'United States', 'European Union (GDPR)'],
-    features: [
-      'SOC2 Type II & GDPR Compliance Architecture',
-      'SAML 2.0 / Okta / Azure AD Single Sign-On',
-      'Granular Role-Based Access Control (RBAC)',
-      'Immutable Encrypted Audit Logs & Data Governance'
-    ],
-    order: 6,
-    isEnabled: true
-  },
-  {
-    id: 'fintrack-erp',
-    title: 'FinTrack Enterprise ERP',
-    subtitle: 'FINANCE',
-    description: 'General ledger, multi-currency accounting, automated GST/tax billing, and cash flow profit & loss forecasting.',
-    icon: 'BadgeDollarSign',
-    gradient: 'from-emerald-600 to-green-500',
-    category: 'finance',
-    categoryLabel: 'Finance & Accounting',
-    industry: 'Finance & Accounting',
-    badge: 'FINANCE',
-    tag: 'Finance',
-    tags: ['finance', 'accounting', 'invoicing', 'gst', 'tax', 'ledger', 'budget', 'billing', 'audit', 'currency'],
-    status: 'Available',
-    rating: 4.8,
-    reviewsCount: 1150,
-    price: 'From ₹45/mo',
-    priceValue: 45,
-    pricingType: 'Monthly',
-    businessSizes: ['SMB (10-50)', 'Mid-Market (50-250)', 'Enterprise (250+)'],
-    deployment: ['Cloud Hosted (SaaS)', 'Hybrid Cloud'],
-    platforms: ['Web App (Browser)', 'iOS App (iPhone/iPad)', 'Android App', 'Windows Desktop'],
-    aiPowered: true,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: false,
-    languages: ['English', 'Hindi'],
-    countries: ['Global', 'India (GST Ready)', 'United States'],
-    features: [
-      'Multi-Currency General Ledger & Chart of Accounts',
-      'Automated GST, VAT & E-Way Bill Generation',
-      'Cash Flow & Profit / Loss Real-Time Forecasting',
-      'Bank Reconciliation & Expense Tracking Engine'
-    ],
-    order: 7,
-    isEnabled: true
-  },
-  {
-    id: 'mfg-pro',
-    title: 'MfgPro Factory Suite',
-    subtitle: 'NEW',
-    description: 'Shop floor automation, bill of materials (BOM), production planning, machine IoT telemetry, and quality control.',
-    icon: 'Factory',
-    gradient: 'from-indigo-600 to-blue-600',
-    category: 'industry',
-    categoryLabel: 'Manufacturing ERP',
-    industry: 'Manufacturing & Industrial',
-    badge: 'NEW',
-    tag: 'Manufacturing',
-    tags: ['manufacturing', 'factory', 'industrial', 'bom', 'production', 'quality', 'iot', 'machinery', 'assembly'],
-    status: 'Available',
-    rating: 4.75,
-    reviewsCount: 510,
-    price: 'From ₹99/mo',
-    priceValue: 99,
-    pricingType: 'Monthly',
-    businessSizes: ['Mid-Market (50-250)', 'Enterprise (250+)'],
-    deployment: ['On-Premise', 'Hybrid Cloud'],
-    platforms: ['Web App (Browser)', 'Windows Desktop'],
-    aiPowered: true,
-    apiAvailable: true,
-    cloudNative: false,
-    mobileApp: true,
-    whatsAppIntegration: false,
-    languages: ['English', 'German'],
-    countries: ['Global', 'United States', 'European Union (GDPR)'],
-    features: [
-      'Multi-Level Bill of Materials (BOM) & Routing',
-      'Shop Floor Machine Telemetry & Downtime Tracking',
-      'Production Work Order Scheduling & Capacity Planning',
-      'ISO Quality Control & Defect Inspection Audits'
-    ],
-    order: 8,
-    isEnabled: true
-  },
-  {
-    id: 'prop360-estate',
-    title: 'Prop360 Real Estate Suite',
-    subtitle: 'POPULAR',
-    description: 'Property leasing, tenant portal, automated rent invoicing, maintenance ticket management, and broker CRM.',
-    icon: 'Home',
-    gradient: 'from-teal-600 to-cyan-600',
-    category: 'industry',
-    categoryLabel: 'Real Estate Management',
-    industry: 'Real Estate & Property',
-    badge: 'POPULAR',
-    tag: 'Real Estate',
-    tags: ['realestate', 'real estate', 'property', 'tenant', 'lease', 'rent', 'broker', 'housing', 'commercial'],
-    status: 'Available',
-    rating: 4.8,
-    reviewsCount: 730,
-    price: 'From ₹55/mo',
-    priceValue: 55,
-    pricingType: 'Monthly',
-    businessSizes: ['SMB (10-50)', 'Mid-Market (50-250)'],
-    deployment: ['Cloud Hosted (SaaS)'],
-    platforms: ['Web App (Browser)', 'iOS App (iPhone/iPad)', 'Android App'],
-    aiPowered: false,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: true,
-    languages: ['English', 'Hindi', 'Spanish'],
-    countries: ['Global', 'India (GST Ready)', 'United States'],
-    features: [
-      'Commercial & Residential Lease Contract Engine',
-      'Automated Rent Invoice & Online Payment Gateway',
-      'Tenant Mobile App & Work Order Maintenance Desk',
-      'Broker Lead Pipeline & Property Unit Mapping'
-    ],
-    order: 9,
-    isEnabled: true
-  },
-  {
-    id: 'logiroute-hub',
-    title: 'LogiRoute Supply Hub',
-    subtitle: 'LOGISTICS',
-    description: 'Real-time GPS fleet tracking, driver route optimization, proof of delivery, and cargo shipment monitoring.',
-    icon: 'Truck',
-    gradient: 'from-orange-500 to-amber-500',
-    category: 'industry',
-    categoryLabel: 'Industry Vertical',
-    industry: 'Transport & Logistics',
-    badge: 'LOGISTICS',
-    tag: 'Logistics',
-    tags: ['logistics', 'fleet', 'transport', 'gps', 'shipment', 'tracking', 'cargo', 'delivery', 'route', 'more'],
-    status: 'Featured',
-    rating: 4.7,
-    reviewsCount: 480,
-    price: 'From $69/mo',
-    priceValue: 69,
-    pricingType: 'Monthly',
-    businessSizes: ['SMB (10-50)', 'Mid-Market (50-250)', 'Enterprise (250+)'],
-    deployment: ['Cloud Hosted (SaaS)'],
-    platforms: ['Web App (Browser)', 'Android App'],
-    aiPowered: true,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: true,
-    languages: ['English', 'Spanish'],
-    countries: ['Global', 'United States', 'India (GST Ready)'],
-    features: [
-      'Real-Time Telematics & GPS Fleet Live Map',
-      'AI Route Optimization & Fuel Saver Engine',
-      'Digital Signature Proof-of-Delivery (POD)',
-      'Vehicle Maintenance & Driver Performance Logs'
-    ],
-    order: 10,
-    isEnabled: true
-  },
-  {
-    id: 'omnichannel-helpdesk',
-    title: 'OmniChannel HelpDesk',
-    subtitle: 'POPULAR',
-    description: 'Centralized helpdesk unifying WhatsApp, Email, and Web Live Chat with AI auto-routing and SLA management.',
-    icon: 'MessageSquareText',
-    gradient: 'from-purple-600 to-violet-500',
-    category: 'crm',
-    categoryLabel: 'CRM & Sales',
-    industry: 'Customer Support & Service',
-    badge: 'POPULAR',
-    tag: 'Support & Desk',
-    tags: ['support', 'helpdesk', 'tickets', 'whatsapp', 'email', 'chat', 'sla', 'knowledgebase', 'customer service', 'crm'],
-    status: 'Available',
-    rating: 4.85,
-    reviewsCount: 1600,
-    price: 'From $19/mo',
-    priceValue: 19,
-    pricingType: 'Free Trial',
-    businessSizes: ['Startup (1-10)', 'SMB (10-50)', 'Mid-Market (50-250)'],
-    deployment: ['Cloud Hosted (SaaS)'],
-    platforms: ['Web App (Browser)', 'iOS App (iPhone/iPad)', 'Android App'],
-    aiPowered: true,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: true,
-    languages: ['English', 'Spanish', 'Hindi', 'French', 'Multi-Lingual'],
-    countries: ['Global', 'United States', 'European Union (GDPR)', 'India (GST Ready)'],
-    features: [
-      'WhatsApp, Email & Web Live Chat Unified Inbox',
-      'AI Ticket Auto-Categorization & SLA Alerts',
-      'Self-Service Customer Knowledge Base Portal',
-      'Customer Satisfaction Score (CSAT) Analytics'
-    ],
-    order: 11,
-    isEnabled: true
-  },
-  {
-    id: 'dezo-analytics-bi',
-    title: 'Dezo Analytics BI',
-    subtitle: 'AI DRIVEN',
-    description: 'Natural language query BI platform to turn raw SQL databases into interactive executive dashboards and PDF reports.',
-    icon: 'BarChart3',
-    gradient: 'from-teal-600 to-cyan-500',
-    category: 'ai',
-    categoryLabel: 'AI Suite',
-    industry: 'Business Intelligence & Data',
-    badge: 'AI DRIVEN',
-    tag: 'Business Intelligence',
-    tags: ['analytics', 'bi', 'dashboard', 'reports', 'sql', 'visualization', 'data', 'metrics', 'chart', 'ai'],
-    status: 'Featured',
-    rating: 4.9,
-    reviewsCount: 870,
-    price: 'From $65/mo',
-    priceValue: 65,
-    pricingType: 'Monthly',
-    businessSizes: ['SMB (10-50)', 'Mid-Market (50-250)', 'Enterprise (250+)'],
-    deployment: ['Cloud Hosted (SaaS)', 'On-Premise'],
-    platforms: ['Web App (Browser)', 'Windows Desktop', 'macOS App'],
-    aiPowered: true,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: false,
-    whatsAppIntegration: false,
-    languages: ['English', 'German'],
-    countries: ['Global', 'United States', 'European Union (GDPR)'],
-    features: [
-      'Drag-and-Drop Interactive BI Dashboard Builder',
-      'Natural Language AI Query Engine (Ask Data)',
-      'Automated PDF / Excel Scheduled Email Reports',
-      'Multi-Source Connectors (Postgres, Snowflake, MySQL)'
-    ],
-    order: 12,
-    isEnabled: true
-  },
-  {
-    id: 'dezo-commerce-engine',
-    title: 'Dezo Commerce Engine',
-    subtitle: 'RETAIL',
-    description: 'Headless e-commerce API, retail POS terminal integration, subscription payments, and customer loyalty rewards.',
-    icon: 'ShoppingBag',
-    gradient: 'from-pink-600 to-rose-500',
-    category: 'industry',
-    categoryLabel: 'Industry Vertical',
-    industry: 'E-Commerce & Retail',
-    badge: 'RETAIL',
-    tag: 'Retail & E-Com',
-    tags: ['retail', 'ecommerce', 'pos', 'store', 'checkout', 'payments', 'products', 'cart', 'checkout', 'loyalty'],
-    status: 'Available',
-    rating: 4.75,
-    reviewsCount: 940,
-    price: 'From $39/mo',
-    priceValue: 39,
-    pricingType: 'Monthly',
-    businessSizes: ['Startup (1-10)', 'SMB (10-50)', 'Mid-Market (50-250)'],
-    deployment: ['Cloud Hosted (SaaS)'],
-    platforms: ['Web App (Browser)', 'iOS App (iPhone/iPad)', 'Android App'],
-    aiPowered: false,
-    apiAvailable: true,
-    cloudNative: true,
-    mobileApp: true,
-    whatsAppIntegration: true,
-    languages: ['English', 'Hindi', 'Spanish'],
-    countries: ['Global', 'India (GST Ready)', 'United States'],
-    features: [
-      'Headless Storefront API & React Components',
-      'Integrated Retail POS Touch Terminal Interface',
-      'Recurring Subscription & One-Time Payments',
-      'Customer Loyalty Points & Coupon Campaign Engine'
-    ],
-    order: 13,
-    isEnabled: true
+/**
+ * Helper to extract and sanitize only valid Prisma Product fields from input.
+ * Prevents unknown argument validation errors in Prisma while persisting all data.
+ */
+function sanitizeProductPayload(data: any, isUpdate = false): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  const title = data.title !== undefined ? data.title : data.name;
+  if (title !== undefined) result.title = String(title).trim();
+
+  if (data.subtitle !== undefined) result.subtitle = String(data.subtitle);
+
+  const description = data.description !== undefined ? data.description : data.shortDesc;
+  if (description !== undefined) result.description = String(description);
+
+  if (data.icon !== undefined) result.icon = String(data.icon);
+  if (data.gradient !== undefined) result.gradient = String(data.gradient);
+  if (data.category !== undefined) result.category = String(data.category);
+  if (data.categoryLabel !== undefined) result.categoryLabel = String(data.categoryLabel);
+  if (data.industry !== undefined) result.industry = String(data.industry);
+  if (data.badge !== undefined) result.badge = String(data.badge);
+
+  const shortDesc = data.shortDesc !== undefined ? data.shortDesc : data.description;
+  if (shortDesc !== undefined) result.shortDesc = String(shortDesc);
+
+  if (data.slug !== undefined) {
+    const rawSlug = String(data.slug).trim();
+    result.slug = rawSlug || (result.title ? result.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : '');
+  } else if (!isUpdate && result.title) {
+    result.slug = result.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   }
-];
 
-const checkCategoryMatch = (product: any, categoryId?: string): boolean => {
-  if (!categoryId || categoryId === 'all') return true;
-  if (categoryId === 'crm') return product.category === 'crm' || product.tags?.includes('crm');
-  if (categoryId === 'erp') return product.category === 'erp' || product.tags?.includes('erp');
-  if (categoryId === 'healthcare') return product.tags?.includes('healthcare') || product.tags?.includes('hospital') || product.industry?.toLowerCase().includes('health');
-  if (categoryId === 'education') return product.tags?.includes('education') || product.tags?.includes('school') || product.industry?.toLowerCase().includes('edu');
-  if (categoryId === 'finance') return product.category === 'finance' || product.tags?.includes('finance');
-  if (categoryId === 'manufacturing') return product.tags?.includes('manufacturing') || product.tags?.includes('factory') || product.industry?.toLowerCase().includes('manufactur');
-  if (categoryId === 'retail') return product.tags?.includes('retail') || product.tags?.includes('ecommerce') || product.industry?.toLowerCase().includes('retail');
-  if (categoryId === 'realestate') return product.tags?.includes('realestate') || product.tags?.includes('property') || product.industry?.toLowerCase().includes('real estate');
-  if (categoryId === 'ai') return product.category === 'ai' || product.tags?.includes('ai');
-  if (categoryId === 'inventory') return product.tags?.includes('inventory') || product.id?.includes('inventory');
-  if (categoryId === 'hrms') return product.tags?.includes('hrms') || product.tags?.includes('payroll');
-  if (categoryId === 'more') return product.category === 'utility' || product.category === 'security' || product.tags?.includes('more');
-  return product.category === categoryId;
-};
+  if (data.price !== undefined) result.price = String(data.price);
+  if (data.priceValue !== undefined) result.priceValue = Number(data.priceValue) || 0;
+  if (data.discount !== undefined) result.discount = Number(data.discount) || 0;
+  if (data.pricingType !== undefined) result.pricingType = String(data.pricingType);
 
-let PRODUCT_STORE: any[] = [...DEFAULT_PRODUCTS];
+  if (data.pricingTiers !== undefined) {
+    result.pricingTiers = Array.isArray(data.pricingTiers) ? data.pricingTiers : [];
+  }
+
+  const image = data.image !== undefined ? data.image : data.thumbnail;
+  if (image !== undefined) {
+    result.image = image ? String(image) : null;
+    result.thumbnail = image ? String(image) : '';
+  }
+  if (data.thumbnail !== undefined && result.thumbnail === undefined) {
+    result.thumbnail = String(data.thumbnail);
+    if (result.image === undefined) result.image = data.thumbnail ? String(data.thumbnail) : null;
+  }
+
+  if (data.coverPhoto !== undefined) result.coverPhoto = String(data.coverPhoto);
+  if (data.gallery !== undefined) result.gallery = Array.isArray(data.gallery) ? data.gallery : [];
+  if (data.videoUrl !== undefined) result.videoUrl = String(data.videoUrl);
+  else if (data.video !== undefined) result.videoUrl = String(data.video);
+
+  if (data.demoUrl !== undefined) result.demoUrl = String(data.demoUrl);
+  if (data.documentation !== undefined) result.documentation = String(data.documentation);
+
+  if (data.features !== undefined) {
+    result.features = Array.isArray(data.features) ? data.features : [];
+  }
+
+  if (data.specifications !== undefined) {
+    result.specifications = typeof data.specifications === 'string' ? data.specifications : JSON.stringify(data.specifications);
+  }
+
+  if (data.integrations !== undefined) result.integrations = Array.isArray(data.integrations) ? data.integrations : [];
+  if (data.platforms !== undefined) result.platforms = Array.isArray(data.platforms) ? data.platforms : [];
+
+  if (data.rating !== undefined) result.rating = Number(data.rating) || 5.0;
+  if (data.reviewsCount !== undefined) result.reviewsCount = Number(data.reviewsCount) || 0;
+  if (data.customerReviews !== undefined) result.customerReviews = Array.isArray(data.customerReviews) ? data.customerReviews : [];
+
+  if (data.aiPowered !== undefined) result.aiPowered = Boolean(data.aiPowered);
+  if (data.apiAvailable !== undefined) result.apiAvailable = Boolean(data.apiAvailable);
+  if (data.cloudNative !== undefined) result.cloudNative = Boolean(data.cloudNative);
+  if (data.mobileApp !== undefined) result.mobileApp = Boolean(data.mobileApp);
+  if (data.whatsAppIntegration !== undefined) result.whatsAppIntegration = Boolean(data.whatsAppIntegration);
+
+  if (data.isFeatured !== undefined) {
+    result.isFeatured = Boolean(data.isFeatured);
+    if (result.isFeatured && data.status === undefined) result.status = 'featured';
+  }
+  if (data.isPopular !== undefined) result.isPopular = Boolean(data.isPopular);
+
+  if (data.status !== undefined) result.status = String(data.status);
+  if (data.isEnabled !== undefined) result.isEnabled = Boolean(data.isEnabled);
+  if (data.order !== undefined) result.order = Number(data.order) || 0;
+  else if (data.sortOrder !== undefined) result.order = Number(data.sortOrder) || 0;
+
+  if (data.metaTitle !== undefined) result.metaTitle = String(data.metaTitle);
+  if (data.metaDescription !== undefined) result.metaDescription = String(data.metaDescription);
+  if (data.metaKeywords !== undefined) result.metaKeywords = String(data.metaKeywords);
+  if (data.canonicalUrl !== undefined) result.canonicalUrl = String(data.canonicalUrl);
+
+  if (data.screenshots !== undefined) result.screenshots = Array.isArray(data.screenshots) ? data.screenshots : [];
+  if (data.deployment !== undefined) result.deployment = Array.isArray(data.deployment) ? data.deployment : [];
+  if (data.businessSizes !== undefined) result.businessSizes = Array.isArray(data.businessSizes) ? data.businessSizes : [];
+  if (data.languages !== undefined) result.languages = Array.isArray(data.languages) ? data.languages : [];
+  if (data.countries !== undefined) result.countries = Array.isArray(data.countries) ? data.countries : [];
+
+  if (data.downloadsCount !== undefined) result.downloadsCount = Number(data.downloadsCount) || 0;
+  if (data.viewsCount !== undefined) result.viewsCount = Number(data.viewsCount) || 0;
+  if (data.demoClicks !== undefined) result.demoClicks = Number(data.demoClicks) || 0;
+
+  return result;
+}
 
 export class ProductService {
+  /**
+   * GET ALL PRODUCTS
+   * PostgreSQL is the only source of truth.
+   */
   static async getAll(filter?: BackendProductFilter) {
     try {
       const where: any = {};
       if (filter?.isEnabled !== undefined) where.isEnabled = filter.isEnabled;
 
-      let products: any[] = [];
-      try {
-        products = await db.product.findMany({ where, orderBy: { order: 'asc' } });
-        if (products.length > 0) {
-          PRODUCT_STORE = products;
-        }
-      } catch (_dbErr) {
-        // Fallback to in-memory store
-      }
-
-      const sourceProducts = PRODUCT_STORE;
-      const searchClean = filter?.search ? filter.search.trim().toLowerCase() : '';
-
-      return sourceProducts.filter((p: any) => {
-        // Category Filter
-        if (filter?.category && !checkCategoryMatch(p, filter.category)) {
-          return false;
-        }
-
-        // Boolean Filters
-        if (filter?.aiPowered && !p.aiPowered) return false;
-        if (filter?.apiAvailable && !p.apiAvailable) return false;
-        if (filter?.cloudNative && !p.cloudNative) return false;
-        if (filter?.mobileApp && !p.mobileApp) return false;
-        if (filter?.whatsAppIntegration && !p.whatsAppIntegration) return false;
-
-        // Max Price Slider
-        if (filter?.maxPrice !== undefined && typeof p.priceValue === 'number' && p.priceValue > filter.maxPrice) {
-          return false;
-        }
-
-        // Pricing Types
-        if (filter?.pricingTypes && filter.pricingTypes.length > 0) {
-          if (!filter.pricingTypes.includes(p.pricingType)) return false;
-        }
-
-        // Industries
-        if (filter?.industries && filter.industries.length > 0) {
-          if (!filter.industries.includes(p.industry)) return false;
-        }
-
-        // Business Sizes
-        if (filter?.businessSizes && filter.businessSizes.length > 0) {
-          const sizes = Array.isArray(p.businessSizes) ? p.businessSizes : [];
-          if (!filter.businessSizes.some((s) => sizes.includes(s))) return false;
-        }
-
-        // Deployments
-        if (filter?.deployments && filter.deployments.length > 0) {
-          const deps = Array.isArray(p.deployment) ? p.deployment : [];
-          if (!filter.deployments.some((d) => deps.includes(d))) return false;
-        }
-
-        // Platforms
-        if (filter?.platforms && filter.platforms.length > 0) {
-          const plats = Array.isArray(p.platforms) ? p.platforms : [];
-          if (!filter.platforms.some((pl) => plats.includes(pl))) return false;
-        }
-
-        // Features
-        if (filter?.features && filter.features.length > 0) {
-          const feats = Array.isArray(p.features) ? p.features : [];
-          const matchesFeat = filter.features.some((f) => feats.some((pf: string) => String(pf).toLowerCase().includes(f.toLowerCase())));
-          if (!matchesFeat) return false;
-        }
-
-        // Languages
-        if (filter?.languages && filter.languages.length > 0) {
-          const langs = Array.isArray(p.languages) ? p.languages : [];
-          if (!filter.languages.some((l) => langs.includes(l))) return false;
-        }
-
-        // Countries
-        if (filter?.countries && filter.countries.length > 0) {
-          const couns = Array.isArray(p.countries) ? p.countries : [];
-          if (!filter.countries.some((c) => couns.includes(c))) return false;
-        }
-
-        // Multi-Field Search Query
-        if (searchClean) {
-          const matchesId = String(p.id || '').toLowerCase().includes(searchClean);
-          const matchesTitle = String(p.title || '').toLowerCase().includes(searchClean);
-          const matchesDesc = String(p.description || p.shortDesc || '').toLowerCase().includes(searchClean);
-          const matchesCat = String(p.categoryLabel || p.category || '').toLowerCase().includes(searchClean);
-          const matchesInd = String(p.industry || p.tag || '').toLowerCase().includes(searchClean);
-          const tags = Array.isArray(p.tags) ? p.tags : [];
-          const matchesTag = tags.some((t: string) => String(t).toLowerCase().includes(searchClean));
-          const feats = Array.isArray(p.features) ? p.features : [];
-          const matchesFeat = feats.some((f: string) => String(f).toLowerCase().includes(searchClean));
-
-          return matchesId || matchesTitle || matchesDesc || matchesCat || matchesInd || matchesTag || matchesFeat;
-        }
-
-        return true;
+      let products = await prisma.product.findMany({
+        where,
+        orderBy: { order: 'asc' },
       });
 
-    } catch (_err) {
-      return PRODUCT_STORE;
+      if (filter?.search) {
+        const q = filter.search.toLowerCase().trim();
+        products = products.filter((p: any) =>
+          (p.title && String(p.title).toLowerCase().includes(q)) ||
+          (p.description && String(p.description).toLowerCase().includes(q)) ||
+          (p.category && String(p.category).toLowerCase().includes(q)) ||
+          (p.industry && String(p.industry).toLowerCase().includes(q)) ||
+          (p.slug && String(p.slug).toLowerCase().includes(q)) ||
+          (p.badge && String(p.badge).toLowerCase().includes(q))
+        );
+      }
+
+      if (filter?.category && filter.category !== 'all') {
+        products = products.filter((p: any) => p.category && p.category.toLowerCase() === filter.category!.toLowerCase());
+      }
+
+      if (filter?.maxPrice !== undefined && filter.maxPrice > 0) {
+        products = products.filter((p: any) => (p.priceValue || 0) <= filter.maxPrice!);
+      }
+
+      if (filter?.aiPowered !== undefined) {
+        products = products.filter((p: any) => Boolean(p.aiPowered) === filter.aiPowered);
+      }
+      if (filter?.apiAvailable !== undefined) {
+        products = products.filter((p: any) => Boolean(p.apiAvailable) === filter.apiAvailable);
+      }
+      if (filter?.cloudNative !== undefined) {
+        products = products.filter((p: any) => Boolean(p.cloudNative) === filter.cloudNative);
+      }
+      if (filter?.mobileApp !== undefined) {
+        products = products.filter((p: any) => Boolean(p.mobileApp) === filter.mobileApp);
+      }
+      if (filter?.whatsAppIntegration !== undefined) {
+        products = products.filter((p: any) => Boolean(p.whatsAppIntegration) === filter.whatsAppIntegration);
+      }
+
+      return products;
+    } catch (error) {
+      console.error('GET PRODUCTS ERROR:', error);
+      throw error;
     }
   }
 
   static async getById(id: string) {
-    return PRODUCT_STORE.find((p) => p.id === id) || db.product.findUnique({ where: { id } }).catch(() => null);
+    try {
+      const product = await prisma.product.findUnique({ where: { id } });
+      return product;
+    } catch (error) {
+      console.error(`GET PRODUCT ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async create(data: any) {
-    const newProduct = {
-      id: data.id || `prod-${Date.now()}`,
-      order: data.order ?? PRODUCT_STORE.length,
-      isEnabled: data.isEnabled ?? true,
-      ...data
-    };
-    PRODUCT_STORE.unshift(newProduct);
     try {
-      await db.product.create({ data: newProduct });
-    } catch (_e) {
-      // Memory store updated
+      const count = await prisma.product.count();
+      const cleanData = sanitizeProductPayload(data, false);
+
+      const customId = data.id && typeof data.id === 'string' && data.id.trim().length > 0
+        ? data.id.trim()
+        : undefined;
+
+      const product = await prisma.product.create({
+        data: {
+          ...(customId ? { id: customId } : {}),
+          title: cleanData.title || 'New Enterprise Product',
+          subtitle: cleanData.subtitle || '',
+          description: cleanData.description || '',
+          icon: cleanData.icon || 'Zap',
+          gradient: cleanData.gradient || 'from-blue-600 to-cyan-500',
+          features: cleanData.features || [],
+          image: cleanData.image || null,
+          order: cleanData.order ?? count,
+          status: cleanData.status || 'active',
+          category: cleanData.category || 'erp',
+          isEnabled: cleanData.isEnabled ?? true,
+          slug: cleanData.slug || '',
+          categoryLabel: cleanData.categoryLabel || '',
+          industry: cleanData.industry || '',
+          badge: cleanData.badge || '',
+          shortDesc: cleanData.shortDesc || '',
+          price: cleanData.price || '',
+          priceValue: cleanData.priceValue || 0,
+          discount: cleanData.discount || 0,
+          pricingType: cleanData.pricingType || 'subscription',
+          pricingTiers: cleanData.pricingTiers || [],
+          thumbnail: cleanData.thumbnail || '',
+          coverPhoto: cleanData.coverPhoto || '',
+          gallery: cleanData.gallery || [],
+          videoUrl: cleanData.videoUrl || '',
+          demoUrl: cleanData.demoUrl || '',
+          documentation: cleanData.documentation || '',
+          specifications: cleanData.specifications || '',
+          integrations: cleanData.integrations || [],
+          platforms: cleanData.platforms || [],
+          rating: cleanData.rating ?? 4.9,
+          reviewsCount: cleanData.reviewsCount ?? 0,
+          customerReviews: cleanData.customerReviews || [],
+          aiPowered: cleanData.aiPowered ?? false,
+          apiAvailable: cleanData.apiAvailable ?? false,
+          cloudNative: cleanData.cloudNative ?? false,
+          mobileApp: cleanData.mobileApp ?? false,
+          whatsAppIntegration: cleanData.whatsAppIntegration ?? false,
+          isFeatured: cleanData.isFeatured ?? false,
+          isPopular: cleanData.isPopular ?? false,
+          metaTitle: cleanData.metaTitle || '',
+          metaDescription: cleanData.metaDescription || '',
+          metaKeywords: cleanData.metaKeywords || '',
+          canonicalUrl: cleanData.canonicalUrl || '',
+          screenshots: cleanData.screenshots || [],
+          deployment: cleanData.deployment || [],
+          businessSizes: cleanData.businessSizes || [],
+          languages: cleanData.languages || [],
+          countries: cleanData.countries || [],
+          downloadsCount: cleanData.downloadsCount || 0,
+          viewsCount: cleanData.viewsCount || 0,
+          demoClicks: cleanData.demoClicks || 0,
+        } as any,
+      });
+
+      return product;
+    } catch (error) {
+      console.error('CREATE PRODUCT ERROR:', error);
+      throw error;
     }
-    return newProduct;
   }
 
   static async update(id: string, data: any) {
-    PRODUCT_STORE = PRODUCT_STORE.map((p) => (p.id === id ? { ...p, ...data } : p));
     try {
-      await db.product.update({ where: { id }, data });
-    } catch (_e) {
-      // Memory store updated
+      const existing = await prisma.product.findUnique({ where: { id } });
+      if (!existing) {
+        throw new Error(`Product with ID "${id}" not found.`);
+      }
+
+      const cleanData = sanitizeProductPayload(data, true);
+
+      const updated = await prisma.product.update({
+        where: { id },
+        data: cleanData as any,
+      });
+
+      return updated;
+    } catch (error) {
+      console.error(`UPDATE PRODUCT ${id} ERROR:`, error);
+      throw error;
     }
-    return PRODUCT_STORE.find((p) => p.id === id);
   }
 
   static async delete(id: string) {
-    PRODUCT_STORE = PRODUCT_STORE.filter((p) => p.id !== id);
     try {
-      await db.product.delete({ where: { id } });
-    } catch (_e) {
-      // Memory store updated
+      await prisma.product.delete({ where: { id } });
+      return { success: true, deletedId: id };
+    } catch (error) {
+      console.error(`DELETE PRODUCT ${id} ERROR:`, error);
+      throw error;
     }
-    return { success: true, deletedId: id };
   }
 
   static async duplicate(id: string) {
-    const original = PRODUCT_STORE.find((p) => p.id === id);
-    if (!original) throw new Error('Product not found');
-    const { id: _id, ...rest } = original;
-    const duplicated = {
-      ...rest,
-      id: `copy-${Date.now()}`,
-      title: `${rest.title} (Copy)`,
-      order: PRODUCT_STORE.length
-    };
-    PRODUCT_STORE.unshift(duplicated);
-    return duplicated;
+    try {
+      const original = await prisma.product.findUnique({ where: { id } });
+      if (!original) throw new Error('Product not found');
+
+      const count = await prisma.product.count();
+      const { id: _id, createdAt: _ca, updatedAt: _ua, ...rest } = original as any;
+      const cleanData = sanitizeProductPayload(rest, false);
+
+      const duplicated = await prisma.product.create({
+        data: {
+          ...cleanData,
+          title: `${cleanData.title || original.title} (Copy)`,
+          slug: `${cleanData.slug || original.title.toLowerCase().replace(/\s+/g, '-')}-copy`,
+          order: count,
+        } as any,
+      });
+
+      return duplicated;
+    } catch (error) {
+      console.error(`DUPLICATE PRODUCT ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async toggleEnabled(id: string) {
-    PRODUCT_STORE = PRODUCT_STORE.map((p) =>
-      p.id === id ? { ...p, isEnabled: !p.isEnabled } : p
-    );
-    return PRODUCT_STORE.find((p) => p.id === id);
+    try {
+      const product = await prisma.product.findUnique({ where: { id } });
+      if (!product) throw new Error('Product not found');
+
+      const updated = await prisma.product.update({
+        where: { id },
+        data: { isEnabled: !product.isEnabled },
+      });
+
+      return updated;
+    } catch (error) {
+      console.error(`TOGGLE PRODUCT ENABLED ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async reorder(orderedIds: string[]) {
-    const map = new Map(orderedIds.map((id, index) => [id, index]));
-    PRODUCT_STORE.sort((a, b) => (map.get(a.id) ?? 99) - (map.get(b.id) ?? 99));
-    return PRODUCT_STORE;
+    try {
+      await Promise.all(
+        orderedIds.map((id, index) =>
+          prisma.product.update({
+            where: { id },
+            data: { order: index },
+          })
+        )
+      );
+
+      return await prisma.product.findMany({ orderBy: { order: 'asc' } });
+    } catch (error) {
+      console.error('REORDER PRODUCTS ERROR:', error);
+      throw error;
+    }
   }
 }
+

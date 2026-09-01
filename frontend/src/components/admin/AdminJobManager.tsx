@@ -4,7 +4,7 @@ import {
   Briefcase, Plus, Trash2, Edit3, Eye, EyeOff,
   Save, X, RefreshCw, CheckCircle2, GripVertical,
   Copy, Search, Filter, ArrowUp, ArrowDown, ChevronDown, ChevronUp,
-  MapPin, DollarSign, Clock, Calendar, AlertCircle, Sparkles, Building2,
+  MapPin, DollarSign, Clock, Calendar, Sparkles, Building2,
   CheckSquare, ListChecks, AlertTriangle, Image, Globe, Brain
 } from 'lucide-react';
 import { DEFAULT_CAREERS_CMS, type CareersCMSConfig } from '../careers/CareersSection';
@@ -210,6 +210,7 @@ export const AdminJobManager: React.FC = () => {
         showMsg('success', modal?.mode === 'edit' ? 'Job posting updated' : 'Job posting published');
         closeModal();
         fetchItems();
+        window.dispatchEvent(new CustomEvent('dezoryn-jobs-updated'));
       } else {
         showMsg('error', data.message || 'Operation failed');
       }
@@ -232,6 +233,7 @@ export const AdminJobManager: React.FC = () => {
       if (data.success) {
         showMsg('success', 'Job posting removed');
         setItems(prev => prev.filter(i => i.id !== deleteConfirm.id));
+        window.dispatchEvent(new CustomEvent('dezoryn-jobs-updated'));
       } else {
         showMsg('error', data.message || 'Failed to delete');
       }
@@ -249,6 +251,7 @@ export const AdminJobManager: React.FC = () => {
       if (data.success) {
         showMsg('info', `Status toggled to ${data.data.status}`);
         setItems(prev => prev.map(i => i.id === item.id ? data.data : i));
+        window.dispatchEvent(new CustomEvent('dezoryn-jobs-updated'));
       }
     } catch {
       showMsg('error', 'Failed to toggle status');
@@ -262,6 +265,7 @@ export const AdminJobManager: React.FC = () => {
       if (data.success) {
         showMsg('success', 'Job posting duplicated');
         fetchItems();
+        window.dispatchEvent(new CustomEvent('dezoryn-jobs-updated'));
       }
     } catch {
       showMsg('error', 'Failed to duplicate job');
@@ -363,8 +367,8 @@ export const AdminJobManager: React.FC = () => {
 
         <div className="relative z-10">
           <div className="flex items-center gap-2 text-cyan-400 text-xs font-black uppercase tracking-widest mb-1.5">
-            <Sparkles className="w-4 h-4" />
-            <span>Recruitment CMS Suite</span>
+            <Briefcase className="w-4 h-4" />
+            <span>Talent Acquisition & Open Positions</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             Careers & Job Openings
@@ -398,23 +402,37 @@ export const AdminJobManager: React.FC = () => {
       <AnimatePresence>
         {message && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={`p-4 rounded-2xl flex items-center justify-between text-xs font-bold border shadow-lg ${
-              message.type === 'success'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : message.type === 'error'
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-                : 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
+            initial={{ opacity: 0, y: 24, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className={`fixed bottom-8 right-8 z-50 px-4 py-3.5 rounded-2xl border text-xs font-bold shadow-2xl backdrop-blur-2xl flex items-center gap-3 max-w-md ${
+              message.type === 'error'
+                ? 'bg-slate-900/95 text-white border-rose-500/40 shadow-rose-500/10'
+                : message.type === 'success'
+                ? 'bg-slate-900/95 text-white border-emerald-500/40 shadow-emerald-500/10'
+                : 'bg-slate-900/95 text-white border-cyan-500/40 shadow-cyan-500/10'
             }`}
           >
-            <div className="flex items-center gap-2">
-              {message.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-              <span>{message.text}</span>
-            </div>
-            <button onClick={() => setMessage(null)} className="opacity-70 hover:opacity-100">
-              <X className="w-4 h-4" />
+            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border shrink-0 ${
+              message.type === 'error'
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                : message.type === 'success'
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+            }`}>
+              {message.type === 'success' ? 'SUCCESS' : message.type === 'error' ? 'ERROR' : 'NOTICE'}
+            </span>
+
+            <span className="flex-1 leading-snug">{message.text}</span>
+
+            <button
+              type="button"
+              onClick={() => setMessage(null)}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              title="Dismiss notification"
+            >
+              <X className="w-3.5 h-3.5" />
             </button>
           </motion.div>
         )}

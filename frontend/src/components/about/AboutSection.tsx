@@ -158,9 +158,11 @@ export const AboutSection: React.FC<{ initialData?: AboutSectionData }> = React.
       };
 
       window.addEventListener('dezo-about-updated', handleUpdate);
+      window.addEventListener('dezoryn-about-updated', handleUpdate);
       window.addEventListener('focus', fetchAboutData);
       return () => {
         window.removeEventListener('dezo-about-updated', handleUpdate);
+        window.removeEventListener('dezoryn-about-updated', handleUpdate);
         window.removeEventListener('focus', fetchAboutData);
       };
     } else {

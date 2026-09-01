@@ -63,7 +63,6 @@ export const MarketplacePage: React.FC = () => {
   // Backend integration states
   const [products, setProducts] = useState<MarketplaceProduct[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
 
   // Comparison engine state
   const [compareProductIds, setCompareProductIds] = useState<string[]>([]);
@@ -159,10 +158,9 @@ export const MarketplacePage: React.FC = () => {
 
       if (result.success && Array.isArray(result.data)) {
         setProducts(result.data);
-        setIsBackendConnected(true);
       }
     } catch (_err) {
-      setIsBackendConnected(false);
+      // Handled gracefully
     } finally {
       setIsLoading(false);
     }
@@ -305,13 +303,6 @@ export const MarketplacePage: React.FC = () => {
                   <span className="px-2.5 py-1 rounded-full bg-blue-50 dark:bg-cyan-500/10 border border-blue-200 dark:border-cyan-400/30 text-blue-600 dark:text-cyan-400 font-extrabold text-xs">
                     {products.length} {products.length === 1 ? 'Product' : 'Products'} Found
                   </span>
-
-                  {isBackendConnected && (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Live PostgreSQL API
-                    </span>
-                  )}
                 </div>
 
                 {/* Active Filters Summary Pills */}

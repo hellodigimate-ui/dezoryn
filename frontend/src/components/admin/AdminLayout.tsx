@@ -155,7 +155,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       case 'homepage-stats':
         return <AdminHomepageStatsCMS />;
       case 'about':
+      case 'about-page':
+      case 'about-us':
         return <AdminAboutCMS />;
+      case 'timeline':
+      case 'milestones':
+        return <AdminAboutCMS initialTab="milestones" />;
       case 'navigation':
         return <AdminNavCMS />;
       case 'products':
@@ -170,6 +175,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         return <AdminJobManager />;
       case 'contact':
         return <AdminContactManager />;
+      case 'offices':
+        return <AdminContactManager initialTab="offices" />;
       case 'inquiries':
       case 'leads':
         return <AdminInquiryManager />;

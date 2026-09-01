@@ -97,20 +97,64 @@ model NavItem {
 }
 
 model Product {
-  id            String   @id @default(cuid())
-  title         String
-  subtitle      String   @default("")
-  description   String
-  icon          String   @default("Zap")
-  gradient      String   @default("from-blue-600 to-cyan-500")
-  features      Json     @default("[]")
-  image         String?
-  order         Int      @default(0)
-  status        String   @default("active")
-  category      String   @default("core")
-  isEnabled     Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  title               String
+  subtitle            String   @default("")
+  description         String
+  icon                String   @default("Zap")
+  gradient            String   @default("from-blue-600 to-cyan-500")
+  features            Json     @default("[]")
+  image               String?
+  order               Int      @default(0)
+  status              String   @default("active")
+  category            String   @default("core")
+  isEnabled           Boolean  @default(true)
+
+  // Extended Marketplace & CMS attributes
+  slug                String?  @default("")
+  categoryLabel       String?  @default("")
+  industry            String?  @default("")
+  badge               String?  @default("")
+  shortDesc           String?  @default("")
+  price               String?  @default("")
+  priceValue          Float?   @default(0)
+  discount            Float?   @default(0)
+  pricingType         String?  @default("subscription")
+  pricingTiers        Json?    @default("[]")
+  thumbnail           String?  @default("")
+  coverPhoto          String?  @default("")
+  gallery             Json?    @default("[]")
+  videoUrl            String?  @default("")
+  demoUrl             String?  @default("")
+  documentation       String?  @default("")
+  specifications      String?  @default("")
+  integrations        Json?    @default("[]")
+  platforms           Json?    @default("[]")
+  rating              Float?   @default(4.9)
+  reviewsCount        Int?     @default(0)
+  customerReviews     Json?    @default("[]")
+  aiPowered           Boolean? @default(false)
+  apiAvailable        Boolean? @default(false)
+  cloudNative         Boolean? @default(false)
+  mobileApp           Boolean? @default(false)
+  whatsAppIntegration Boolean? @default(false)
+  isFeatured          Boolean? @default(false)
+  isPopular           Boolean? @default(false)
+  metaTitle           String?  @default("")
+  metaDescription     String?  @default("")
+  metaKeywords        String?  @default("")
+  canonicalUrl        String?  @default("")
+  screenshots         Json?    @default("[]")
+  deployment          Json?    @default("[]")
+  businessSizes       Json?    @default("[]")
+  languages           Json?    @default("[]")
+  countries           Json?    @default("[]")
+  downloadsCount      Int?     @default(0)
+  viewsCount          Int?     @default(0)
+  demoClicks          Int?     @default(0)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@map("products")
 }
@@ -186,16 +230,29 @@ model Job {
 }
 
 model ContactSettings {
-  id            String   @id @default("default")
-  phone         String   @default("+91 77778 04850")
-  email         String   @default("support@dezoryn.com")
-  address       String   @default("Indore, Madhya Pradesh, India")
-  googleMap     String   @default("https://maps.google.com/?q=Indore,Madhya+Pradesh,India")
-  socialLinks   Json     @default("{\"twitter\":\"https://twitter.com\",\"linkedin\":\"https://linkedin.com\",\"github\":\"https://github.com\",\"facebook\":\"https://facebook.com\",\"instagram\":\"https://instagram.com\",\"youtube\":\"https://youtube.com\"}")
-  whatsApp      String   @default("+917777804850")
-  businessHours String   @default("Mon - Fri: 9:00 AM - 6:00 PM IST | Sat - Sun: Closed")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                      String   @id @default("default")
+  phone                   String   @default("+91 77778 04850")
+  email                   String   @default("support@dezoryn.com")
+  address                 String   @default("Indore, Madhya Pradesh, India")
+  googleMap               String   @default("https://maps.google.com/?q=Indore,Madhya+Pradesh,India")
+  socialLinks             Json     @default("{\"twitter\":\"https://twitter.com\",\"linkedin\":\"https://linkedin.com\",\"github\":\"https://github.com\",\"facebook\":\"https://facebook.com\",\"instagram\":\"https://instagram.com\",\"youtube\":\"https://youtube.com\"}")
+  whatsApp                String   @default("+917777804850")
+  businessHours           String   @default("Mon - Fri: 9:00 AM - 6:00 PM IST | Sat - Sun: Closed")
+  heroBadge               String   @default("ENTERPRISE & GLOBAL ADVISORY")
+  heroTitle               String   @default("Talk with Our")
+  heroGradientTitle       String   @default("Enterprise Team")
+  heroDescription         String   @default("Whether you need custom SLA guarantees, multi-region deployment, or dedicated volume licensing, our global sales engineers respond within 15 minutes.")
+  formTitle               String   @default("Enterprise Inquiry Form")
+  responseSlaBadge        String   @default("15 Min SLA")
+  directChannelsTitle     String   @default("Direct Communication Channels")
+  directChannels          Json     @default("[{\"id\":\"channel-1\",\"type\":\"phone\",\"title\":\"Direct Executive Line\",\"subtitle\":\"+1 (415) 890-2100\",\"actionText\":\"Call Now →\",\"actionUrl\":\"tel:+14158902100\",\"icon\":\"Phone\",\"enabled\":true},{\"id\":\"channel-2\",\"type\":\"whatsapp\",\"title\":\"WhatsApp Enterprise Chat\",\"subtitle\":\"Instant response 24/7\",\"actionText\":\"Open Chat →\",\"actionUrl\":\"+917777804850\",\"icon\":\"MessageSquare\",\"enabled\":true},{\"id\":\"channel-3\",\"type\":\"chat\",\"title\":\"In-Browser Live Advisor\",\"subtitle\":\"Available Mon-Fri\",\"actionText\":\"Start →\",\"actionUrl\":\"#live-advisor\",\"icon\":\"Headphones\",\"enabled\":true}]")
+  securityGuaranteesTitle String   @default("Enterprise Security & Guarantees")
+  securityGuarantees      Json     @default("[{\"id\":\"sec-1\",\"title\":\"SOC2 Type II\",\"subtitle\":\"Audited Security Controls\",\"color\":\"blue\"},{\"id\":\"sec-2\",\"title\":\"GDPR & ISO27001\",\"subtitle\":\"Global Data Compliance\",\"color\":\"emerald\"},{\"id\":\"sec-3\",\"title\":\"99.99% Uptime\",\"subtitle\":\"Financially Backed SLA\",\"color\":\"violet\"},{\"id\":\"sec-4\",\"title\":\"Dedicated TAM\",\"subtitle\":\"Technical Account Manager\",\"color\":\"amber\"}]")
+  officeLocationsBadge    String   @default("OUR GLOBAL FOOTPRINT")
+  officeLocationsTitle    String   @default("Worldwide Office Locations")
+  officeLocations         Json     @default("[{\"id\":\"loc-1\",\"city\":\"Indore (Global HQ)\",\"country\":\"India\",\"address\":\"Indore, Madhya Pradesh, India\",\"phone\":\"+91 77778 04850\",\"hours\":\"Mon - Fri: 9:00 AM - 6:00 PM IST\",\"isHQ\":true},{\"id\":\"loc-2\",\"city\":\"San Francisco\",\"country\":\"United States\",\"address\":\"500 Howard Street, Suite 400, CA 94105\",\"phone\":\"+1 (415) 890-2100\",\"hours\":\"8:00 AM - 6:00 PM PST\",\"isHQ\":false},{\"id\":\"loc-3\",\"city\":\"London\",\"country\":\"United Kingdom\",\"address\":\"30 St Mary Axe, City of London, EC3A 8EP\",\"phone\":\"+44 20 7946 0912\",\"hours\":\"8:30 AM - 5:30 PM GMT\",\"isHQ\":false},{\"id\":\"loc-4\",\"city\":\"Singapore\",\"country\":\"Singapore\",\"address\":\"1 Raffles Place, #28-01, 048616\",\"phone\":\"+65 6789 0123\",\"hours\":\"9:00 AM - 6:00 PM SGT\",\"isHQ\":false}]")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   @@map("contact_settings")
 }

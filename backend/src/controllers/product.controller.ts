@@ -59,9 +59,11 @@ export class ProductController {
 
   static async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { title, description } = req.body;
-      if (!title || !description) {
-        res.status(400).json({ success: false, message: 'title and description are required' });
+      const { title, description, name, shortDesc } = req.body;
+      const effectiveTitle = title || name;
+      const effectiveDesc = description || shortDesc;
+      if (!effectiveTitle) {
+        res.status(400).json({ success: false, message: 'title is required' });
         return;
       }
       const product = await ProductService.create(req.body);

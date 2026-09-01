@@ -410,165 +410,6 @@ export interface JobOpening {
   };
 }
 
-const JOB_OPENINGS: JobOpening[] = [
-  {
-    id: 'ai-eng-01',
-    title: 'Senior Full-Stack AI Engineer',
-    department: 'Engineering & AI',
-    location: 'Remote (US/EU/APAC)',
-    workType: 'Remote',
-    employmentType: 'Full-Time',
-    salary: '₹13,00,000 - ₹17,00,000',
-    postedDate: '2 days ago',
-    experience: '4+ Years',
-    featured: true,
-    description: 'Lead the architectural design and implementation of DezoAI copilot workflows, multi-agent frameworks, and real-time CRM predictive engines.',
-    responsibilities: [
-      'Architect scalable agentic workflows integrating Large Language Models with enterprise CRM data stores.',
-      'Develop reactive front-end dashboards in React, TypeScript, and Tailwind CSS.',
-      'Optimize API response latencies and vector embedding retrievals for sub-50ms query times.',
-      'Collaborate with AI Researchers to deploy fine-tuned domain models for School ERP governance.'
-    ],
-    requirements: [
-      'Strong proficiency in TypeScript, React, Node.js, and Python.',
-      'Hands-on experience with OpenAI APIs, LangChain, LlamaIndex, or custom vector databases (Pinecone/Qdrant).',
-      'Proven track record of shipping production SaaS web applications.',
-      'Deep understanding of microservices architecture, Docker, and PostgreSQL.'
-    ],
-    skills: ['TypeScript', 'React', 'Python', 'LLMs', 'Node.js', 'Vector DB']
-  },
-  {
-    id: 'product-designer-02',
-    title: 'Lead Product Designer (UI/UX)',
-    department: 'Product & Design',
-    location: 'Hybrid (San Francisco, CA)',
-    workType: 'Hybrid',
-    employmentType: 'Full-Time',
-    salary: '₹11,50,000 - ₹15,00,000',
-    postedDate: '3 days ago',
-    experience: '5+ Years',
-    featured: true,
-    description: 'Craft beautiful, high-converting enterprise interfaces, interactive 3D visualizations, and intuitive design systems for Dezoryn Technologies.',
-    responsibilities: [
-      'Own the end-to-end design lifecycle from user research wireframes to pixel-perfect Figma components.',
-      'Develop micro-animations and smooth transition guidelines for complex ERP dashboards.',
-      'Conduct usability tests with sales teams, enterprise managers, and campus administrators.',
-      'Maintain and evolve the unified Dezo Design System.'
-    ],
-    requirements: [
-      'Expertise in Figma, Framer, and modern prototyping tools.',
-      'A stunning portfolio demonstrating complex SaaS/B2B data dashboard design.',
-      'Understanding of modern CSS, Tailwind design tokens, and web animation principles.',
-      'Exceptional communication and user-empathy skills.'
-    ],
-    skills: ['Figma', 'UI/UX Design', 'Design Systems', 'Prototyping', 'User Research']
-  },
-  {
-    id: 'sales-mgr-03',
-    title: 'Enterprise Sales Account Executive',
-    department: 'Sales & Marketing',
-    location: 'Remote (North America)',
-    workType: 'Remote',
-    employmentType: 'Full-Time',
-    salary: '₹12,00,000 - ₹16,00,000 + Uncapped OTE',
-    postedDate: '1 week ago',
-    experience: '3+ Years',
-    featured: false,
-    description: 'Drive new revenue expansion by closing mid-market and enterprise CRM & School ERP contracts across global markets.',
-    responsibilities: [
-      'Manage full sales cycles from qualified lead qualification to contract execution.',
-      'Deliver tailored product demonstrations highlighting AI scoring and ERP automation.',
-      'Partner with Solution Architects to respond to enterprise RFPs and custom SLA queries.',
-      'Maintain strong pipeline hygiene in Dezoryn Technologies.'
-    ],
-    requirements: [
-      '3+ years of successful SaaS B2B sales experience with proven quota attainment.',
-      'Familiarity with CRM platforms, ERP software, or EdTech industry vertical.',
-      'Strong consultative closing skills and executive-level pitch confidence.',
-      'Self-starter mindset comfortable in a high-growth environment.'
-    ],
-    skills: ['B2B SaaS Sales', 'Enterprise CRM', 'Consultative Selling', 'Pipeline Mgmt']
-  },
-  {
-    id: 'backend-arch-04',
-    title: 'Senior Backend Systems Architect',
-    department: 'Engineering & AI',
-    location: 'Remote (Global)',
-    workType: 'Remote',
-    employmentType: 'Full-Time',
-    salary: '₹14,00,000 - ₹18,50,000',
-    postedDate: '4 days ago',
-    experience: '6+ Years',
-    featured: true,
-    description: 'Architect multi-tenant backend infrastructure capable of handling millions of daily CRM transactions with high availability.',
-    responsibilities: [
-      'Design distributed microservices, message queues, and real-time WebSocket pipelines.',
-      'Optimize complex PostgreSQL database queries, indexing, and transactional partitioning.',
-      'Implement enterprise SOC-2 security protocols, encryption at rest/transit, and role-based access control.',
-      'Mentor junior engineers and champion CI/CD DevOps best practices.'
-    ],
-    requirements: [
-      'Mastery of Go, Node.js, or Rust with deep PostgreSQL and Redis expertise.',
-      'Experience scaling high-throughput distributed systems in AWS/GCP.',
-      'Familiarity with Kubernetes, Docker, Terraform, and event-driven architectures (Kafka/NATS).',
-      'Strong CS fundamentals in data structures, concurrency, and security.'
-    ],
-    skills: ['Go', 'Node.js', 'PostgreSQL', 'Redis', 'Kubernetes', 'AWS']
-  },
-  {
-    id: 'customer-success-05',
-    title: 'School ERP Customer Success Specialist',
-    department: 'Customer Success',
-    location: 'Hybrid (New York / Remote)',
-    workType: 'Hybrid',
-    employmentType: 'Full-Time',
-    salary: '₹8,50,000 - ₹11,00,000',
-    postedDate: '5 days ago',
-    experience: '2+ Years',
-    featured: false,
-    description: 'Guide educational institutions through seamless Dezo School ERP onboarding, module configuration, and ongoing success.',
-    responsibilities: [
-      'Lead interactive onboarding workshops for campus administrators, teachers, and registrars.',
-      'Configure student database structures, fee billing rules, and examination reporting modules.',
-      'Monitor customer health scores and proactively prevent account churn.',
-      'Gather feature requests to inform the Product roadmap.'
-    ],
-    requirements: [
-      'Prior experience in EdTech customer success, account management, or SaaS training.',
-      'Excellent presentation skills and empathy for non-technical users.',
-      'Ability to troubleshoot configuration workflows calmly under pressure.',
-      'Bachelor degree or equivalent practical experience.'
-    ],
-    skills: ['EdTech', 'Customer Success', 'Product Onboarding', 'SaaS Training']
-  },
-  {
-    id: 'ai-research-06',
-    title: 'AI Research Scientist (Agentic Intelligence)',
-    department: 'Engineering & AI',
-    location: 'Remote (US / EU)',
-    workType: 'Remote',
-    employmentType: 'Full-Time',
-    salary: '₹15,00,000 - ₹20,00,000 + Stock Options',
-    postedDate: 'Just now',
-    experience: '3+ Years',
-    featured: true,
-    description: 'Pioneer novel autonomous agent architectures and domain-specific fine-tuning for predictive enterprise workflow execution.',
-    responsibilities: [
-      'Conduct original research on multi-agent collaboration, memory retrieval, and planning algorithms.',
-      'Fine-tune open-weight models (Llama 3, Mistral) on structured business decision datasets.',
-      'Publish research findings and translate benchmarks into production copilot features.',
-      'Evaluate model safety, hallucination suppression, and alignment techniques.'
-    ],
-    requirements: [
-      'PhD or Master degree in Computer Science, Machine Learning, or related quantitative field.',
-      'Strong publication record or hands-on research experience in LLMs/RLHF.',
-      'Deep fluency in PyTorch, Transformers, vLLM, and LoRA/QLoRA fine-tuning.',
-      'Passionate about pushing agentic AI limits in commercial SaaS.'
-    ],
-    skills: ['PyTorch', 'Agentic AI', 'LLM Fine-Tuning', 'Transformers', 'Python']
-  }
-];
-
 import { API_URL, apiFetch } from '../../config/api.config';
 
 const API_JOBS = `${API_URL}/jobs`;
@@ -686,16 +527,21 @@ export const CareersSection: React.FC = () => {
             closingDate: j.closingDate ? new Date(j.closingDate).toLocaleDateString() : undefined,
           }));
           setJobs(mapped);
+        } else {
+          setJobs([]);
         }
       } catch {
-        setJobs(JOB_OPENINGS);
+        setJobs([]);
       }
     };
 
-
     fetchJobs();
     window.addEventListener('focus', fetchJobs);
-    return () => window.removeEventListener('focus', fetchJobs);
+    window.addEventListener('dezoryn-jobs-updated', fetchJobs);
+    return () => {
+      window.removeEventListener('focus', fetchJobs);
+      window.removeEventListener('dezoryn-jobs-updated', fetchJobs);
+    };
   }, []);
 
 

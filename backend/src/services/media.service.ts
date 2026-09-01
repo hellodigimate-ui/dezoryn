@@ -1,38 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/prisma.config';
 import fs from 'fs';
-import path from 'path';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.config';
-
-const prisma = new PrismaClient();
-const db = prisma as any;
-
-const dataDir = path.resolve(process.cwd(), 'src/data');
-const dataFilePath = path.join(dataDir, 'media.json');
-
-const ensureDataDir = () => {
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-};
-
-const readFileData = (): any[] | null => {
-  try {
-    ensureDataDir();
-    if (fs.existsSync(dataFilePath)) {
-      const raw = fs.readFileSync(dataFilePath, 'utf-8');
-      const items = JSON.parse(raw);
-      if (Array.isArray(items)) return items;
-    }
-  } catch (_e) {}
-  return null;
-};
-
-const writeFileData = (data: any[]) => {
-  try {
-    ensureDataDir();
-    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (_e) {}
-};
 
 function getFileBuffer(file: Express.Multer.File): Buffer {
   if (file.buffer && file.buffer.length > 0) return file.buffer;
@@ -64,7 +32,6 @@ const DEFAULT_MEDIA_ITEMS = [
     folder: 'Banners',
     cloudinaryId: 'dezoryn/banners/enterprise-banner',
     resourceType: 'image',
-    createdAt: new Date().toISOString(),
   },
   {
     id: 'med-seed-2',
@@ -77,7 +44,6 @@ const DEFAULT_MEDIA_ITEMS = [
     folder: 'Videos',
     cloudinaryId: 'dezoryn/videos/copilot-demo',
     resourceType: 'video',
-    createdAt: new Date().toISOString(),
   },
   {
     id: 'med-seed-3',
@@ -90,7 +56,6 @@ const DEFAULT_MEDIA_ITEMS = [
     folder: 'Documents',
     cloudinaryId: 'dezoryn/documents/brochure-2026',
     resourceType: 'raw',
-    createdAt: new Date().toISOString(),
   },
 ];
 
@@ -101,6 +66,10 @@ export class MediaService {
     return 'raw';
   }
 
+  /**
+   * UPLOAD MEDIA
+   * PostgreSQL is the only source of truth.
+   */
   static async upload(params: UploadMediaParams) {
     const { file, folder = 'General', uploadedById } = params;
     const resourceType = MediaService.determineResourceType(file.mimetype);
@@ -124,10 +93,8 @@ export class MediaService {
 
     const localUrl = `/uploads/${file.filename || file.originalname}`;
     const finalUrl = cloudUrl || localUrl;
-    const id = `med_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     const mediaData = {
-      id,
       filename: file.filename || file.originalname,
       originalName: file.originalname,
       mimeType: file.mimetype,
@@ -138,32 +105,17 @@ export class MediaService {
       cloudinaryId,
       resourceType,
       uploadedById: uploadedById || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
 
-    // 1. Save to disk JSON store
-    const currentList = (readFileData() || DEFAULT_MEDIA_ITEMS);
-    const updatedList = [mediaData, ...currentList];
-    writeFileData(updatedList);
-
-    // 2. Try DB
     try {
-      if (db.media) {
-        return await db.media.create({ data: mediaData });
-      }
-    } catch {}
-
-    try {
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO media (id, filename, "originalName", "mimeType", size, path, url, folder, "cloudinaryId", "resourceType", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())`,
-        id, mediaData.filename, mediaData.originalName, mediaData.mimeType, mediaData.size,
-        mediaData.path, mediaData.url, mediaData.folder, mediaData.cloudinaryId, mediaData.resourceType
-      );
-    } catch (_err) {}
-
-    return mediaData;
+      const created = await prisma.media.create({
+        data: mediaData,
+      });
+      return created;
+    } catch (error) {
+      console.error('UPLOAD MEDIA ERROR:', error);
+      throw error;
+    }
   }
 
   static async replace(id: string, file: Express.Multer.File) {
@@ -195,126 +147,85 @@ export class MediaService {
     const localUrl = `/uploads/${file.filename || file.originalname}`;
     const finalUrl = cloudUrl || localUrl;
 
-    const updateData = {
-      ...existing,
-      filename: file.filename || file.originalname,
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      path: localUrl,
-      url: finalUrl,
-      cloudinaryId,
-      resourceType,
-      updatedAt: new Date().toISOString(),
-    };
-
-    // 1. Write to disk JSON
-    const currentList = (readFileData() || DEFAULT_MEDIA_ITEMS);
-    const updatedList = currentList.map(item => item.id === id ? updateData : item);
-    writeFileData(updatedList);
-
-    // 2. Try DB
     try {
-      if (db.media) {
-        await db.media.update({ where: { id }, data: updateData });
-      }
-    } catch {}
+      const updated = await prisma.media.update({
+        where: { id },
+        data: {
+          filename: file.filename || file.originalname,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          path: localUrl,
+          url: finalUrl,
+          cloudinaryId,
+          resourceType,
+        },
+      });
 
-    try {
-      await prisma.$executeRawUnsafe(
-        `UPDATE media SET
-          filename = $1, "originalName" = $2, "mimeType" = $3, size = $4, path = $5,
-          url = $6, "cloudinaryId" = $7, "resourceType" = $8, "updatedAt" = NOW()
-         WHERE id = $9`,
-        updateData.filename, updateData.originalName, updateData.mimeType, updateData.size,
-        updateData.path, updateData.url, updateData.cloudinaryId, updateData.resourceType, id
-      );
-    } catch {}
-
-    return updateData;
+      return updated;
+    } catch (error) {
+      console.error(`REPLACE MEDIA ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async delete(id: string) {
-    const existing = await MediaService.getById(id);
-    if (existing?.cloudinaryId) {
-      await deleteFromCloudinary(existing.cloudinaryId, existing.resourceType);
-    }
-
-    // Write to disk JSON
-    const currentList = (readFileData() || DEFAULT_MEDIA_ITEMS);
-    const updatedList = currentList.filter(item => item.id !== id);
-    writeFileData(updatedList);
-
     try {
-      if (db.media) {
-        await db.media.delete({ where: { id } });
+      const existing = await MediaService.getById(id);
+      if (existing?.cloudinaryId) {
+        await deleteFromCloudinary(existing.cloudinaryId, existing.resourceType);
       }
-    } catch {}
 
-    try {
-      await prisma.$executeRawUnsafe('DELETE FROM media WHERE id = $1', id);
-    } catch {}
-
-    return { success: true };
+      await prisma.media.delete({ where: { id } });
+      return { success: true };
+    } catch (error) {
+      console.error(`DELETE MEDIA ${id} ERROR:`, error);
+      throw error;
+    }
   }
 
   static async getById(id: string) {
-    const currentList = readFileData() || DEFAULT_MEDIA_ITEMS;
-    const found = currentList.find(item => item.id === id);
-    if (found) return found;
-
     try {
-      if (db.media) {
-        return await db.media.findUnique({ where: { id } });
-      }
-    } catch {}
-
-    try {
-      const rows: any = await prisma.$queryRawUnsafe('SELECT * FROM media WHERE id = $1', id);
-      return rows ? rows[0] : null;
-    } catch {
-      return null;
+      const item = await prisma.media.findUnique({ where: { id } });
+      return item;
+    } catch (error) {
+      console.error(`GET MEDIA ${id} ERROR:`, error);
+      throw error;
     }
   }
 
   static async getAll(filter?: { folder?: string; search?: string; resourceType?: string }) {
-    let items = readFileData();
-    if (!items) {
-      try {
-        if (db.media) {
-          items = await db.media.findMany({ orderBy: { createdAt: 'desc' } });
-        }
-      } catch {}
-
-      if (!items) {
-        try {
-          items = await prisma.$queryRawUnsafe('SELECT * FROM media ORDER BY "createdAt" DESC');
-        } catch {}
-      }
+    try {
+      let items = await prisma.media.findMany({ orderBy: { createdAt: 'desc' } });
 
       if (!items || items.length === 0) {
-        items = DEFAULT_MEDIA_ITEMS;
+        await prisma.media.createMany({
+          data: DEFAULT_MEDIA_ITEMS,
+        });
+        items = await prisma.media.findMany({ orderBy: { createdAt: 'desc' } });
       }
-      writeFileData(items);
-    }
 
-    let result = [...items];
-    if (filter?.folder && filter.folder !== 'All') {
-      result = result.filter(item => item.folder?.toLowerCase() === filter.folder!.toLowerCase());
-    }
-    if (filter?.resourceType && filter.resourceType !== 'All') {
-      result = result.filter(item => item.resourceType?.toLowerCase() === filter.resourceType!.toLowerCase());
-    }
-    if (filter?.search) {
-      const q = filter.search.toLowerCase();
-      result = result.filter(item =>
-        item.filename?.toLowerCase().includes(q) ||
-        item.originalName?.toLowerCase().includes(q) ||
-        item.folder?.toLowerCase().includes(q)
-      );
-    }
+      let result = [...items];
+      if (filter?.folder && filter.folder !== 'All') {
+        result = result.filter(item => item.folder?.toLowerCase() === filter.folder!.toLowerCase());
+      }
+      if (filter?.resourceType && filter.resourceType !== 'All') {
+        result = result.filter(item => item.resourceType?.toLowerCase() === filter.resourceType!.toLowerCase());
+      }
+      if (filter?.search) {
+        const q = filter.search.toLowerCase();
+        result = result.filter(item =>
+          item.filename?.toLowerCase().includes(q) ||
+          item.originalName?.toLowerCase().includes(q) ||
+          item.folder?.toLowerCase().includes(q)
+        );
+      }
 
-    return result;
+      return result;
+    } catch (error) {
+      console.error('GET ALL MEDIA ERROR:', error);
+      throw error;
+    }
   }
 
   static async getFolders() {
@@ -330,4 +241,3 @@ export class MediaService {
     }
   }
 }
-

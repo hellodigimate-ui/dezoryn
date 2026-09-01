@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import { prisma } from '../config/prisma.config';
 
 export const DEFAULT_NAV_ITEMS = [
@@ -13,194 +11,124 @@ export const DEFAULT_NAV_ITEMS = [
   { id: 'nav-8', label: 'Contact', route: '/contact-sales', order: 7, isVisible: true, isHighlight: false },
 ];
 
-const dataDir = path.resolve(process.cwd(), 'src/data');
-const dataFilePath = path.join(dataDir, 'nav.json');
-
-const ensureDataDir = () => {
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-};
-
-const readFileData = () => {
-  try {
-    ensureDataDir();
-    if (fs.existsSync(dataFilePath)) {
-      const raw = fs.readFileSync(dataFilePath, 'utf-8');
-      const items = JSON.parse(raw);
-      if (Array.isArray(items) && items.length > 0) return items;
-    }
-  } catch (_e) {}
-  return null;
-};
-
-const writeFileData = (data: any[]) => {
-  try {
-    ensureDataDir();
-    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
-  } catch (_e) {}
-};
-
 export class NavService {
+  /**
+   * GET ALL NAV ITEMS
+   * PostgreSQL is the only source of truth.
+   */
   public static async getAllNavItems() {
-    let items = readFileData();
+    try {
+      let dbItems = await prisma.navItem.findMany({
+        orderBy: { order: 'asc' },
+      });
 
-    if (!items) {
-      try {
-        const dbItems = await (prisma as any).navItem.findMany({
+      if (!dbItems || dbItems.length === 0) {
+        await prisma.navItem.createMany({
+          data: DEFAULT_NAV_ITEMS,
+        });
+        dbItems = await prisma.navItem.findMany({
           orderBy: { order: 'asc' },
         });
-
-        if (dbItems.length > 0) {
-          items = dbItems;
-        }
-      } catch (_error) {}
-    }
-
-    if (!items || items.length === 0) {
-      items = DEFAULT_NAV_ITEMS;
-      writeFileData(items);
-    }
-
-    // Deduplicate by route
-    const uniqueMap = new Map<string, any>();
-    items.forEach((item: any) => {
-      const key = (item.route || '').toLowerCase().trim();
-      if (key && (!uniqueMap.has(key) || item.id.startsWith('nav-'))) {
-        uniqueMap.set(key, item);
       }
-    });
 
-    const result = Array.from(uniqueMap.values()).sort((a: any, b: any) => a.order - b.order);
-    return result;
+      return dbItems;
+    } catch (error) {
+      console.error('GET NAV ITEMS ERROR:', error);
+      throw error;
+    }
   }
 
   public static async resetToDefaults() {
-    writeFileData(DEFAULT_NAV_ITEMS);
     try {
-      await (prisma as any).navItem.deleteMany({});
+      await prisma.navItem.deleteMany({});
       for (const item of DEFAULT_NAV_ITEMS) {
-        await (prisma as any).navItem.create({ data: item });
+        await prisma.navItem.create({ data: item });
       }
-    } catch (_err) {}
-    return DEFAULT_NAV_ITEMS;
+      return await prisma.navItem.findMany({ orderBy: { order: 'asc' } });
+    } catch (error) {
+      console.error('RESET NAV ITEMS ERROR:', error);
+      throw error;
+    }
   }
 
   public static async createNavItem(data: { label: string; route: string; isVisible?: boolean; isHighlight?: boolean }) {
-    const current = await NavService.getAllNavItems();
-    const newItem = {
-      id: `nav-${Date.now()}`,
-      label: data.label,
-      route: data.route,
-      order: current.length,
-      isVisible: data.isVisible ?? true,
-      isHighlight: data.isHighlight ?? false,
-    };
-    const updated = [...current, newItem];
-    writeFileData(updated);
-
     try {
-      await (prisma as any).navItem.create({
+      const current = await NavService.getAllNavItems();
+      const newItem = await prisma.navItem.create({
         data: {
-          id: newItem.id,
-          label: newItem.label,
-          route: newItem.route,
-          order: newItem.order,
-          isVisible: newItem.isVisible,
-          isHighlight: newItem.isHighlight,
+          label: data.label,
+          route: data.route,
+          order: current.length,
+          isVisible: data.isVisible ?? true,
+          isHighlight: data.isHighlight ?? false,
         },
       });
-    } catch (_err) {}
 
-    return newItem;
+      return newItem;
+    } catch (error) {
+      console.error('CREATE NAV ITEM ERROR:', error);
+      throw error;
+    }
   }
 
   public static async updateNavItem(
     id: string,
     data: { label?: string; route?: string; isVisible?: boolean; isHighlight?: boolean; order?: number }
   ) {
-    const current = await NavService.getAllNavItems();
-    let updatedItem: any = null;
-    const updatedList = current.map((item: any) => {
-      if (item.id === id) {
-        updatedItem = { ...item, ...data };
-        return updatedItem;
-      }
-      return item;
-    });
-
-    writeFileData(updatedList);
-
     try {
-      await (prisma as any).navItem.update({
+      const updated = await prisma.navItem.update({
         where: { id },
         data,
       });
-    } catch (_err) {}
 
-    return updatedItem || { id, ...data };
+      return updated;
+    } catch (error) {
+      console.error('UPDATE NAV ITEM ERROR:', error);
+      throw error;
+    }
   }
 
   public static async deleteNavItem(id: string) {
-    const current = await NavService.getAllNavItems();
-    const updatedList = current.filter((item: any) => item.id !== id);
-    writeFileData(updatedList);
-
     try {
-      await (prisma as any).navItem.delete({ where: { id } });
-    } catch (_err) {}
-
-    return { id, success: true };
+      await prisma.navItem.delete({ where: { id } });
+      return { id, success: true };
+    } catch (error) {
+      console.error('DELETE NAV ITEM ERROR:', error);
+      throw error;
+    }
   }
 
   public static async reorderNavItems(orderedIds: string[]) {
-    const current = await NavService.getAllNavItems();
-    const map = new Map(current.map((item: any) => [item.id, item]));
-    const updatedList = orderedIds
-      .map((id, index) => {
-        const item = map.get(id);
-        return item ? { ...item, order: index } : null;
-      })
-      .filter(Boolean);
-
-    writeFileData(updatedList);
-
     try {
       const updates = orderedIds.map((id, index) =>
-        (prisma as any).navItem.update({
+        prisma.navItem.update({
           where: { id },
           data: { order: index },
         })
       );
       await Promise.all(updates);
-    } catch (_err) {}
 
-    return updatedList;
+      return await prisma.navItem.findMany({ orderBy: { order: 'asc' } });
+    } catch (error) {
+      console.error('REORDER NAV ITEMS ERROR:', error);
+      throw error;
+    }
   }
 
   public static async toggleVisibility(id: string) {
-    const current = await NavService.getAllNavItems();
-    let toggledItem: any = null;
-    const updatedList = current.map((item: any) => {
-      if (item.id === id) {
-        toggledItem = { ...item, isVisible: !item.isVisible };
-        return toggledItem;
-      }
-      return item;
-    });
-
-    writeFileData(updatedList);
-
     try {
-      if (toggledItem) {
-        await (prisma as any).navItem.update({
-          where: { id },
-          data: { isVisible: toggledItem.isVisible },
-        });
-      }
-    } catch (_err) {}
+      const currentItem = await prisma.navItem.findUnique({ where: { id } });
+      if (!currentItem) throw new Error('Nav item not found');
 
-    return toggledItem;
+      const updated = await prisma.navItem.update({
+        where: { id },
+        data: { isVisible: !currentItem.isVisible },
+      });
+
+      return updated;
+    } catch (error) {
+      console.error('TOGGLE NAV VISIBILITY ERROR:', error);
+      throw error;
+    }
   }
 }
-

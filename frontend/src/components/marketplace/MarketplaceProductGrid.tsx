@@ -6,7 +6,7 @@ import {
   SlidersHorizontal,
   Search,
   RotateCcw,
-  Sparkles,
+  Store,
   ChevronDown
 } from 'lucide-react';
 import type { MarketplaceProduct } from './MarketplacePage';
@@ -119,8 +119,9 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
       {/* ── SORTING, PAGINATION SIZE & STATUS BAR ── */}
       <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-cyan-400" /> Showing {sortedProducts.length === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, sortedProducts.length)} of {sortedProducts.length} Software
+          <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <Store className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+            <span>Showing {sortedProducts.length === 0 ? 0 : startIndex + 1}–{Math.min(endIndex, sortedProducts.length)} of {sortedProducts.length} Software Modules</span>
           </span>
         </div>
 

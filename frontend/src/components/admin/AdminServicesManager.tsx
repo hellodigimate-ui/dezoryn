@@ -4,7 +4,7 @@ import {
   Layers, Plus, Trash2, Edit3, CheckCircle2,
   AlertTriangle, Sparkles, FolderOpen, Eye, EyeOff, X,
   Search, Code2, Globe, Smartphone, Briefcase, Factory,
-  Megaphone, TrendingUp, ArrowUp, ArrowDown, Copy,
+  Megaphone, TrendingUp, ArrowUp, ArrowDown, Copy, RefreshCw,
   ListPlus, MoveUp, MoveDown, Check, Cpu, Server,
   Shield, Zap, Database, Box, Award
 } from 'lucide-react';
@@ -468,7 +468,7 @@ export const AdminServicesManager: React.FC = () => {
             className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             title="Refresh Services List"
           >
-            <Sparkles className="w-4 h-4 text-blue-500" />
+            <RefreshCw className={`w-4 h-4 text-blue-500 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
 
           <button
