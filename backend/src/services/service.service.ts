@@ -117,6 +117,16 @@ export class ServiceService {
     }
   }
 
+  static async clearAll() {
+    try {
+      const count = await prisma.service.deleteMany({});
+      return { success: true, count: count.count };
+    } catch (error) {
+      console.error('CLEAR ALL SERVICES ERROR:', error);
+      throw error;
+    }
+  }
+
   static async toggleStatus(id: string) {
     try {
       const current = await prisma.service.findUnique({ where: { id } });

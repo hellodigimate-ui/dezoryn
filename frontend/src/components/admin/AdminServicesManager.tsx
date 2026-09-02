@@ -371,6 +371,25 @@ export const AdminServicesManager: React.FC = () => {
     }
   };
 
+  // Clear All Services
+  const handleClearAllServices = async () => {
+    if (!window.confirm('Are you sure you want to permanently delete ALL services from the database? This action cannot be undone.')) return;
+    setIsLoading(true);
+    try {
+      const res = await apiFetch(`${API_SERVICES}/bulk/clear-all`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success !== false) {
+        showMsg('success', 'All services have been permanently purged from PostgreSQL database.');
+      } else {
+        showMsg('error', data.message || 'Failed to clear services.');
+      }
+    } catch (err: any) {
+      showMsg('error', err.message || 'Network error while clearing services.');
+    } finally {
+      await fetchServices();
+    }
+  };
+
   // Duplicate Service
   const handleDuplicateService = async (srv: ServiceRecord) => {
     try {
@@ -458,6 +477,17 @@ export const AdminServicesManager: React.FC = () => {
           >
             <RefreshCw className={`w-4 h-4 text-blue-500 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
+
+          {services.length > 0 && (
+            <button
+              onClick={handleClearAllServices}
+              className="px-3 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 font-bold text-xs border border-rose-200 dark:border-rose-800 transition cursor-pointer flex items-center gap-1.5"
+              title="Delete all services from database"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete All</span>
+            </button>
+          )}
 
           <button
             onClick={openCreateModal}

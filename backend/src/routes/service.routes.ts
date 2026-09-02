@@ -5,6 +5,7 @@ const router = Router();
 
 // Public & Admin Service Endpoints
 router.get('/', ServiceController.getAll);
+router.delete('/bulk/clear-all', ServiceController.clearAll);
 router.get('/:id', ServiceController.getById);
 router.post('/', ServiceController.create);
 router.post('/reorder', ServiceController.reorder);

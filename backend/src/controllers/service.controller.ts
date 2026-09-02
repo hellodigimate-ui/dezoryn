@@ -108,6 +108,19 @@ export class ServiceController {
     }
   }
 
+  static async clearAll(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await ServiceService.clearAll();
+      res.status(200).json({
+        success: true,
+        message: 'All services permanently deleted from database',
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async toggleStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const service = await ServiceService.toggleStatus(req.params.id);
