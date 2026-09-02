@@ -166,10 +166,10 @@ export const SupportPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-12 lg:py-20 font-['Plus_Jakarta_Sans',sans-serif] relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 py-12 lg:py-20 font-['Plus_Jakarta_Sans',sans-serif] relative overflow-hidden transition-colors duration-300">
       {/* Glow Backdrops */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-blue-600/15 via-cyan-500/10 to-transparent blur-[140px] pointer-events-none -z-10" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none -z-10" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-b from-blue-500/10 via-cyan-500/10 dark:from-blue-600/15 dark:via-cyan-500/10 to-transparent blur-[140px] pointer-events-none -z-10" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b06_1px,transparent_1px),linear-gradient(to_bottom,#1e293b06_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none -z-10" />
 
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         {/* Header */}
@@ -177,9 +177,9 @@ export const SupportPage: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-xs font-extrabold text-cyan-400 mb-4 shadow-sm"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-400/30 text-xs font-extrabold text-cyan-600 dark:text-cyan-400 mb-4 shadow-sm"
           >
-            <LifeBuoy className="w-4 h-4 text-cyan-400 animate-pulse" />
+            <LifeBuoy className="w-4 h-4 text-cyan-500 dark:text-cyan-400 animate-pulse" />
             <span>24/7 ENTERPRISE SUPPORT CENTER</span>
           </motion.div>
 
@@ -187,16 +187,16 @@ export const SupportPage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight mb-4"
+            className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight mb-4"
           >
-            How can we <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-violet-400 bg-clip-text text-transparent">help you?</span>
+            How can we <span className="bg-gradient-to-r from-blue-600 via-cyan-500 to-violet-600 dark:from-blue-400 dark:via-cyan-400 dark:to-violet-400 bg-clip-text text-transparent">help you?</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed"
+            className="text-sm sm:text-base text-slate-600 dark:text-slate-300 font-normal leading-relaxed"
           >
             Submit a support request and our dedicated engineering team will get back to you as soon as possible.
           </motion.p>
@@ -212,80 +212,80 @@ export const SupportPage: React.FC = () => {
             className="lg:col-span-4 space-y-6"
           >
             {/* Support Desk Info Card */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-blue-600/20 to-transparent blur-2xl pointer-events-none" />
+            <div className="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-blue-600/10 dark:from-blue-600/20 to-transparent blur-2xl pointer-events-none" />
 
-              <h2 className="text-xl font-black text-white mb-2 flex items-center gap-2">
-                <Headphones className="w-5 h-5 text-cyan-400" />
+              <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                <Headphones className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                 <span>Dedicated Support Desk</span>
               </h2>
-              <p className="text-xs text-slate-400 leading-relaxed mb-6">
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
                 Our support team handles technical inquiries, account configuration, billing requests, and bug reports 24/7.
               </p>
 
               <div className="space-y-4">
-                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-                  <Clock className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80">
+                  <Clock className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-xs font-bold text-white">Rapid SLA Response</h3>
-                    <p className="text-[11px] text-slate-400">Critical issues addressed within 1-2 hours</p>
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white">Rapid SLA Response</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Critical issues addressed within 1-2 hours</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-xs font-bold text-white">Bank-Grade Encryption</h3>
-                    <p className="text-[11px] text-slate-400">Your customer data & logs remain strictly confidential</p>
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white">Bank-Grade Encryption</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Your customer data & logs remain strictly confidential</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-                  <Mail className="w-5 h-5 text-violet-400 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80">
+                  <Mail className="w-5 h-5 text-violet-600 dark:text-violet-400 shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-xs font-bold text-white">Direct Support Email</h3>
-                    <a href="mailto:support@dezoryn.com" className="text-[11px] text-cyan-400 hover:underline">
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white">Direct Support Email</h3>
+                    <a href="mailto:support@dezoryn.com" className="text-[11px] text-blue-600 dark:text-cyan-400 hover:underline font-bold">
                       support@dezoryn.com
                     </a>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-                  <Phone className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80">
+                  <Phone className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-xs font-bold text-white">Phone Support Line</h3>
-                    <p className="text-[11px] text-slate-300">+91 77778 04850</p>
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white">Phone Support Line</h3>
+                    <p className="text-[11px] text-slate-700 dark:text-slate-300 font-bold">+91 77778 04850</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Quick Links Card */}
-            <div className="bg-gradient-to-br from-blue-950/40 via-slate-900/90 to-purple-950/30 border border-slate-800 rounded-3xl p-6 shadow-lg">
-              <h3 className="text-sm font-black text-white mb-3 flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-cyan-400" />
+            <div className="bg-white/90 dark:bg-gradient-to-br dark:from-blue-950/40 dark:via-slate-900/90 dark:to-purple-950/30 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-lg">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                <HelpCircle className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                 <span>Self-Service Resources</span>
               </h3>
-              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
                 Looking for product manuals, developer APIs, or common setup questions?
               </p>
               <div className="space-y-2">
                 <button
                   type="button"
                   onClick={() => navigateTo('/faq')}
-                  className="w-full text-left px-3.5 py-2.5 rounded-xl bg-slate-950/50 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-200 transition flex items-center justify-between cursor-pointer"
+                  className="w-full text-left px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 transition flex items-center justify-between cursor-pointer"
                 >
                   <span>Frequently Asked Questions</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
+                  <ArrowRight className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                 </button>
 
                 <button
                   type="button"
                   onClick={() => navigateTo('/api-docs')}
-                  className="w-full text-left px-3.5 py-2.5 rounded-xl bg-slate-950/50 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-slate-200 transition flex items-center justify-between cursor-pointer"
+                  className="w-full text-left px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 transition flex items-center justify-between cursor-pointer"
                 >
                   <span>API & Developer Documentation</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
+                  <ArrowRight className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                 </button>
               </div>
             </div>
@@ -298,7 +298,7 @@ export const SupportPage: React.FC = () => {
             transition={{ delay: 0.3 }}
             className="lg:col-span-8"
           >
-            <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-xl relative">
+            <div className="bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-xl relative">
               <AnimatePresence mode="wait">
                 {submittedTicket ? (
                   /* ── SUCCESS STATE ── */
@@ -309,38 +309,38 @@ export const SupportPage: React.FC = () => {
                     exit={{ opacity: 0, scale: 0.95 }}
                     className="text-center py-8 space-y-6"
                   >
-                    <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto text-emerald-400">
+                    <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="w-8 h-8" />
                     </div>
 
                     <div className="space-y-2">
-                      <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold uppercase tracking-wider">
+                      <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-extrabold uppercase tracking-wider">
                         TICKET SUBMITTED SUCCESSFULLY
                       </span>
-                      <h2 className="text-2xl sm:text-3xl font-black text-white mt-2">
+                      <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-2">
                         Thank You! We Have Received Your Request.
                       </h2>
-                      <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
-                        Our technical support team will evaluate your ticket and send updates directly to <strong className="text-white">{submittedTicket.email}</strong>.
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-lg mx-auto leading-relaxed">
+                        Our technical support team will evaluate your ticket and send updates directly to <strong className="text-slate-900 dark:text-white">{submittedTicket.email}</strong>.
                       </p>
                     </div>
 
                     {/* Reference Ticket Box */}
-                    <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 max-w-md mx-auto space-y-2">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block">
+                    <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 max-w-md mx-auto space-y-2 shadow-inner">
+                      <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
                         YOUR SUPPORT TICKET REFERENCE
                       </span>
-                      <div className="text-2xl sm:text-3xl font-black text-cyan-400 tracking-wider">
+                      <div className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-cyan-400 tracking-wider">
                         {submittedTicket.ticketId}
                       </div>
-                      <p className="text-[11px] text-slate-400">Please save this ticket ID for future reference.</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Please save this ticket ID for future reference.</p>
                     </div>
 
                     <div className="pt-4 flex flex-wrap gap-4 justify-center">
                       <button
                         type="button"
                         onClick={handleReset}
-                        className="px-6 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs transition cursor-pointer shadow-lg shadow-cyan-500/20 flex items-center gap-2"
+                        className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs transition cursor-pointer shadow-lg shadow-cyan-500/20 flex items-center gap-2"
                       >
                         <RefreshCw className="w-4 h-4" />
                         <span>Submit Another Request</span>
@@ -349,7 +349,7 @@ export const SupportPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => navigateTo('/')}
-                        className="px-6 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition cursor-pointer"
+                        className="px-6 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs border border-slate-200 dark:border-slate-700 transition cursor-pointer"
                       >
                         <span>Return to Home</span>
                       </button>
@@ -365,20 +365,20 @@ export const SupportPage: React.FC = () => {
                     onSubmit={handleSubmit}
                     className="space-y-6"
                   >
-                    <div className="border-b border-slate-800 pb-4 mb-6">
-                      <h2 className="text-xl font-black text-white flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-cyan-400" />
+                    <div className="border-b border-slate-200 dark:border-slate-800 pb-4 mb-6">
+                      <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
                         <span>Submit Support Ticket</span>
                       </h2>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         Fill out the details below. Required fields are marked with an asterisk (*).
                       </p>
                     </div>
 
                     {/* Server Error Alert */}
                     {serverError && (
-                      <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-start gap-3">
-                        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                      <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs font-bold flex items-start gap-3">
+                        <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
                         <span>{serverError}</span>
                       </div>
                     )}
@@ -386,55 +386,55 @@ export const SupportPage: React.FC = () => {
                     {/* Row 1: Full Name & Email */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-extrabold text-slate-300">Full Name *</label>
+                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Full Name *</label>
                         <input
                           type="text"
                           value={form.fullName}
                           onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                           placeholder="e.g. John Doe"
-                          className={`w-full px-4 py-3 rounded-2xl bg-slate-950 border ${
-                            errors.fullName ? 'border-rose-500 focus:ring-rose-500/40' : 'border-slate-800 focus:ring-cyan-500/40'
-                          } text-xs font-bold text-white outline-none focus:ring-2`}
+                          className={`w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border ${
+                            errors.fullName ? 'border-rose-500 focus:ring-rose-500/40' : 'border-slate-200 dark:border-slate-800 focus:ring-blue-500/40 dark:focus:ring-cyan-500/40'
+                          } text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2`}
                         />
-                        {errors.fullName && <p className="text-[11px] font-semibold text-rose-400">{errors.fullName}</p>}
+                        {errors.fullName && <p className="text-[11px] font-semibold text-rose-500 dark:text-rose-400">{errors.fullName}</p>}
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-extrabold text-slate-300">Email Address *</label>
+                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Email Address *</label>
                         <input
                           type="email"
                           value={form.email}
                           onChange={(e) => setForm({ ...form, email: e.target.value })}
                           placeholder="john@company.com"
-                          className={`w-full px-4 py-3 rounded-2xl bg-slate-950 border ${
-                            errors.email ? 'border-rose-500 focus:ring-rose-500/40' : 'border-slate-800 focus:ring-cyan-500/40'
-                          } text-xs font-bold text-white outline-none focus:ring-2`}
+                          className={`w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border ${
+                            errors.email ? 'border-rose-500 focus:ring-rose-500/40' : 'border-slate-200 dark:border-slate-800 focus:ring-blue-500/40 dark:focus:ring-cyan-500/40'
+                          } text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2`}
                         />
-                        {errors.email && <p className="text-[11px] font-semibold text-rose-400">{errors.email}</p>}
+                        {errors.email && <p className="text-[11px] font-semibold text-rose-500 dark:text-rose-400">{errors.email}</p>}
                       </div>
                     </div>
 
                     {/* Row 2: Phone & Company */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-extrabold text-slate-300">Phone Number (Optional)</label>
+                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Phone Number (Optional)</label>
                         <input
                           type="text"
                           value={form.phone}
                           onChange={(e) => setForm({ ...form, phone: e.target.value })}
                           placeholder="+1 (555) 000-0000"
-                          className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
+                          className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/40 dark:focus:ring-cyan-500/40"
                         />
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-extrabold text-slate-300">Company (Optional)</label>
+                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Company (Optional)</label>
                         <input
                           type="text"
                           value={form.company}
                           onChange={(e) => setForm({ ...form, company: e.target.value })}
                           placeholder="e.g. Acme Corp"
-                          className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-cyan-500/40"
+                          className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/40 dark:focus:ring-cyan-500/40"
                         />
                       </div>
                     </div>
@@ -442,11 +442,11 @@ export const SupportPage: React.FC = () => {
                     {/* Row 3: Category & Product */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-extrabold text-slate-300">Support Category *</label>
+                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Support Category *</label>
                         <select
                           value={form.category}
                           onChange={(e) => setForm({ ...form, category: e.target.value })}
-                          className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-cyan-500/40 cursor-pointer"
+                          className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/40 dark:focus:ring-cyan-500/40 cursor-pointer"
                         >
                           {CATEGORIES.map((cat) => (
                             <option key={cat} value={cat}>
@@ -454,15 +454,15 @@ export const SupportPage: React.FC = () => {
                             </option>
                           ))}
                         </select>
-                        {errors.category && <p className="text-[11px] font-semibold text-rose-400">{errors.category}</p>}
+                        {errors.category && <p className="text-[11px] font-semibold text-rose-500 dark:text-rose-400">{errors.category}</p>}
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-extrabold text-slate-300">Product / Software (Optional)</label>
+                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Product / Software (Optional)</label>
                         <select
                           value={form.product}
                           onChange={(e) => setForm({ ...form, product: e.target.value })}
-                          className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-cyan-500/40 cursor-pointer"
+                          className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/40 dark:focus:ring-cyan-500/40 cursor-pointer"
                         >
                           {PRODUCTS.map((prod) => (
                             <option key={prod} value={prod}>
@@ -476,25 +476,25 @@ export const SupportPage: React.FC = () => {
                     {/* Row 4: Subject & Priority */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                       <div className="sm:col-span-2 space-y-1.5">
-                        <label className="text-xs font-extrabold text-slate-300">Subject *</label>
+                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Subject *</label>
                         <input
                           type="text"
                           value={form.subject}
                           onChange={(e) => setForm({ ...form, subject: e.target.value })}
                           placeholder="e.g. Unable to access dashboard after login"
-                          className={`w-full px-4 py-3 rounded-2xl bg-slate-950 border ${
-                            errors.subject ? 'border-rose-500 focus:ring-rose-500/40' : 'border-slate-800 focus:ring-cyan-500/40'
-                          } text-xs font-bold text-white outline-none focus:ring-2`}
+                          className={`w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border ${
+                            errors.subject ? 'border-rose-500 focus:ring-rose-500/40' : 'border-slate-200 dark:border-slate-800 focus:ring-blue-500/40 dark:focus:ring-cyan-500/40'
+                          } text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2`}
                         />
-                        {errors.subject && <p className="text-[11px] font-semibold text-rose-400">{errors.subject}</p>}
+                        {errors.subject && <p className="text-[11px] font-semibold text-rose-500 dark:text-rose-400">{errors.subject}</p>}
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-extrabold text-slate-300">Priority Level</label>
+                        <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Priority Level</label>
                         <select
                           value={form.priority}
                           onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                          className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-bold text-white outline-none focus:ring-2 focus:ring-cyan-500/40 cursor-pointer"
+                          className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/40 dark:focus:ring-cyan-500/40 cursor-pointer"
                         >
                           {PRIORITIES.map((p) => (
                             <option key={p.value} value={p.value}>
@@ -507,17 +507,17 @@ export const SupportPage: React.FC = () => {
 
                     {/* Row 5: Detailed Message */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-extrabold text-slate-300">Message / Issue Details *</label>
+                      <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300">Message / Issue Details *</label>
                       <textarea
                         rows={5}
                         value={form.message}
                         onChange={(e) => setForm({ ...form, message: e.target.value })}
                         placeholder="Please describe the issue or inquiry in detail..."
-                        className={`w-full px-4 py-3 rounded-2xl bg-slate-950 border ${
-                          errors.message ? 'border-rose-500 focus:ring-rose-500/40' : 'border-slate-800 focus:ring-cyan-500/40'
-                        } text-xs font-bold text-white outline-none focus:ring-2 resize-none`}
+                        className={`w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border ${
+                          errors.message ? 'border-rose-500 focus:ring-rose-500/40' : 'border-slate-200 dark:border-slate-800 focus:ring-blue-500/40 dark:focus:ring-cyan-500/40'
+                        } text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 resize-none`}
                       />
-                      {errors.message && <p className="text-[11px] font-semibold text-rose-400">{errors.message}</p>}
+                      {errors.message && <p className="text-[11px] font-semibold text-rose-500 dark:text-rose-400">{errors.message}</p>}
                     </div>
 
                     {/* Submit Button */}
@@ -525,7 +525,7 @@ export const SupportPage: React.FC = () => {
                       <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-cyan-500 to-violet-600 hover:from-blue-500 hover:to-cyan-400 disabled:opacity-50 text-white font-black text-sm shadow-xl shadow-cyan-500/20 transition cursor-pointer flex items-center justify-center gap-2 border-none"
+                        className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-50 text-white font-black text-sm shadow-xl shadow-cyan-500/20 transition cursor-pointer flex items-center justify-center gap-2 border-none"
                       >
                         {isSubmitting ? (
                           <>

@@ -658,23 +658,23 @@ export const AdminHomepageStatsCMS: React.FC = () => {
             </p>
 
             {/* Simulated Homepage Section Container */}
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-white space-y-6 overflow-hidden">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white space-y-6 overflow-hidden">
               {/* Statistics Grid */}
               {formData.statsEnabled && activeStatsForPreview.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3">
                   {activeStatsForPreview.map((stat) => (
                     <div
                       key={stat.id}
-                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-900/90 border border-slate-800/80"
+                      className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 shadow-xs"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center shrink-0">
                         {renderStatIcon(stat.icon)}
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-extrabold text-white leading-tight truncate">
+                        <span className="text-sm font-extrabold text-slate-900 dark:text-white leading-tight truncate">
                           {stat.value || '0'}
                         </span>
-                        <span className="text-[10px] font-semibold text-slate-400 truncate">
+                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate">
                           {stat.label || 'Label'}
                         </span>
                       </div>
@@ -682,24 +682,24 @@ export const AdminHomepageStatsCMS: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="p-4 text-center text-xs font-semibold text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                <div className="p-4 text-center text-xs font-semibold text-slate-500 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
                   {formData.statsEnabled ? 'No active statistics' : 'Statistics section disabled'}
                 </div>
               )}
 
               {/* AI Assistant CTA Block */}
               {formData.aiAssistantEnabled ? (
-                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-3">
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-xs">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md relative shrink-0">
                       <Bot className="w-5 h-5" />
-                      <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-900 rounded-full" />
+                      <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-white dark:border-slate-900 rounded-full" />
                     </div>
                     <div className="flex flex-col text-left min-w-0">
-                      <span className="text-xs font-extrabold text-white truncate">
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
                         {formData.aiAssistantTitle || 'AI Assistant'}
                       </span>
-                      <span className="text-[10px] font-medium text-slate-400 truncate">
+                      <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">
                         {formData.aiAssistantGreeting || 'Greeting'}
                       </span>
                     </div>
@@ -713,8 +713,8 @@ export const AdminHomepageStatsCMS: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <div className="p-3 text-center text-xs font-semibold text-slate-500 border border-dashed border-slate-800 rounded-xl">
-                  AI Assistant CTA disabled
+                <div className="p-3 text-center text-xs font-semibold text-slate-500 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl">
+                  AI Assistant Widget Disabled
                 </div>
               )}
             </div>

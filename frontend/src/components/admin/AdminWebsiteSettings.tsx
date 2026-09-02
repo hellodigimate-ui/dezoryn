@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Globe, Save, RefreshCw, CheckCircle2, Sparkles, AlertTriangle,
-  Megaphone, Languages, Clock, DollarSign, Mail, BarChart3,
+  Megaphone, Languages, Clock, IndianRupee, Mail, BarChart3,
   Image, Shield, Eye, EyeOff, X, Wifi, WifiOff, FolderOpen, Upload,
   Zap, ChevronRight, Bell, Settings2, Lock, ExternalLink,
   Server, SendHorizonal, SquareCheck, AlertCircle
@@ -773,7 +773,7 @@ export const AdminWebsiteSettings: React.FC = () => {
 
                 <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 shadow-sm space-y-5">
                   <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
-                    <DollarSign className="w-4 h-4 text-amber-400" />
+                    <IndianRupee className="w-4 h-4 text-amber-400" />
                     <h3 className="text-sm font-black text-slate-900 dark:text-white">Currency</h3>
                   </div>
                   <Field label="Default Currency" hint="Used in pricing pages and invoice generation">

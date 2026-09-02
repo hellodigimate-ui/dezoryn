@@ -9,7 +9,7 @@ import {
   Plus,
   Trash2,
   Building2,
-  DollarSign,
+  IndianRupee,
   Cloud,
   Smartphone,
   ShieldCheck,
@@ -59,7 +59,7 @@ export const ProductCompareModal: React.FC<ProductCompareModalProps> = ({
     {
       key: 'pricing',
       label: 'Starting Price',
-      icon: <DollarSign className="w-4 h-4 text-emerald-500" />,
+      icon: <IndianRupee className="w-4 h-4 text-emerald-500" />,
       getValue: (p) => (
         <div className="font-extrabold text-slate-900 dark:text-white text-base">
           {p.price || '₹3,999/mo'}

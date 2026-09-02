@@ -196,4 +196,161 @@ export class AnalyticsService {
       throw err;
     }
   }
+
+  static async getOverviewDashboardStats() {
+    try {
+      const [
+        totalProducts,
+        activeProducts,
+        contactSubmissions,
+        demoBookings,
+        newsletterSubscribers,
+        totalMedia,
+        mediaAgg,
+        totalTestimonials,
+        totalFaqs,
+        totalDemos,
+        totalJobs,
+        totalServices,
+        recentContacts,
+        recentBookings,
+        recentProducts
+      ] = await Promise.all([
+        prisma.product.count().catch(() => 0),
+        prisma.product.count({ where: { status: 'active' } }).catch(() => 0),
+        prisma.contactSubmission.count().catch(() => 0),
+        prisma.demoBooking.count().catch(() => 0),
+        prisma.$queryRawUnsafe('SELECT COUNT(*)::int as c FROM newsletter_subscribers').then((r: any) => r[0]?.c || 0).catch(() => 0),
+        prisma.media.count().catch(() => 0),
+        prisma.media.aggregate({ _sum: { size: true } }).catch(() => ({ _sum: { size: 0 } })),
+        prisma.testimonial.count().catch(() => 0),
+        prisma.faq.count().catch(() => 0),
+        prisma.productDemo.count().catch(() => 0),
+        prisma.job.count().catch(() => 0),
+        prisma.service.count().catch(() => 0),
+        prisma.contactSubmission.findMany({
+          take: 4,
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, fullName: true, company: true, productInterest: true, createdAt: true }
+        }).catch(() => []),
+        prisma.demoBooking.findMany({
+          take: 4,
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, fullName: true, company: true, productSelected: true, createdAt: true }
+        }).catch(() => []),
+        prisma.product.findMany({
+          take: 4,
+          orderBy: { updatedAt: 'desc' },
+          select: { id: true, title: true, category: true, updatedAt: true }
+        }).catch(() => [])
+      ]);
+
+      const totalSizeBytes = (mediaAgg as any)?._sum?.size || 0;
+      let storageFormatted = '0 MB';
+      if (totalSizeBytes > 1024 * 1024 * 1024) {
+        storageFormatted = `${(totalSizeBytes / (1024 * 1024 * 1024)).toFixed(1)} GB Storage Used`;
+      } else if (totalSizeBytes > 1024 * 1024) {
+        storageFormatted = `${(totalSizeBytes / (1024 * 1024)).toFixed(1)} MB Storage Used`;
+      } else if (totalSizeBytes > 0) {
+        storageFormatted = `${(totalSizeBytes / 1024).toFixed(0)} KB Storage Used`;
+      } else {
+        storageFormatted = '0 MB Storage Used';
+      }
+
+      // Build recent live activity
+      const activityList: Array<{ id: string; action: string; detail: string; time: string; user: string; timestamp: number }> = [];
+
+      (recentContacts as any[]).forEach((c: any) => {
+        activityList.push({
+          id: `contact-${c.id}`,
+          action: 'New Contact Inquiry',
+          detail: `${c.fullName || 'Visitor'}${c.company ? ` (${c.company})` : ''} inquired about ${c.productInterest || 'Enterprise Solutions'}`,
+          time: formatTimeAgo(c.createdAt),
+          user: 'Customer',
+          timestamp: new Date(c.createdAt).getTime()
+        });
+      });
+
+      (recentBookings as any[]).forEach((b: any) => {
+        activityList.push({
+          id: `booking-${b.id}`,
+          action: 'Product Demo Scheduled',
+          detail: `${b.fullName}${b.company ? ` (${b.company})` : ''} requested live walkthrough for ${b.productSelected || 'Software Suite'}`,
+          time: formatTimeAgo(b.createdAt),
+          user: 'Prospect',
+          timestamp: new Date(b.createdAt).getTime()
+        });
+      });
+
+      (recentProducts as any[]).forEach((p: any) => {
+        activityList.push({
+          id: `product-${p.id}`,
+          action: 'Product Catalog Updated',
+          detail: `${p.title} (${p.category || 'SaaS'}) updated in database`,
+          time: formatTimeAgo(p.updatedAt),
+          user: 'Admin',
+          timestamp: new Date(p.updatedAt).getTime()
+        });
+      });
+
+      activityList.sort((a, b) => b.timestamp - a.timestamp);
+
+      // If no activity yet, provide a clean starter item
+      if (activityList.length === 0) {
+        activityList.push({
+          id: 'initial',
+          action: 'CMS Ready',
+          detail: 'Centralized CMS system active and receiving live events',
+          time: 'Active',
+          user: 'System',
+          timestamp: Date.now()
+        });
+      }
+
+      return {
+        publishedSections: {
+          count: 9,
+          names: 'Hero, Products, FAQs, Testimonials, Solutions, Pricing, Careers, Footer, Demos'
+        },
+        products: {
+          total: totalProducts,
+          active: activeProducts
+        },
+        leads: {
+          total: contactSubmissions + demoBookings + newsletterSubscribers,
+          contacts: contactSubmissions,
+          bookings: demoBookings,
+          newsletter: newsletterSubscribers
+        },
+        media: {
+          total: totalMedia,
+          storage: storageFormatted,
+          totalBytes: totalSizeBytes
+        },
+        counts: {
+          testimonials: totalTestimonials,
+          faqs: totalFaqs,
+          demos: totalDemos,
+          jobs: totalJobs,
+          services: totalServices
+        },
+        recentActivity: activityList.slice(0, 5)
+      };
+    } catch (error) {
+      console.error('getOverviewDashboardStats error:', error);
+      throw error;
+    }
+  }
 }
+
+function formatTimeAgo(date: Date | string): string {
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+

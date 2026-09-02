@@ -14,10 +14,9 @@ import {
   Cross,
   Boxes,
   ShieldCheck,
-  BadgeDollarSign,
+  IndianRupee,
   BarChart3,
   ShoppingBag,
-  DollarSign,
   X,
   Star,
   Layers
@@ -81,8 +80,8 @@ const renderModuleIcon = (iconName?: string, category?: string) => {
   if (icon.includes('shield') || cat.includes('security')) {
     return <ShieldCheck className="w-5 h-5 text-indigo-500" />;
   }
-  if (icon.includes('dollar') || cat.includes('finance')) {
-    return <BadgeDollarSign className="w-5 h-5 text-emerald-600" />;
+  if (icon.includes('dollar') || icon.includes('rupee') || cat.includes('finance')) {
+    return <IndianRupee className="w-5 h-5 text-emerald-600" />;
   }
   if (icon.includes('chart') || cat.includes('analytics')) {
     return <BarChart3 className="w-5 h-5 text-teal-500" />;
@@ -292,7 +291,7 @@ export const PricingPage: React.FC = () => {
           <div className="flex items-center justify-between gap-4 mb-6">
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                <IndianRupee className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
                 <span>Main Platform Subscriptions</span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -324,7 +323,7 @@ export const PricingPage: React.FC = () => {
             </div>
           ) : plans.length === 0 ? (
             <div className="text-center py-16 p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
-              <DollarSign className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+              <IndianRupee className="w-12 h-12 text-slate-400 mx-auto mb-3" />
               <h3 className="text-base font-black text-slate-700 dark:text-slate-300">No Pricing Plans Published</h3>
               <p className="text-xs text-slate-500 mt-1">Configure your subscription plans in the Admin Portal.</p>
             </div>
@@ -497,7 +496,7 @@ export const PricingPage: React.FC = () => {
                     {/* Starting Price Pill */}
                     {module.price && (
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 text-xs font-black text-emerald-600 dark:text-emerald-400 mb-3">
-                        <BadgeDollarSign className="w-3.5 h-3.5" />
+                        <IndianRupee className="w-3.5 h-3.5" />
                         <span>{module.price}</span>
                       </div>
                     )}

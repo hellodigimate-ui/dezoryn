@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 
 import { API_URL, apiFetch } from '../../config/api.config';
+import { applyGlobalTheme } from '../../utils/themeUtils';
 
 const API_THEME = `${API_URL}/theme`;
 
@@ -265,58 +266,7 @@ export const hexToRgb = (hex: string): string => {
 };
 
 export const applyCSSVariables = (theme: ThemeSettings) => {
-  const root = document.documentElement;
-
-  let effectiveMode = theme.activeMode || 'dark';
-  if (effectiveMode === 'system') {
-    effectiveMode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-
-  const activeColors =
-    effectiveMode === 'light' ? theme.lightTheme.colorSettings : theme.darkTheme.colorSettings;
-  const activeTypo =
-    effectiveMode === 'light' ? theme.lightTheme.typographySettings : theme.darkTheme.typographySettings;
-
-  if (effectiveMode === 'dark') {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
-  }
-
-  root.style.setProperty('--primary-color', activeColors.primary);
-  root.style.setProperty('--secondary-color', activeColors.secondary);
-  root.style.setProperty('--accent-color', activeColors.accent);
-  root.style.setProperty('--bg-color', activeColors.background);
-  root.style.setProperty('--surface-color', activeColors.surface);
-  root.style.setProperty('--card-color', activeColors.card);
-  root.style.setProperty('--border-color', activeColors.border);
-  root.style.setProperty('--text-primary-color', activeColors.textPrimary);
-  root.style.setProperty('--text-secondary-color', activeColors.textSecondary);
-  root.style.setProperty('--link-color', activeColors.link);
-  root.style.setProperty('--success-color', activeColors.success);
-  root.style.setProperty('--warning-color', activeColors.warning);
-  root.style.setProperty('--error-color', activeColors.error);
-  root.style.setProperty('--info-color', activeColors.info);
-
-  root.style.setProperty('--font-heading', `'${activeTypo.headingFont}', sans-serif`);
-  root.style.setProperty('--font-body', `'${activeTypo.bodyFont}', sans-serif`);
-  root.style.setProperty('--font-button', `'${activeTypo.buttonFont}', sans-serif`);
-  root.style.setProperty('--font-weight', activeTypo.fontWeight);
-  root.style.setProperty('--letter-spacing', activeTypo.letterSpacing);
-  root.style.setProperty('--line-height', activeTypo.lineHeight);
-  root.style.setProperty('--text-transform', activeTypo.textTransform);
-  root.style.setProperty('--font-scale', activeTypo.fontScale);
-
-  if (activeTypo.fontSizes) {
-    Object.entries(activeTypo.fontSizes).forEach(([k, v]) => {
-      root.style.setProperty(`--font-size-${k}`, v);
-    });
-  }
-
-  root.style.setProperty('--font-family', activeTypo.headingFont);
-  root.style.setProperty('--border-radius', theme.borderRadius);
-
-  window.dispatchEvent(new CustomEvent('dezo-theme-updated', { detail: theme }));
+  applyGlobalTheme(theme.activeMode || theme.defaultMode || 'dark', theme, true);
 };
 
 export const AdminThemeManager: React.FC = () => {

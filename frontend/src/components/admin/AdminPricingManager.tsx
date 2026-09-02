@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  DollarSign, Plus, Trash2, Edit3, Eye, EyeOff,
+  IndianRupee, Plus, Trash2, Edit3, Eye, EyeOff,
   Save, X, RefreshCw, CheckCircle2, Star, Sparkles,
   GripVertical, ArrowRight, Check, Store, Search,
-  Layers, BadgeDollarSign, Layers3
+  Layers, Layers3, AlertTriangle
 } from 'lucide-react';
 
 import { API_URL, apiFetch } from '../../config/api.config';
@@ -79,6 +79,8 @@ export const AdminPricingManager: React.FC = () => {
   // Global Plans State
   const [plans, setPlans] = useState<PricingPlanData[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  const [isDeletingPlan, setIsDeletingPlan] = useState(false);
+  const [deleteConfirmPlan, setDeleteConfirmPlan] = useState<{ id: string; name: string } | null>(null);
   const [globalModal, setGlobalModal] = useState<{ mode: 'create' | 'edit'; plan?: PricingPlanData } | null>(null);
   const [globalForm, setGlobalForm] = useState<Omit<PricingPlanData, 'id'>>(EMPTY_GLOBAL);
   const [newGlobalFeature, setNewGlobalFeature] = useState('');
@@ -171,13 +173,20 @@ export const AdminPricingManager: React.FC = () => {
     finally { setIsSaving(false); }
   };
 
-  const handleDeleteGlobal = async (id: string, name: string) => {
-    if (!confirm(`Delete platform plan "${name}"?`)) return;
+  const handleConfirmDeleteGlobal = async () => {
+    if (!deleteConfirmPlan) return;
+    const { id, name } = deleteConfirmPlan;
+    setIsDeletingPlan(true);
     try {
       await apiFetch(`${API_PRICING}/${id}`, { method: 'DELETE' });
       setPlans(prev => prev.filter(p => p.id !== id));
-      showMsg('info', `"${name}" deleted.`);
-    } catch { showMsg('error', 'Failed to delete.'); }
+      showMsg('info', `"${name}" deleted successfully.`);
+      setDeleteConfirmPlan(null);
+    } catch {
+      showMsg('error', 'Failed to delete plan.');
+    } finally {
+      setIsDeletingPlan(false);
+    }
   };
 
   const handleToggleGlobal = async (id: string, name: string, cur: boolean) => {
@@ -360,7 +369,7 @@ export const AdminPricingManager: React.FC = () => {
       <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-r from-violet-700 via-purple-700 to-indigo-700 text-white shadow-xl shadow-violet-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-black mb-2">
-            <DollarSign className="w-3.5 h-3.5" />Central Pricing Control Center
+            <IndianRupee className="w-3.5 h-3.5" />Central Pricing Control Center
           </div>
           <h1 className="text-2xl md:text-3xl font-black tracking-tight">Pricing & Subscription Manager</h1>
           <p className="text-xs text-purple-100 max-w-2xl mt-1 leading-relaxed">
@@ -607,7 +616,7 @@ export const AdminPricingManager: React.FC = () => {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${theme.gradient} flex items-center justify-center shrink-0`}>
-                              <DollarSign className="w-4 h-4 text-white" />
+                              <IndianRupee className="w-4 h-4 text-white" />
                             </div>
                             {plan.isHighlight && <Star className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
                           </div>
@@ -652,7 +661,7 @@ export const AdminPricingManager: React.FC = () => {
                           className="p-1.5 rounded-lg bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 cursor-pointer transition">
                           {plan.isEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                         </button>
-                        <button type="button" onClick={() => handleDeleteGlobal(plan.id, plan.name)}
+                        <button type="button" onClick={() => setDeleteConfirmPlan({ id: plan.id, name: plan.name })}
                           className="p-1.5 rounded-lg bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 text-rose-500 hover:bg-rose-50 cursor-pointer transition">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -710,7 +719,7 @@ export const AdminPricingManager: React.FC = () => {
                 {/* Section A: Base Display Price Settings */}
                 <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
                   <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                    <BadgeDollarSign className="w-4 h-4 text-emerald-500" />
+                    <IndianRupee className="w-4 h-4 text-emerald-500" />
                     Base CRM Display Price
                   </h3>
 
@@ -985,7 +994,7 @@ export const AdminPricingManager: React.FC = () => {
 
               <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-t-3xl">
                 <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-violet-500" />
+                  <IndianRupee className="w-5 h-5 text-violet-500" />
                   {globalModal.mode === 'create' ? 'Create Platform Subscription Plan' : 'Edit Platform Subscription Plan'}
                 </h2>
                 <button type="button" onClick={closeGlobalModal} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer">
@@ -1140,6 +1149,79 @@ export const AdminPricingManager: React.FC = () => {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Custom Delete Plan Confirmation Modal ── */}
+      <AnimatePresence>
+        {deleteConfirmPlan && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeletingPlan && setDeleteConfirmPlan(null)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 15 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+              className="relative w-full max-w-md p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-rose-500/30 text-slate-900 dark:text-white shadow-2xl overflow-hidden font-['Plus_Jakarta_Sans',sans-serif]"
+            >
+              <div className="absolute top-0 right-0 w-48 h-48 bg-rose-500/10 rounded-full blur-[70px] pointer-events-none" />
+
+              <div className="flex items-start gap-4 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500 dark:text-rose-400 shrink-0">
+                  <AlertTriangle className="w-6 h-6 animate-pulse" />
+                </div>
+
+                <div className="flex-1 min-w-0 text-left">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-500 dark:text-rose-400">
+                    PERMANENT DELETION
+                  </span>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
+                    Delete Platform Plan?
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 font-medium leading-relaxed">
+                    Are you sure you want to delete platform plan <span className="font-bold text-slate-900 dark:text-white">"{deleteConfirmPlan.name}"</span>?
+                    This will permanently remove it from the pricing matrix.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 relative z-10">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmPlan(null)}
+                  disabled={isDeletingPlan}
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer border border-slate-200 dark:border-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeleteGlobal}
+                  disabled={isDeletingPlan}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition cursor-pointer flex items-center gap-2 border-none"
+                >
+                  {isDeletingPlan ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete Plan</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

@@ -154,20 +154,20 @@ export const DemoCenterSection: React.FC = () => {
   };
 
   return (
-    <section className="py-20 bg-[#0B1120] text-white font-['Plus_Jakarta_Sans',sans-serif] border-t border-slate-800/80 relative overflow-hidden">
+    <section className="py-20 bg-slate-50 dark:bg-[#0B1120] text-slate-900 dark:text-white font-['Plus_Jakarta_Sans',sans-serif] border-t border-slate-200 dark:border-slate-800/80 relative overflow-hidden transition-colors duration-300">
       {/* Background glow effects */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-blue-600/10 blur-[140px] pointer-events-none rounded-full" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-blue-500/10 dark:bg-blue-600/10 blur-[140px] pointer-events-none rounded-full" />
 
       <div className="max-w-[1440px] mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
 
           {/* Column 1: INDUSTRIES WE SERVE (3 Cols) */}
-          <div className="lg:col-span-3 p-6 sm:p-7 rounded-3xl bg-slate-900/90 backdrop-blur-md border border-slate-800/80 shadow-2xl flex flex-col justify-between">
+          <div className="lg:col-span-3 p-6 sm:p-7 rounded-3xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800/80 shadow-xl flex flex-col justify-between">
             <div>
-              <span className="text-[11px] font-black uppercase text-blue-400 tracking-wider mb-2 block">
+              <span className="text-[11px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider mb-2 block">
                 INDUSTRIES WE SERVE
               </span>
-              <h3 className="text-sm text-slate-400 font-medium mb-6">
+              <h3 className="text-sm text-slate-600 dark:text-slate-400 font-medium mb-6">
                 Tailored enterprise solutions designed for core verticals.
               </h3>
 
@@ -177,12 +177,12 @@ export const DemoCenterSection: React.FC = () => {
                   return (
                     <div
                       key={idx}
-                      className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-blue-500/50 hover:bg-blue-600/10 transition duration-300 group cursor-default"
+                      className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 hover:bg-blue-600/10 transition duration-300 group cursor-default"
                     >
-                      <div className="p-2 rounded-xl bg-blue-600/10 text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition">
+                      <div className="p-2 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition">
                         <Icon className="w-4 h-4" />
                       </div>
-                      <span className="text-xs font-bold text-slate-200 group-hover:text-white transition truncate">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-white transition truncate">
                         {item.name}
                       </span>
                     </div>
@@ -193,23 +193,23 @@ export const DemoCenterSection: React.FC = () => {
           </div>
 
           {/* Column 2: DEMO CENTER (5 Cols) */}
-          <div className="lg:col-span-5 p-6 sm:p-7 rounded-3xl bg-slate-900/90 backdrop-blur-md border border-slate-800/80 shadow-2xl flex flex-col justify-between space-y-6">
+          <div className="lg:col-span-5 p-6 sm:p-7 rounded-3xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800/80 shadow-xl flex flex-col justify-between space-y-6">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-black uppercase text-blue-400 tracking-wider">
+                <span className="text-[11px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider">
                   DEMO CENTER
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                   Live Preview
                 </span>
               </div>
-              <h3 className="text-sm text-slate-400 font-medium mb-4">
+              <h3 className="text-sm text-slate-600 dark:text-slate-400 font-medium mb-4">
                 Watch Our Product Demos
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
                 {/* Main Active Video Player Card */}
-                <div className="sm:col-span-7 relative rounded-2xl bg-slate-950 overflow-hidden border border-slate-800 aspect-video shadow-lg group">
+                <div className="sm:col-span-7 relative rounded-2xl bg-slate-950 overflow-hidden border border-slate-200 dark:border-slate-800 aspect-video shadow-lg group">
                   {isPlaying ? (
                     <video
                       key={activeDemo.id}
@@ -256,11 +256,11 @@ export const DemoCenterSection: React.FC = () => {
                         }}
                         className={`w-full flex items-center gap-2 p-2.5 rounded-xl border text-left transition cursor-pointer text-xs font-extrabold truncate ${
                           isSelected
-                            ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-md'
-                            : 'bg-slate-950/60 border-slate-800/80 text-slate-300 hover:text-white hover:border-slate-700'
+                            ? 'bg-blue-600/15 border-blue-500 text-blue-600 dark:text-blue-400 shadow-sm'
+                            : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:border-blue-400'
                         }`}
                       >
-                        <Tv className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-blue-400' : 'text-slate-500'}`} />
+                        <Tv className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
                         <span className="truncate">{demo.title}</span>
                       </button>
                     );
@@ -281,12 +281,12 @@ export const DemoCenterSection: React.FC = () => {
           </div>
 
           {/* Column 3: GET FREE DEMO (4 Cols) */}
-          <div className="lg:col-span-4 p-6 sm:p-7 rounded-3xl bg-slate-900/90 backdrop-blur-md border border-slate-800/80 shadow-2xl flex flex-col justify-between">
+          <div className="lg:col-span-4 p-6 sm:p-7 rounded-3xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800/80 shadow-xl flex flex-col justify-between">
             <div>
-              <span className="text-[11px] font-black uppercase text-blue-400 tracking-wider mb-1 block">
+              <span className="text-[11px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider mb-1 block">
                 GET FREE DEMO
               </span>
-              <h3 className="text-xs text-slate-400 font-medium mb-5">
+              <h3 className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-5">
                 Fill the form and our team will connect with you.
               </h3>
 
@@ -298,7 +298,7 @@ export const DemoCenterSection: React.FC = () => {
                     required
                     value={form.name}
                     onChange={e => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-medium text-white placeholder-slate-500 outline-none focus:border-blue-500 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 transition"
                   />
                   <input
                     type="tel"
@@ -306,7 +306,7 @@ export const DemoCenterSection: React.FC = () => {
                     required
                     value={form.mobile}
                     onChange={e => setForm({ ...form, mobile: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-medium text-white placeholder-slate-500 outline-none focus:border-blue-500 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 transition"
                   />
                 </div>
 
@@ -317,12 +317,12 @@ export const DemoCenterSection: React.FC = () => {
                     required
                     value={form.email}
                     onChange={e => setForm({ ...form, email: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-medium text-white placeholder-slate-500 outline-none focus:border-blue-500 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 transition"
                   />
                   <select
                     value={form.product}
                     onChange={e => setForm({ ...form, product: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-medium text-slate-300 outline-none focus:border-blue-500 cursor-pointer"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-800 dark:text-slate-300 outline-none focus:border-blue-500 cursor-pointer"
                   >
                     {demos.map(d => (
                       <option key={d.id} value={d.title}>{d.title}</option>
@@ -337,14 +337,14 @@ export const DemoCenterSection: React.FC = () => {
                     required
                     value={form.organization}
                     onChange={e => setForm({ ...form, organization: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-medium text-white placeholder-slate-500 outline-none focus:border-blue-500 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 transition"
                   />
                   <input
                     type="number"
                     placeholder="Number of Users"
                     value={form.usersCount}
                     onChange={e => setForm({ ...form, usersCount: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-medium text-white placeholder-slate-500 outline-none focus:border-blue-500 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-blue-500 transition"
                   />
                 </div>
 
@@ -358,7 +358,7 @@ export const DemoCenterSection: React.FC = () => {
               </form>
 
               {formSubmitted && (
-                <div className="mt-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-center gap-2">
+                <div className="mt-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-center gap-2">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Demo request submitted successfully!</span>
                 </div>
@@ -377,41 +377,44 @@ export const DemoCenterSection: React.FC = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-4xl rounded-3xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-2xl space-y-6 max-h-[85vh] overflow-y-auto"
+              className="w-full max-w-4xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-2xl space-y-6 max-h-[85vh] overflow-y-auto"
             >
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div className="flex items-center gap-2 text-blue-400 text-xs font-black uppercase tracking-wider">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-xs font-black uppercase tracking-wider">
                   <Sparkles className="w-4 h-4" />
                   <span>Full Demo Catalog</span>
                 </div>
-                <button onClick={() => setAllDemosModal(false)} className="text-slate-400 hover:text-white">
+                <button onClick={() => setAllDemosModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {demos.map(demo => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {demos.map((demo) => (
                   <div
                     key={demo.id}
                     onClick={() => {
                       setActiveDemo(demo);
-                      setIsPlaying(true);
+                      setIsPlaying(false);
                       setAllDemosModal(false);
                     }}
-                    className="group p-4 rounded-2xl bg-slate-950 border border-slate-800 hover:border-blue-500/50 transition cursor-pointer space-y-3"
+                    className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-blue-500 transition cursor-pointer group space-y-2"
                   >
-                    <div className="w-full h-40 rounded-xl bg-slate-900 overflow-hidden relative border border-slate-800">
-                      <img src={getVideoUrl(demo.thumbnailUrl || 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=800&auto=format&fit=crop')} alt={demo.title} className="w-full h-full object-cover group-hover:scale-105 transition" />
-                      <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center">
-                        <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg">
-                          <Play className="w-4 h-4 fill-current ml-0.5" />
-                        </div>
+                    <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-900">
+                      <img
+                        src={getVideoUrl(demo.thumbnailUrl || 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=800&auto=format&fit=crop')}
+                        alt={demo.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      />
+                      <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-slate-950/40 flex items-center justify-center transition">
+                        <Play className="w-6 h-6 text-white opacity-80 group-hover:opacity-100 group-hover:scale-110 transition" />
                       </div>
                     </div>
-
                     <div>
-                      <h4 className="text-sm font-black text-white group-hover:text-blue-400 transition">{demo.title}</h4>
-                      <p className="text-xs text-slate-400 mt-1">{demo.description}</p>
+                      <h4 className="text-xs font-extrabold text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                        {demo.title}
+                      </h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{(demo as any).duration || '2:30 mins'}</p>
                     </div>
                   </div>
                 ))}

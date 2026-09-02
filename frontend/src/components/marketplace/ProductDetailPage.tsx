@@ -14,7 +14,7 @@ import {
   FileText,
   AlertTriangle,
   RefreshCw,
-  BadgeDollarSign,
+  IndianRupee,
   Store,
   HelpCircle,
   MessageSquare
@@ -474,7 +474,7 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
 
                   {product.price && (
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-black text-xs">
-                      <BadgeDollarSign className="w-3.5 h-3.5" />
+                      <IndianRupee className="w-3.5 h-3.5" />
                       <span>{product.price}</span>
                     </div>
                   )}
@@ -704,7 +704,7 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                 <section id="pricing" className="bg-white dark:bg-slate-900/90 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl relative scroll-mt-24">
                   <div className="text-left mb-8">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-cyan-500/10 border border-blue-200 dark:border-cyan-400/30 text-blue-600 dark:text-cyan-400 font-extrabold text-xs uppercase tracking-wider mb-2">
-                      <BadgeDollarSign className="w-4 h-4" />
+                      <IndianRupee className="w-4 h-4" />
                       <span>Subscription Plans</span>
                     </div>
                     <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">

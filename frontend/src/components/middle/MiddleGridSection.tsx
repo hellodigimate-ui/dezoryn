@@ -19,15 +19,14 @@ import {
   Rocket,
   Check,
   ArrowRight,
-  ChevronDown
+  ChevronDown,
+  Tv
 } from 'lucide-react';
 
 import { useNavigation } from '../../utils/NavigationContext';
 
 import { API_URL, apiFetch } from '../../config/api.config';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
-
-const API_DEMOS = `${API_URL}/demos?active=true`;
 
 
 export interface ProductDemo {
@@ -100,7 +99,7 @@ const getVideoUrl = (url: string) => resolveMediaUrl(url);
 export const MiddleGridSection: React.FC = React.memo(() => {
   const { navigateTo } = useNavigation();
 
-  const [demos, setDemos] = useState<ProductDemo[]>(DEFAULT_DEMOS);
+  const [demos, setDemos] = useState<ProductDemo[]>([]);
   const [activeDemoIdx, setActiveDemoIdx] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -116,11 +115,12 @@ export const MiddleGridSection: React.FC = React.memo(() => {
     });
   };
 
-  const activeDemo = demos[activeDemoIdx] || DEFAULT_DEMOS[0];
+  const safeIdx = demos.length > 0 ? Math.min(activeDemoIdx, Math.max(0, demos.length - 1)) : 0;
+  const activeDemo = demos[safeIdx] || DEFAULT_DEMOS[0];
 
   // Auto-changing demos every 7.0 seconds when not playing and not hovered
   useEffect(() => {
-    if (isPlaying || isHovered) return;
+    if (isPlaying || isHovered || demos.length <= 1) return;
     const timer = setInterval(() => {
       setActiveDemoIdx((prev) => (prev + 1) % demos.length);
     }, 7000);
@@ -142,19 +142,23 @@ export const MiddleGridSection: React.FC = React.memo(() => {
   useEffect(() => {
     const fetchDemos = async () => {
       try {
-        const res = await apiFetch(API_DEMOS);
+        const res = await apiFetch(`${API_URL}/demos?active=true`);
         const data = await res.json();
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
           setDemos(data.data);
         }
       } catch {
-        // network notice
+        // network fallback
       }
     };
 
     fetchDemos();
     window.addEventListener('focus', fetchDemos);
-    return () => window.removeEventListener('focus', fetchDemos);
+    window.addEventListener('dezoryn-demos-updated', fetchDemos);
+    return () => {
+      window.removeEventListener('focus', fetchDemos);
+      window.removeEventListener('dezoryn-demos-updated', fetchDemos);
+    };
   }, []);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -566,153 +570,169 @@ export const MiddleGridSection: React.FC = React.memo(() => {
                   </span>
                 </div>
                 <span className="text-[10px] font-bold text-slate-400">
-                  HD DEMOS
+                  {demos.length} {demos.length === 1 ? 'DEMO' : 'DEMOS'}
                 </span>
               </div>
 
-              {/* HD Large Video Player Container */}
-              <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-white/10 shadow-2xl aspect-video group/player">
-                {/* LIVE Badge Top Left */}
-                <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/80 text-white font-black text-[10px] uppercase tracking-wider backdrop-blur-xl border border-red-400/30 shadow-lg shadow-red-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                  LIVE DEMO
-                </div>
-
-                {/* Duration Badge Top Right */}
-                <div className="absolute top-3 right-3 z-20 flex items-center gap-1 px-3 py-1 rounded-full bg-black/60 text-cyan-300 font-extrabold text-[10px] backdrop-blur-xl border border-white/15">
-                  <Clock className="w-3 h-3 text-cyan-400" />
-                  <span>{activeDemo.duration || '03:45'} HD</span>
-                </div>
-
-                <AnimatePresence mode="wait">
-                  {isPlaying ? (
-                    <motion.div
-                      key="playing"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="w-full h-full"
-                    >
-                      <video
-                        key={activeDemo.id}
-                        src={getVideoUrl(activeDemo.videoUrl)}
-                        controls
-                        autoPlay
-                        preload="auto"
-                        className="w-full h-full object-cover"
-                      />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key={activeDemo.id}
-                      initial={{ opacity: 0, scale: 1.02 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.98 }}
-                      transition={{ duration: 0.4 }}
-                      className="relative w-full h-full flex items-center justify-center cursor-pointer"
-                      onClick={() => setIsPlaying(true)}
-                    >
-                      {/* Thumbnail Image */}
-                      <img
-                        src={getVideoUrl(activeDemo.thumbnailUrl || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80')}
-                        alt={activeDemo.title}
-                        className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover/player:scale-105 transition-transform duration-700"
-                      />
-
-                      {/* Dark Layered Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none" />
-
-                      {/* Glassmorphic Floating Play Button with Pulse Wave */}
-                      <div className="relative z-20 flex items-center justify-center">
-                        <span className="absolute w-20 h-20 rounded-full bg-blue-500/30 animate-ping pointer-events-none" />
-                        <span className="absolute w-24 h-24 rounded-full bg-purple-500/20 animate-pulse pointer-events-none" />
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.12 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="relative z-20 w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center shadow-[0_0_35px_rgba(59,130,246,0.6)] backdrop-blur-xl border border-white/40 group-hover/player:border-white transition-all duration-300 cursor-pointer"
-                        >
-                          <Play className="w-7 h-7 fill-white text-white ml-1" />
-                        </motion.button>
-                      </div>
-
-                      {/* Overlay Title on Video */}
-                      <div className="absolute bottom-3 inset-x-4 z-20 text-left pointer-events-none">
-                        <span className="text-[9px] font-black uppercase tracking-wider text-cyan-300 bg-slate-950/80 border border-cyan-500/30 px-2.5 py-0.5 rounded-full inline-block mb-1 backdrop-blur-md">
-                          {activeDemo.category || 'ENTERPRISE'}
-                        </span>
-                        <h3 className="text-sm font-black text-white truncate drop-shadow-md tracking-tight">
-                          {activeDemo.title}
-                        </h3>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Animated Auto-Rotation Progress Line */}
-                {!isPlaying && (
-                  <div className="absolute bottom-0 inset-x-0 h-1 bg-slate-900 z-30 overflow-hidden">
-                    <motion.div
-                      key={activeDemoIdx}
-                      initial={{ width: '0%' }}
-                      animate={{ width: '100%' }}
-                      transition={{ duration: isHovered ? 0 : 7.0, ease: 'linear' }}
-                      className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-400"
-                    />
+              {demos.length === 0 ? (
+                <div className="p-10 text-center rounded-2xl bg-slate-100/60 dark:bg-slate-950/40 border border-dashed border-slate-200 dark:border-slate-800 space-y-3 my-auto">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center mx-auto">
+                    <Tv className="w-6 h-6" />
                   </div>
-                )}
-              </div>
-
-              {/* Demo Metadata Details */}
-              <div className="mt-4 p-3.5 rounded-2xl bg-slate-100/90 dark:bg-slate-950/50 border border-slate-200/90 dark:border-white/5 flex items-center justify-between gap-3 backdrop-blur-md">
-                <div className="min-w-0 text-left">
-                  <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
-                    {activeDemo.title}
-                  </h4>
-                  <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400 truncate mt-0.5">
-                    {activeDemo.subtitle || activeDemo.description}
-                  </p>
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white">No Live Demos Configured</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Add and publish product demos in the Admin Demo CMS to showcase videos here.
+                    </p>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  {/* HD Large Video Player Container */}
+                  <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-white/10 shadow-2xl aspect-video group/player">
+                    {/* LIVE Badge Top Left */}
+                    <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/80 text-white font-black text-[10px] uppercase tracking-wider backdrop-blur-xl border border-red-400/30 shadow-lg shadow-red-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                      LIVE DEMO
+                    </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 bg-white/90 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                    <Eye className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
-                    {activeDemo.views || '18,000+'} Views
-                  </span>
-                </div>
-              </div>
+                    {/* Duration Badge Top Right */}
+                    <div className="absolute top-3 right-3 z-20 flex items-center gap-1 px-3 py-1 rounded-full bg-black/60 text-cyan-300 font-extrabold text-[10px] backdrop-blur-xl border border-white/15">
+                      <Clock className="w-3 h-3 text-cyan-400" />
+                      <span>{(activeDemo as any).duration || '03:10'} HD</span>
+                    </div>
 
-              {/* Interactive Carousel Selector Tabs */}
-              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {demos.slice(0, 4).map((demo, idx) => {
-                  const isSelected = activeDemoIdx === idx;
-                  return (
-                    <button
-                      key={demo.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveDemoIdx(idx);
-                        setIsPlaying(false);
-                      }}
-                      className={`p-2.5 rounded-xl border text-left transition-all duration-300 cursor-pointer flex flex-col justify-between ${
-                        isSelected
-                          ? 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white border-blue-400/60 shadow-[0_0_20px_rgba(59,130,246,0.3)] backdrop-blur-md'
-                          : 'bg-slate-100/80 dark:bg-slate-950/40 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-white/5 backdrop-blur-md'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <span className={`text-[10px] font-black uppercase tracking-tight truncate ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
-                          {demo.title.replace(' Demo', '').replace(' Suite', '')}
-                        </span>
-                        <Monitor className={`w-3 h-3 shrink-0 ${isSelected ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+                    <AnimatePresence mode="wait">
+                      {isPlaying ? (
+                        <motion.div
+                          key="playing"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="w-full h-full"
+                        >
+                          <video
+                            key={activeDemo.id}
+                            src={getVideoUrl(activeDemo.videoUrl)}
+                            controls
+                            autoPlay
+                            preload="auto"
+                            className="w-full h-full object-cover"
+                          />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key={activeDemo.id}
+                          initial={{ opacity: 0, scale: 1.02 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.98 }}
+                          transition={{ duration: 0.4 }}
+                          className="relative w-full h-full flex items-center justify-center cursor-pointer"
+                          onClick={() => setIsPlaying(true)}
+                        >
+                          {/* Thumbnail Image */}
+                          <img
+                            src={getVideoUrl(activeDemo.thumbnailUrl || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80')}
+                            alt={activeDemo.title}
+                            className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover/player:scale-105 transition-transform duration-700"
+                          />
+
+                          {/* Dark Layered Gradient Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none" />
+
+                          {/* Glassmorphic Floating Play Button with Pulse Wave */}
+                          <div className="relative z-20 flex items-center justify-center">
+                            <span className="absolute w-20 h-20 rounded-full bg-blue-500/30 animate-ping pointer-events-none" />
+                            <span className="absolute w-24 h-24 rounded-full bg-purple-500/20 animate-pulse pointer-events-none" />
+                            <motion.button
+                              type="button"
+                              whileHover={{ scale: 1.12 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="relative z-20 w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center shadow-[0_0_35px_rgba(59,130,246,0.6)] backdrop-blur-xl border border-white/40 group-hover/player:border-white transition-all duration-300 cursor-pointer"
+                            >
+                              <Play className="w-7 h-7 fill-white text-white ml-1" />
+                            </motion.button>
+                          </div>
+
+                          {/* Overlay Title on Video */}
+                          <div className="absolute bottom-3 inset-x-4 z-20 text-left pointer-events-none">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-cyan-300 bg-slate-950/80 border border-cyan-500/30 px-2.5 py-0.5 rounded-full inline-block mb-1 backdrop-blur-md">
+                              {activeDemo.category || 'ENTERPRISE'}
+                            </span>
+                            <h3 className="text-sm font-black text-white truncate drop-shadow-md tracking-tight">
+                              {activeDemo.title}
+                            </h3>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Animated Auto-Rotation Progress Line */}
+                    {!isPlaying && demos.length > 1 && (
+                      <div className="absolute bottom-0 inset-x-0 h-1 bg-slate-900 z-30 overflow-hidden">
+                        <motion.div
+                          key={activeDemoIdx}
+                          initial={{ width: '0%' }}
+                          animate={{ width: '100%' }}
+                          transition={{ duration: isHovered ? 0 : 7.0, ease: 'linear' }}
+                          className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-400"
+                        />
                       </div>
-                      <span className={`text-[9px] font-semibold block truncate mt-1 ${isSelected ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
-                        {demo.category || 'SaaS'}
+                    )}
+                  </div>
+
+                  {/* Demo Metadata Details */}
+                  <div className="mt-4 p-3.5 rounded-2xl bg-slate-100/90 dark:bg-slate-950/50 border border-slate-200/90 dark:border-white/5 flex items-center justify-between gap-3 backdrop-blur-md">
+                    <div className="min-w-0 text-left">
+                      <h4 className="text-xs font-black text-slate-900 dark:text-white truncate">
+                        {activeDemo.title}
+                      </h4>
+                      <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400 truncate mt-0.5">
+                        {activeDemo.subtitle || activeDemo.description}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 bg-white/90 dark:bg-white/5 border border-slate-200 dark:border-white/10 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                        <Eye className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                        {(activeDemo as any).viewsText || (activeDemo.views ? (activeDemo.views.includes('Views') ? activeDemo.views : `${activeDemo.views} Views`) : '18,500+ Views')}
                       </span>
-                    </button>
-                  );
-                })}
-              </div>
+                    </div>
+                  </div>
+
+                  {/* Interactive Carousel Selector Tabs */}
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {demos.map((demo, idx) => {
+                      const isSelected = activeDemoIdx === idx;
+                      return (
+                        <button
+                          key={demo.id}
+                          type="button"
+                          onClick={() => {
+                            setActiveDemoIdx(idx);
+                            setIsPlaying(false);
+                          }}
+                          className={`p-2.5 rounded-xl border text-left transition-all duration-300 cursor-pointer flex flex-col justify-between ${
+                            isSelected
+                              ? 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white border-blue-400/60 shadow-[0_0_20px_rgba(59,130,246,0.3)] backdrop-blur-md'
+                              : 'bg-slate-100/80 dark:bg-slate-950/40 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-white/5 backdrop-blur-md'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span className={`text-[10px] font-black uppercase tracking-tight truncate ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
+                              {demo.title.replace(' Demo', '').replace(' Suite', '')}
+                            </span>
+                            <Monitor className={`w-3 h-3 shrink-0 ${isSelected ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+                          </div>
+                          <span className={`text-[9px] font-semibold block truncate mt-1 ${isSelected ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                            {demo.category || 'SaaS'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Bottom CTA Buttons */}
@@ -721,8 +741,9 @@ export const MiddleGridSection: React.FC = React.memo(() => {
                 type="button"
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.97 }}
+                disabled={demos.length === 0}
                 onClick={() => setIsPlaying(true)}
-                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-[length:200%_100%] hover:bg-right text-white font-extrabold text-xs shadow-[0_0_25px_rgba(59,130,246,0.35)] transition-all duration-500 cursor-pointer flex items-center justify-center gap-2 border-none"
+                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-[length:200%_100%] hover:bg-right disabled:opacity-40 text-white font-extrabold text-xs shadow-[0_0_25px_rgba(59,130,246,0.35)] transition-all duration-500 cursor-pointer flex items-center justify-center gap-2 border-none"
               >
                 <Play className="w-3.5 h-3.5 fill-white" />
                 <span>Watch Live Demo</span>

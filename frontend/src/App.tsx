@@ -34,10 +34,12 @@ import {
   DezoAIWidget,
   AdminLogin,
   AdminLayout,
-  SupportPage
+  SupportPage,
+  TestimonialsSection
 } from './components';
 import { PlaceholderPage } from './components/common/PlaceholderPage';
 import { NotFoundPage } from './components/common/NotFoundPage';
+import { applyGlobalTheme, resolveEffectiveMode, type ThemeSettingsData } from './utils/themeUtils';
 
 
 export const App: React.FC = () => {
@@ -45,19 +47,23 @@ export const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string | undefined>(() => window.location.hash.replace('#', '') || undefined);
   const isPopStateRef = useRef(false);
   const [isPopState, setIsPopState] = useState(false);
+  const cachedThemeDataRef = useRef<ThemeSettingsData | null>(null);
+
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const userPref = localStorage.getItem('user_theme_preference');
+    const userPref = typeof window !== 'undefined' ? localStorage.getItem('user_theme_preference') : null;
     if (userPref === 'light' || userPref === 'dark') return userPref;
-    const local = localStorage.getItem('dezo-theme-settings');
+    const local = typeof window !== 'undefined' ? localStorage.getItem('dezo-theme-settings') : null;
     if (local) {
       try {
         const parsed = JSON.parse(local);
-        if (parsed.defaultMode) return parsed.defaultMode === 'dark' ? 'dark' : 'light';
+        if (parsed.activeMode || parsed.defaultMode) {
+          return resolveEffectiveMode(parsed.activeMode || parsed.defaultMode);
+        }
       } catch {
         // ignore
       }
     }
-    return 'light';
+    return resolveEffectiveMode('light');
   });
   const [adminUserRole, setAdminUserRole] = useState<string>('ADMIN');
 
@@ -99,94 +105,26 @@ export const App: React.FC = () => {
     navigateToRoute(route, sectionId);
   }, []);
 
-  const toggleTheme = () => {
-    setTheme((prev) => {
-      const next = prev === 'light' ? 'dark' : 'light';
-      try {
-        localStorage.setItem('user_theme_preference', next);
-      } catch (_e) {}
-      return next;
-    });
-  };
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.body.classList.add('dark');
-      document.documentElement.style.colorScheme = 'dark';
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.body.classList.remove('dark');
-      document.documentElement.style.colorScheme = 'light';
-    }
+  const toggleTheme = useCallback(() => {
+    const nextMode: 'light' | 'dark' = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextMode);
+    applyGlobalTheme(nextMode, cachedThemeDataRef.current, true);
   }, [theme]);
 
   // Fetch dynamic theme configuration & typography from API and listen to updates
   useEffect(() => {
     const applyThemeObj = (data: any) => {
       if (!data) return;
-      const root = document.documentElement;
-
-      let mode = data.activeMode || data.defaultMode || 'light';
-      if (mode === 'system') {
-        const isSysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        mode = isSysDark ? 'dark' : 'light';
-      }
+      cachedThemeDataRef.current = data;
 
       const userPref = localStorage.getItem('user_theme_preference');
+      let targetMode = data.activeMode || data.defaultMode || 'light';
       if (userPref === 'light' || userPref === 'dark') {
-        setTheme(userPref);
-        mode = userPref;
-      } else {
-        setTheme(mode === 'dark' ? 'dark' : 'light');
+        targetMode = userPref;
       }
 
-      const targetConfig = mode === 'light' ? data.lightTheme : data.darkTheme;
-      const colors = (targetConfig && targetConfig.colorSettings) || data.colorSettings || {};
-      const typo = (targetConfig && targetConfig.typographySettings) || data.typographySettings || {};
-
-      if (colors.primary || data.primaryColor) root.style.setProperty('--primary-color', colors.primary || data.primaryColor);
-      if (colors.secondary || data.secondaryColor) root.style.setProperty('--secondary-color', colors.secondary || data.secondaryColor);
-      if (colors.accent || data.accentColor) root.style.setProperty('--accent-color', colors.accent || data.accentColor);
-      if (colors.background) root.style.setProperty('--bg-color', colors.background);
-      if (colors.surface) root.style.setProperty('--surface-color', colors.surface);
-      if (colors.card) root.style.setProperty('--card-color', colors.card);
-      if (colors.border) root.style.setProperty('--border-color', colors.border);
-      if (colors.success) root.style.setProperty('--success-color', colors.success);
-      if (colors.warning) root.style.setProperty('--warning-color', colors.warning);
-      if (colors.error) root.style.setProperty('--error-color', colors.error);
-      if (colors.info) root.style.setProperty('--info-color', colors.info);
-      if (colors.textPrimary) root.style.setProperty('--text-primary-color', colors.textPrimary);
-      if (colors.textSecondary) root.style.setProperty('--text-secondary-color', colors.textSecondary);
-      if (colors.link) root.style.setProperty('--link-color', colors.link);
-
-      if (data.fontFamily) root.style.setProperty('--font-family', `'${data.fontFamily}', sans-serif`);
-      if (data.borderRadius) root.style.setProperty('--border-radius', data.borderRadius);
-
-      if (typo) {
-        if (typo.headingFont) root.style.setProperty('--font-heading', `'${typo.headingFont}', sans-serif`);
-        if (typo.bodyFont) root.style.setProperty('--font-body', `'${typo.bodyFont}', sans-serif`);
-        if (typo.buttonFont) root.style.setProperty('--font-button', `'${typo.buttonFont}', sans-serif`);
-        if (typo.fontWeight) root.style.setProperty('--font-weight', typo.fontWeight);
-        if (typo.letterSpacing) root.style.setProperty('--letter-spacing', typo.letterSpacing);
-        if (typo.lineHeight) root.style.setProperty('--line-height', typo.lineHeight);
-        if (typo.textTransform) root.style.setProperty('--text-transform', typo.textTransform);
-        if (typo.fontScale) root.style.setProperty('--font-scale', typo.fontScale);
-
-        if (typo.fontSizes) {
-          if (typo.fontSizes.display) root.style.setProperty('--font-size-display', typo.fontSizes.display);
-          if (typo.fontSizes.h1) root.style.setProperty('--font-size-h1', typo.fontSizes.h1);
-          if (typo.fontSizes.h2) root.style.setProperty('--font-size-h2', typo.fontSizes.h2);
-          if (typo.fontSizes.h3) root.style.setProperty('--font-size-h3', typo.fontSizes.h3);
-          if (typo.fontSizes.h4) root.style.setProperty('--font-size-h4', typo.fontSizes.h4);
-          if (typo.fontSizes.h5) root.style.setProperty('--font-size-h5', typo.fontSizes.h5);
-          if (typo.fontSizes.h6) root.style.setProperty('--font-size-h6', typo.fontSizes.h6);
-          if (typo.fontSizes.body) root.style.setProperty('--font-size-body', typo.fontSizes.body);
-          if (typo.fontSizes.smallText) root.style.setProperty('--font-size-small', typo.fontSizes.smallText);
-          if (typo.fontSizes.caption) root.style.setProperty('--font-size-caption', typo.fontSizes.caption);
-          if (typo.fontSizes.buttons) root.style.setProperty('--font-size-button', typo.fontSizes.buttons);
-        }
-      }
+      const effective = applyGlobalTheme(targetMode, data, false);
+      setTheme(effective);
     };
 
     const fetchThemeConfig = async () => {
@@ -213,7 +151,15 @@ export const App: React.FC = () => {
     const handleThemeUpdated = (e: Event) => {
       const detail = (e as CustomEvent)?.detail;
       if (detail) {
-        applyThemeObj(detail);
+        if (detail.themeData) {
+          cachedThemeDataRef.current = detail.themeData;
+        } else if (detail.activeMode || detail.lightTheme) {
+          cachedThemeDataRef.current = detail;
+        }
+
+        const modeToApply = detail.effectiveMode || detail.activeMode || localStorage.getItem('user_theme_preference') || 'light';
+        const effective = applyGlobalTheme(modeToApply, cachedThemeDataRef.current, false);
+        setTheme(effective);
       } else {
         fetchThemeConfig();
       }
@@ -462,6 +408,9 @@ export const App: React.FC = () => {
 
               {/* 9, 10, 11. Why Choose Dezoryn Technologies + Client Success Stories + Our Trusted Clients */}
               <TrustAndWhySection />
+
+              {/* 11b. Verified Customer Testimonials & Reviews */}
+              <TestimonialsSection />
 
               {/* 12. Bottom Feature Strip */}
               <BottomFeatureStrip />

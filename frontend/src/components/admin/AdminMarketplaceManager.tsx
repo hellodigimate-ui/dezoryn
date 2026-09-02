@@ -6,7 +6,7 @@ import {
   FolderOpen,
   Building2,
   Tag,
-  DollarSign,
+  IndianRupee,
   Image as ImageIcon,
   Star,
   Download,
@@ -524,7 +524,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
     { id: 'categories', label: 'Categories', icon: FolderOpen },
     { id: 'industries', label: 'Industries', icon: Building2 },
     { id: 'tags', label: 'Product Tags', icon: Tag },
-    { id: 'pricing', label: 'Pricing', icon: DollarSign },
+    { id: 'pricing', label: 'Pricing', icon: IndianRupee },
     { id: 'media', label: 'Media & Screenshots', icon: ImageIcon },
     { id: 'reviews', label: 'Reviews & Ratings', icon: Star, badge: 'Verified', badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
     { id: 'downloads', label: 'Downloads & Files', icon: Download },
@@ -1991,7 +1991,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
               <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-200 dark:border-slate-800 pb-2">
                 {[
                   { id: 'basic', label: '1. Basic Info & Slugs', icon: Layers },
-                  { id: 'pricing', label: '2. Pricing & Links', icon: DollarSign },
+                  { id: 'pricing', label: '2. Pricing & Links', icon: IndianRupee },
                   { id: 'media', label: '3. Media & Drag/Drop', icon: ImageIcon },
                   { id: 'specs', label: '4. Specs & Features', icon: CheckSquare },
                   { id: 'seo', label: '5. SEO & Badges', icon: Globe }
@@ -2109,7 +2109,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Price Label ($)</label>
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Price Label (₹)</label>
                       <input
                         type="text"
                         value={editModalProduct.price}
@@ -2119,7 +2119,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                     </div>
 
                     <div>
-                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Numeric Value ($)</label>
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Numeric Value (₹)</label>
                       <input
                         type="number"
                         value={editModalProduct.priceValue || 49}
@@ -2169,7 +2169,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                          <DollarSign className="w-4 h-4 text-emerald-500" />
+                          <IndianRupee className="w-4 h-4 text-emerald-500" />
                           <span>Subscription Pricing Tiers (Product Detail Page)</span>
                         </h4>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -2255,10 +2255,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
 
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
-                              <label className="text-[10px] font-bold text-slate-500">Tier Price (e.g. ₹29)</label>
+                              <label className="text-[10px] font-bold text-slate-500">Tier Price (e.g. ₹2,999)</label>
                               <input
                                 type="text"
-                                placeholder="₹29 or $39"
+                                placeholder="₹2,999 or ₹4,999"
                                 value={tier.price}
                                 onChange={(e) => {
                                   const updated = [...(editModalProduct.pricingTiers || [])];

@@ -5,7 +5,7 @@ import {
   Save, X, RefreshCw, CheckCircle2, Star,
   LayoutGrid, List, Search, ChevronDown,
   Zap, Bot, TrendingUp, ShieldCheck, Globe, Layers,
-  BarChart3, Lock, Database, Cpu, Wifi, Cloud, Sparkles
+  BarChart3, Lock, Database, Cpu, Wifi, Cloud, Sparkles, AlertTriangle
 } from 'lucide-react';
 import { openAdminAIAssistant } from './AdminLayout';
 
@@ -45,7 +45,7 @@ export interface ProductData {
   status: string;
   category: string;
   isEnabled: boolean;
-  createdAt?: string;
+  createdAt: string;
 }
 
 const EMPTY_PRODUCT: Omit<ProductData, 'id' | 'createdAt'> = {
@@ -59,6 +59,8 @@ export const AdminProductManager: React.FC = () => {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<{ id: string; title: string } | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -90,18 +92,26 @@ export const AdminProductManager: React.FC = () => {
   // ── Open Modal ───────────────────────────────
   const openCreate = () => {
     setForm({ ...EMPTY_PRODUCT, order: products.length });
+    setNewFeature('');
     setModal({ mode: 'create' });
   };
 
-  const openEdit = (p: ProductData) => {
+  const openEdit = (product: ProductData) => {
     setForm({
-      title: p.title, subtitle: p.subtitle, description: p.description,
-      icon: p.icon, gradient: p.gradient,
-      features: Array.isArray(p.features) ? p.features : [],
-      image: p.image, order: p.order, status: p.status,
-      category: p.category, isEnabled: p.isEnabled,
+      title: product.title,
+      subtitle: product.subtitle || '',
+      description: product.description,
+      icon: product.icon || 'Zap',
+      gradient: product.gradient || 'from-blue-600 to-cyan-500',
+      features: product.features.length ? product.features : [''],
+      image: product.image,
+      order: product.order,
+      status: product.status,
+      category: product.category,
+      isEnabled: product.isEnabled,
     });
-    setModal({ mode: 'edit', product: p });
+    setNewFeature('');
+    setModal({ mode: 'edit', product });
   };
 
   const closeModal = () => { setModal(null); setNewFeature(''); };
@@ -114,31 +124,49 @@ export const AdminProductManager: React.FC = () => {
     }
     setIsSaving(true);
     try {
-      const payload = { ...form, features: form.features.filter(f => f.trim()) };
-      let res: Response;
-      if (modal?.mode === 'create') {
-        res = await apiFetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      } else {
-        res = await apiFetch(`${API}/${modal?.product?.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      }
+      const payload = {
+        ...form,
+        features: form.features.filter(f => f.trim() !== ''),
+      };
+      const url = modal?.mode === 'create' ? API : `${API}/${modal?.product?.id}`;
+      const method = modal?.mode === 'create' ? 'POST' : 'PUT';
+      const res = await apiFetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
       const data = await res.json();
       if (data.success) {
         await fetchProducts();
         closeModal();
         showMsg('success', modal?.mode === 'create' ? 'Product created!' : 'Product updated!');
+      } else {
+        showMsg('error', data.message || 'Failed to save product.');
       }
     } catch { showMsg('error', 'Failed to save product.'); }
     finally { setIsSaving(false); }
   };
 
   // ── Delete ───────────────────────────────────
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete "${title}"?`)) return;
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmProduct) return;
+    const { id, title } = deleteConfirmProduct;
+    setIsDeleting(true);
     try {
-      await apiFetch(`${API}/${id}`, { method: 'DELETE' });
-      setProducts(prev => prev.filter(p => p.id !== id));
-      showMsg('info', `"${title}" deleted.`);
-    } catch { showMsg('error', 'Failed to delete.'); }
+      const res = await apiFetch(`${API}/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setProducts(prev => prev.filter(p => p.id !== id));
+        showMsg('info', `"${title}" deleted successfully.`);
+        setDeleteConfirmProduct(null);
+      } else {
+        showMsg('error', data.message || 'Failed to delete product.');
+      }
+    } catch {
+      showMsg('error', 'Failed to delete product.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // ── Duplicate ────────────────────────────────
@@ -328,7 +356,7 @@ export const AdminProductManager: React.FC = () => {
                       <button type="button" onClick={() => handleToggleEnabled(product.id, product.title, product.isEnabled)} title={product.isEnabled ? 'Disable' : 'Enable'} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer transition">
                         {product.isEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                       </button>
-                      <button type="button" onClick={() => handleDelete(product.id, product.title)} title="Delete" className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-500 cursor-pointer transition">
+                      <button type="button" onClick={() => setDeleteConfirmProduct({ id: product.id, title: product.title })} title="Delete" className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-500 cursor-pointer transition">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -398,7 +426,7 @@ export const AdminProductManager: React.FC = () => {
                   <button type="button" onClick={() => handleToggleEnabled(product.id, product.title, product.isEnabled)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer transition">
                     {product.isEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                   </button>
-                  <button type="button" onClick={() => handleDelete(product.id, product.title)} className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-500 cursor-pointer transition">
+                  <button type="button" onClick={() => setDeleteConfirmProduct({ id: product.id, title: product.title })} className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-500 cursor-pointer transition">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -574,6 +602,80 @@ export const AdminProductManager: React.FC = () => {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Custom Delete Confirmation Modal ── */}
+      <AnimatePresence>
+        {deleteConfirmProduct && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeleting && setDeleteConfirmProduct(null)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 15 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+              className="relative w-full max-w-md p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-rose-500/30 text-slate-900 dark:text-white shadow-2xl overflow-hidden font-['Plus_Jakarta_Sans',sans-serif]"
+            >
+              {/* Ambient Glow */}
+              <div className="absolute top-0 right-0 w-48 h-48 bg-rose-500/10 rounded-full blur-[70px] pointer-events-none" />
+
+              <div className="flex items-start gap-4 relative z-10">
+                <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500 dark:text-rose-400 shrink-0">
+                  <AlertTriangle className="w-6 h-6 animate-pulse" />
+                </div>
+
+                <div className="flex-1 min-w-0 text-left">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-500 dark:text-rose-400">
+                    PERMANENT DELETION
+                  </span>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
+                    Delete Product?
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 font-medium leading-relaxed">
+                    Are you sure you want to delete <span className="font-bold text-slate-900 dark:text-white">"{deleteConfirmProduct.title}"</span>?
+                    This action will remove the product from the ecosystem and landing page.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 relative z-10">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmProduct(null)}
+                  disabled={isDeleting}
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer border border-slate-200 dark:border-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition cursor-pointer flex items-center gap-2 border-none"
+                >
+                  {isDeleting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete Product</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

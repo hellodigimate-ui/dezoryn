@@ -11,7 +11,7 @@ import {
   MessageSquare,
   Globe,
   Building2,
-  DollarSign,
+  IndianRupee,
   Laptop,
   Check,
   MapPin,
@@ -241,7 +241,7 @@ export const MarketplaceFilterSidebar: React.FC<MarketplaceFilterSidebarProps> =
             className="w-full flex items-center justify-between py-1 text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <DollarSign className="w-3.5 h-3.5 text-emerald-500" /> Pricing & Budget
+              <IndianRupee className="w-3.5 h-3.5 text-emerald-500" /> Pricing & Budget
             </span>
             <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openSections.price ? 'rotate-180' : ''}`} />
           </button>

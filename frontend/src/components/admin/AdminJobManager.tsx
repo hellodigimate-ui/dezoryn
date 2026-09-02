@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Briefcase, Plus, Trash2, Edit3, Eye, EyeOff,
   Save, X, RefreshCw, CheckCircle2, GripVertical,
-  Copy, Search, MapPin, DollarSign, Clock, Sparkles,
+  Copy, Search, MapPin, IndianRupee, Clock, Sparkles,
   AlertTriangle, Image, Globe, Brain,
   FolderOpen, Users,
   TrendingUp, RotateCcw
@@ -46,7 +46,7 @@ const DEPARTMENTS = [
 const EMPLOYMENT_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Hybrid', 'Remote', 'Internship'];
 
 const ICON_OPTIONS = [
-  'Globe', 'Brain', 'GraduationCap', 'DollarSign', 'HeartPulse',
+  'Globe', 'Brain', 'GraduationCap', 'IndianRupee', 'HeartPulse',
   'TrendingUp', 'Laptop', 'Palmtree', 'Code2', 'Layers',
   'Palette', 'Briefcase', 'Megaphone', 'Headphones', 'Settings', 'Sparkles'
 ];
@@ -1613,7 +1613,7 @@ export const AdminJobManager: React.FC = () => {
                           {job.location}
                         </span>
                         <span className="flex items-center gap-1">
-                          <DollarSign className="w-3.5 h-3.5 text-slate-400" />
+                          <IndianRupee className="w-3.5 h-3.5 text-slate-400" />
                           {job.salary}
                         </span>
                         <span className="flex items-center gap-1">

@@ -5,7 +5,7 @@ import {
   Briefcase,
   MapPin,
   Clock,
-  DollarSign,
+  IndianRupee,
   Search,
   ArrowRight,
   CheckCircle2,
@@ -31,6 +31,7 @@ import {
   Calendar,
   UserCheck
 } from 'lucide-react';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 const AnimatedStatCounter: React.FC<{ value: number; suffix?: string; decimals?: number }> = ({
   value,
@@ -204,7 +205,7 @@ export const DEFAULT_CAREERS_CMS: CareersCMSConfig = {
       },
       {
         id: 'b4',
-        iconName: 'DollarSign',
+        iconName: 'IndianRupee',
         title: 'Competitive Salary',
         desc: 'Top-tier base pay benchmarked to tier-1 markets, plus high-upside equity stock options in high-growth SaaS.',
         gradient: 'from-amber-500 to-orange-600',
@@ -349,7 +350,7 @@ export const DEFAULT_CAREERS_CMS: CareersCMSConfig = {
         title: 'San Francisco HQ & Glass Hubs',
         category: 'OFFICE ENVIRONMENT',
         tag: 'Office',
-        img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+        img: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80',
         desc: 'State-of-the-art workstations, ergonomic setup, and high-speed fiber internet.'
       },
       {
@@ -444,7 +445,8 @@ const renderIconByName = (name: string, className: string = 'w-5 h-5') => {
     case 'Globe': return <Globe className={className} />;
     case 'Brain': return <Brain className={className} />;
     case 'GraduationCap': return <GraduationCap className={className} />;
-    case 'DollarSign': return <DollarSign className={className} />;
+    case 'IndianRupee':
+    case 'DollarSign': return <IndianRupee className={className} />;
     case 'HeartPulse': return <HeartPulse className={className} />;
     case 'TrendingUp': return <TrendingUp className={className} />;
     case 'Laptop': return <Laptop className={className} />;
@@ -678,7 +680,7 @@ export const CareersSection: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 py-8 sm:py-12 lg:py-20 font-['Plus_Jakarta_Sans',sans-serif] relative overflow-hidden transition-colors duration-300"
+      className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pt-28 pb-16 sm:pt-32 lg:pt-36 lg:pb-24 font-['Plus_Jakarta_Sans',sans-serif] relative overflow-hidden transition-colors duration-300"
     >
       {/* Ambient background glows */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[350px] sm:w-[600px] h-[350px] sm:h-[600px] bg-gradient-to-tr from-cyan-500/10 via-blue-600/10 to-purple-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -1074,68 +1076,80 @@ export const CareersSection: React.FC = () => {
         </section>
 
         {/* ---------------------------------------------------- */}
-        {/* 4. LIFE AT DEZORYN (MODERN MASONRY GALLERY)         */}
+        {/* 4. LIFE AT DEZORYN (BALANCED 4-COLUMN BENTO GALLERY) */}
         {/* ---------------------------------------------------- */}
-        <section className="space-y-8">
+        <section id="life-at-dezoryn" className="scroll-mt-28 space-y-8">
           
           <div className="text-center max-w-2xl mx-auto space-y-3">
-            <span className="px-3.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-600 dark:text-purple-400 text-xs font-black uppercase tracking-wider">
-              {cmsConfig.gallerySection.badgeText}
+            <span className="px-3.5 py-1.5 rounded-full bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 text-purple-700 dark:text-purple-400 text-xs font-black uppercase tracking-wider shadow-xs inline-flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+              <span>{cmsConfig.gallerySection.badgeText}</span>
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
               {cmsConfig.gallerySection.title}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium max-w-xl mx-auto leading-relaxed">
               {cmsConfig.gallerySection.subtitle}
             </p>
           </div>
 
-          {/* Masonry Columns Layout */}
-          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5 space-y-5">
+          {/* Balanced 4-Column Grid with uniform card heights */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {cmsConfig.gallerySection.items.map((item, idx) => (
               <motion.div
                 key={item.id || idx}
-                initial={{ opacity: 0, y: 25 }}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: idx * 0.05 }}
-                className="group relative rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 shadow-xl cursor-pointer break-inside-avoid"
+                transition={{ duration: 0.4, delay: idx * 0.04 }}
+                whileHover={{ y: -6 }}
+                className="group relative h-64 sm:h-72 rounded-3xl overflow-hidden border border-slate-200/90 dark:border-slate-800 bg-slate-900 shadow-lg hover:shadow-2xl hover:shadow-purple-500/15 dark:hover:shadow-purple-500/25 transition-all duration-300 cursor-pointer flex flex-col justify-end"
               >
                 {/* Image with smooth hover scale */}
                 <img
-                  src={item.img}
+                  src={resolveMediaUrl(item.img)}
                   alt={item.title}
                   loading="lazy"
-                  className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                  onError={(e) => {
+                    const fallbackUrls: Record<string, string> = {
+                      office: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80',
+                      hackathons: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
+                      workshops: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80',
+                      retreats: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=800&q=80',
+                      collaboration: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
+                      presentations: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=800&q=80',
+                      'team-lunch': 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+                      celebrations: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=800&q=80',
+                    };
+                    const target = e.target as HTMLImageElement;
+                    const fallback = fallbackUrls[item.id] || 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80';
+                    if (target.src !== fallback) {
+                      target.src = fallback;
+                    }
+                  }}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                 />
 
+                {/* Permanent subtle dark bottom gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent transition-opacity duration-300 group-hover:opacity-90" />
+
                 {/* Glass Overlay on Hover */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5 text-left" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/75 to-slate-950/40 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                {/* Caption Box with Hover Translation Animation */}
-                <div className="absolute inset-0 p-5 flex flex-col justify-end text-left pointer-events-none z-10">
-                  <div className="translate-y-6 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 space-y-2">
-                    
-                    {/* Category Tag Pill */}
-                    <span className="inline-block px-2.5 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[10px] font-black tracking-wider uppercase backdrop-blur-md">
-                      {item.tag}
-                    </span>
-
-                    <h3 className="text-base font-black text-white leading-tight">
-                      {item.title}
-                    </h3>
-
-                    <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                      {item.desc}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Permanent subtle tag pill when not hovering */}
-                <div className="absolute top-3 left-3 group-hover:opacity-0 transition-opacity duration-300 z-10">
-                  <span className="px-2.5 py-1 rounded-full bg-slate-950/70 border border-slate-800 text-slate-200 text-[10px] font-bold backdrop-blur-md">
+                {/* Caption Box with Hover Animation */}
+                <div className="relative p-5 flex flex-col justify-end text-left z-10 space-y-2">
+                  {/* Category Tag Pill */}
+                  <span className="inline-block self-start px-2.5 py-1 rounded-full bg-slate-950/70 border border-slate-750 text-cyan-300 text-[10px] font-black tracking-wider uppercase backdrop-blur-md">
                     {item.tag}
                   </span>
+
+                  <h3 className="text-sm font-black text-white leading-tight line-clamp-1 group-hover:text-cyan-300 transition-colors">
+                    {item.title}
+                  </h3>
+
+                  <p className="text-[11px] text-slate-300 leading-relaxed font-medium line-clamp-2">
+                    {item.desc}
+                  </p>
                 </div>
               </motion.div>
             ))}
@@ -1146,7 +1160,7 @@ export const CareersSection: React.FC = () => {
         {/* ---------------------------------------------------- */}
         {/* 5. STICKY UPGRADED SEARCH & FILTERS BAR             */}
         {/* ---------------------------------------------------- */}
-        <div id="open-positions" className="sticky top-20 z-40 p-5 sm:p-6 rounded-3xl bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-white border border-slate-200/90 dark:border-cyan-500/30 shadow-2xl backdrop-blur-2xl space-y-4">
+        <div id="open-positions" className="scroll-mt-28 sticky top-24 z-40 p-5 sm:p-6 rounded-3xl bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white border border-slate-200/90 dark:border-cyan-500/30 shadow-2xl backdrop-blur-2xl space-y-4">
           
           {/* ROW 1: SEARCH INPUT + SORT BY + RESET BUTTON */}
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
@@ -1439,7 +1453,7 @@ export const CareersSection: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-extrabold">
-                      <DollarSign className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <IndianRupee className="w-4 h-4 text-emerald-500 shrink-0" />
                       <span className="truncate">{job.salary}</span>
                     </div>
 

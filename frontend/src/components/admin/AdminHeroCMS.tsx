@@ -508,35 +508,35 @@ export const AdminHeroCMS: React.FC = () => {
 
         {/* Real-Time Live Preview (1 Column) */}
         <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-white space-y-4 sticky top-24">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white space-y-4 sticky top-24 shadow-lg">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-cyan-400" />
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-300">
+                <Eye className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                   Live Hero Preview
                 </h4>
               </div>
-              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold">
+              <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold border border-emerald-500/20">
                 Real-Time
               </span>
             </div>
 
             {/* Badge Preview */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[10px] font-extrabold">
-              <Sparkles className="w-3 h-3 text-cyan-400" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-cyan-500/10 border border-blue-200 dark:border-cyan-500/30 text-blue-600 dark:text-cyan-400 text-[10px] font-extrabold">
+              <Sparkles className="w-3 h-3 text-blue-600 dark:text-cyan-400" />
               {formData.badgeText}
             </div>
 
             {/* Headings Preview */}
-            <h3 className="text-lg font-black tracking-tight text-white leading-snug">
+            <h3 className="text-lg font-black tracking-tight text-slate-900 dark:text-white leading-snug">
               {formData.mainHeading}{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-violet-600 dark:from-cyan-400 dark:via-blue-400 dark:to-purple-400">
                 {formData.gradientHeading}
               </span>
             </h3>
 
             {/* Description Preview */}
-            <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3">
               {formData.description}
             </p>
 
@@ -545,28 +545,28 @@ export const AdminHeroCMS: React.FC = () => {
               <span className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-xs font-black flex items-center gap-1">
                 {formData.primaryBtnText} <ArrowRight className="w-3 h-3" />
               </span>
-              <span className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-xs font-extrabold">
+              <span className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-extrabold">
                 {formData.secondaryBtnText}
               </span>
             </div>
 
             {/* Stats Cards Preview */}
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
               {formData.statsCards.map((card) => (
-                <div key={card.id} className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-                  <div className="text-[10px] font-bold text-slate-400">{card.label}</div>
-                  <div className="text-base font-black text-cyan-400">{card.value}</div>
-                  <div className="text-[9px] font-bold text-emerald-400">{card.subtext}</div>
+                <div key={card.id} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
+                  <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{card.label}</div>
+                  <div className="text-base font-black text-blue-600 dark:text-cyan-400">{card.value}</div>
+                  <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">{card.subtext}</div>
                 </div>
               ))}
             </div>
 
             {/* Tech Tags Preview */}
-            <div className="pt-2 border-t border-slate-800">
-              <div className="text-[10px] font-bold text-slate-400 mb-1.5">Tech Tags:</div>
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">Tech Tags:</div>
               <div className="flex flex-wrap gap-1">
                 {formData.techTags.map((tag) => (
-                  <span key={tag} className="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-bold text-slate-300">
+                  <span key={tag} className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-transparent">
                     {tag}
                   </span>
                 ))}

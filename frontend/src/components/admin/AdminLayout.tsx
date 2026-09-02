@@ -24,6 +24,7 @@ import { AdminSupportManager } from './AdminSupportManager';
 import { AdminAIAssistantModal } from './AdminAIAssistantModal';
 import type { AIGenerateType } from './AdminAIAssistantModal';
 import { useNavigation } from '../../utils/NavigationContext';
+import { applyGlobalTheme } from '../../utils/themeUtils';
 
 export interface openAIModalDetail {
   type?: AIGenerateType;
@@ -75,8 +76,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('admin-theme');
-    return saved !== null ? saved === 'dark' : true;
+    const userPref = typeof window !== 'undefined' ? localStorage.getItem('user_theme_preference') : null;
+    if (userPref === 'light' || userPref === 'dark') return userPref === 'dark';
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('admin-theme') : null;
+    if (saved !== null) return saved === 'dark';
+    return false;
   });
   const [role, setRole] = useState(initialRole);
   const { navigateTo } = useNavigation();
@@ -116,22 +120,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   }, [initialRole]);
 
   useEffect(() => {
-    const userPref = localStorage.getItem('user_theme_preference');
-    const effectiveDark = userPref ? userPref === 'dark' : isDark;
-    if (effectiveDark) {
-      document.documentElement.classList.add('dark');
-      document.body.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.body.classList.remove('dark');
-    }
-  }, [isDark]);
-
-  useEffect(() => {
     const handleThemeUpdated = (e: Event) => {
       const detail = (e as CustomEvent)?.detail;
-      if (detail?.defaultMode) {
-        setIsDark(detail.defaultMode === 'dark');
+      if (detail) {
+        const mode = detail.effectiveMode || (detail.defaultMode ? (detail.defaultMode === 'dark' ? 'dark' : 'light') : null);
+        if (mode) {
+          setIsDark(mode === 'dark');
+        }
+      } else {
+        const userPref = localStorage.getItem('user_theme_preference');
+        if (userPref) {
+          setIsDark(userPref === 'dark');
+        }
       }
     };
     window.addEventListener('dezo-theme-updated', handleThemeUpdated);
@@ -246,10 +246,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const handleToggleTheme = () => {
     const nextDark = !isDark;
     setIsDark(nextDark);
+    const targetMode = nextDark ? 'dark' : 'light';
+    let cachedThemeData = null;
     try {
-      localStorage.setItem('admin-theme', nextDark ? 'dark' : 'light');
-      localStorage.setItem('user_theme_preference', nextDark ? 'dark' : 'light');
+      const local = localStorage.getItem('dezo-theme-settings');
+      if (local) cachedThemeData = JSON.parse(local);
     } catch (_e) {}
+    applyGlobalTheme(targetMode, cachedThemeData, true);
   };
 
   // Calculate synchronized padding width

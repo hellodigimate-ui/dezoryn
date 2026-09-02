@@ -3,15 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Tv, Plus, Trash2, Edit3, RefreshCw, CheckCircle2,
   AlertTriangle, Sparkles, FolderOpen, Video as VideoIcon, Play,
-  Eye, EyeOff, X
+  Eye, EyeOff, X, Monitor
 } from 'lucide-react';
 
 import { MediaPickerModal } from './MediaPickerModal';
-
-import { API_URL, apiFetch } from '../../config/api.config';
+import { API_URL, apiFetch, invalidateApiCache } from '../../config/api.config';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 const API_DEMOS = `${API_URL}/demos`;
-
 
 export interface ProductDemo {
   id: string;
@@ -32,7 +31,7 @@ export const AdminDemoManager: React.FC = () => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Live preview interactive tab state
-  const [activeTabPreview, setActiveTabPreview] = useState<string>('schoolycore');
+  const [activeTabPreview, setActiveTabPreview] = useState<string>('');
 
   // Form modal state
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -60,6 +59,23 @@ export const AdminDemoManager: React.FC = () => {
     allowedTypes: ['video'],
   });
 
+  // Escape key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (mediaPickerConfig.isOpen) {
+          setMediaPickerConfig(prev => ({ ...prev, isOpen: false }));
+        } else if (deleteConfirm) {
+          setDeleteConfirm(null);
+        } else if (isModalOpen) {
+          setIsModalOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mediaPickerConfig.isOpen, deleteConfirm, isModalOpen]);
+
   const showMsg = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3500);
@@ -72,6 +88,9 @@ export const AdminDemoManager: React.FC = () => {
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
         setDemos(data.data);
+        if (data.data.length > 0 && !activeTabPreview) {
+          setActiveTabPreview(data.data[0].id);
+        }
       }
     } catch {
       showMsg('error', 'Failed to fetch product demos');
@@ -110,6 +129,11 @@ export const AdminDemoManager: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const notifyUpdates = () => {
+    invalidateApiCache();
+    window.dispatchEvent(new CustomEvent('dezoryn-demos-updated'));
+  };
+
   const handleSaveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !videoUrl.trim()) {
@@ -144,6 +168,7 @@ export const AdminDemoManager: React.FC = () => {
       if (data.success) {
         showMsg('success', isEdit ? 'Product demo updated successfully' : 'New product demo created');
         setIsModalOpen(false);
+        notifyUpdates();
         fetchDemos();
       } else {
         showMsg('error', data.message || 'Failed to save product demo');
@@ -165,6 +190,7 @@ export const AdminDemoManager: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setDemos(prev => prev.map(d => (d.id === demo.id ? { ...d, isActive: !d.isActive } : d)));
+        notifyUpdates();
         showMsg('success', `Demo status updated to ${!demo.isActive ? 'Active' : 'Inactive'}`);
       }
     } catch {
@@ -180,6 +206,7 @@ export const AdminDemoManager: React.FC = () => {
       if (data.success) {
         showMsg('success', 'Product demo deleted');
         setDemos(prev => prev.filter(d => d.id !== deleteConfirm.id));
+        notifyUpdates();
       } else {
         showMsg('error', data.message || 'Failed to delete demo');
       }
@@ -189,6 +216,8 @@ export const AdminDemoManager: React.FC = () => {
       setDeleteConfirm(null);
     }
   };
+
+  const selectedPreviewDemo = demos.find(d => d.id === activeTabPreview) || demos[0] || null;
 
   return (
     <div className="space-y-8 font-['Plus_Jakarta_Sans',sans-serif]">
@@ -250,86 +279,105 @@ export const AdminDemoManager: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Live Preview Widget matching screenshot media__1786688895742.png */}
-      <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl space-y-5 relative overflow-hidden">
+      {/* Live Preview Section - 100% Dynamic with Database State */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-5 relative overflow-hidden">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-black uppercase text-cyan-400 tracking-wider">
+          <div className="flex items-center gap-2 text-xs font-black uppercase text-blue-600 dark:text-cyan-400 tracking-wider">
             <Tv className="w-4 h-4" />
             <span>Demo Center Live Preview</span>
           </div>
-          <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-400/20">
-            Interactive Widget
+          <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-blue-50 dark:bg-cyan-500/10 text-blue-600 dark:text-cyan-400 border border-blue-200 dark:border-cyan-400/20">
+            {demos.length} {demos.length === 1 ? 'Demo' : 'Demos'} Configured
           </span>
         </div>
 
-        {/* Live Preview Banner matching exact screenshot media__1786688895742.png */}
-        <div className="p-6 rounded-3xl bg-slate-800/80 border border-slate-700/80 shadow-xl space-y-6">
-          
-          {/* Header block: Title + Subtitle + Views Pill */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-700/60 border border-slate-600/50">
+        {demos.length === 0 ? (
+          <div className="p-12 text-center rounded-3xl bg-slate-50 dark:bg-slate-950/40 border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-500 dark:text-cyan-400 flex items-center justify-center mx-auto">
+              <Tv className="w-7 h-7" />
+            </div>
             <div>
-              <h3 className="text-xl font-black text-white">
-                {(demos.find(d => d.id.toLowerCase().includes(activeTabPreview)) || demos[0])?.title || 'SchoolyCore Demo'}
-              </h3>
-              <p className="text-xs text-slate-300 font-semibold mt-1">
-                {(demos.find(d => d.id.toLowerCase().includes(activeTabPreview)) || demos[0])?.description || 'Next-Gen EHR, OPD Billing & Clinical Workflow'}
+              <h3 className="text-base font-black text-slate-900 dark:text-white">No Product Demos Configured Yet</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                No mock data is preloaded. Click the <strong>"+ Add Product Demo"</strong> button above to upload videos, thumbnails, and publish your first live demo.
               </p>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800/90 border border-slate-600 text-xs font-extrabold text-cyan-300 shadow-sm shrink-0">
-              <Eye className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{(demos.find(d => d.id.toLowerCase().includes(activeTabPreview)) || demos[0])?.viewsText || '18,500+ Views'}</span>
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-black text-xs shadow-md inline-flex items-center gap-2 cursor-pointer border-none"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Your First Demo</span>
+            </button>
+          </div>
+        ) : (
+          <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 shadow-md space-y-6">
+            {/* Header block: Title + Subtitle + Views Pill */}
+            {selectedPreviewDemo && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600/50 shadow-xs">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                    {selectedPreviewDemo.title}
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold mt-1">
+                    {selectedPreviewDemo.description || 'Interactive product workflow walkthrough'}
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-600 text-xs font-extrabold text-blue-600 dark:text-cyan-300 shadow-xs shrink-0">
+                  <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+                  <span>{selectedPreviewDemo.viewsText || '18,500+ Views'}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic Solution Category Tabs based ONLY on real database items */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {demos.map((demo) => {
+                const isSelected = (selectedPreviewDemo?.id === demo.id);
+                return (
+                  <button
+                    key={demo.id}
+                    type="button"
+                    onClick={() => setActiveTabPreview(demo.id)}
+                    className={`p-3.5 rounded-2xl border text-left transition cursor-pointer ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 border-blue-400 text-white shadow-lg shadow-blue-500/20'
+                        : 'bg-white dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <div className="text-xs font-black uppercase tracking-wider truncate flex items-center justify-between">
+                      <span className="truncate">{demo.title}</span>
+                      <Monitor className="w-3.5 h-3.5 opacity-70 shrink-0 ml-1" />
+                    </div>
+                    <div className="text-[10px] font-bold mt-1 text-slate-500 dark:text-slate-300 opacity-90 truncate">
+                      {demo.category || 'General'}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Action Buttons Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                className="py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-black text-xs shadow-lg shadow-blue-600/30 transition cursor-pointer flex items-center justify-center gap-2 border-none"
+              >
+                <Play className="w-4 h-4 fill-white" />
+                <span>Watch Live Demo</span>
+              </button>
+
+              <button
+                type="button"
+                className="py-3.5 px-6 rounded-2xl bg-white dark:bg-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-white font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <span>Book Walkthrough</span>
+                <span className="text-slate-400 font-bold">&gt;</span>
+              </button>
             </div>
           </div>
-
-          {/* Solution Category Tabs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { id: 'schoolycore', name: 'SCHOOLYCORE', tag: 'Education', active: activeTabPreview === 'schoolycore' },
-              { id: 'hospital', name: 'HOSPITAL MANA...', tag: 'Healthcare', active: activeTabPreview === 'hospital' },
-              { id: 'hrms', name: 'HRMS', tag: 'Enterprise', active: activeTabPreview === 'hrms' },
-              { id: 'inventory', name: 'INVENTORYPRO', tag: 'Logistics', active: activeTabPreview === 'inventory' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTabPreview(tab.id)}
-                className={`p-3.5 rounded-2xl border text-left transition cursor-pointer ${
-                  tab.active
-                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 border-blue-400 text-white shadow-lg shadow-blue-500/20'
-                    : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                <div className="text-xs font-black uppercase tracking-wider truncate flex items-center justify-between">
-                  <span>{tab.name}</span>
-                  <Tv className="w-3.5 h-3.5 opacity-70" />
-                </div>
-                <div className="text-[10px] font-bold mt-1 text-slate-300 opacity-90 truncate">
-                  {tab.tag}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Action Buttons Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            <button
-              type="button"
-              className="py-3.5 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-black text-xs shadow-lg shadow-blue-600/30 transition cursor-pointer flex items-center justify-center gap-2 border-none"
-            >
-              <Play className="w-4 h-4 fill-white" />
-              <span>Watch Live Demo</span>
-            </button>
-
-            <button
-              type="button"
-              className="py-3.5 px-6 rounded-2xl bg-slate-700/80 hover:bg-slate-700 border border-slate-600 text-white font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <span>Book Walkthrough</span>
-              <span className="text-slate-400 font-bold">&gt;</span>
-            </button>
-          </div>
-
-        </div>
+        )}
       </div>
 
       {/* Demos Grid List */}
@@ -387,7 +435,7 @@ export const AdminDemoManager: React.FC = () => {
               {/* Video URL box */}
               <div className="p-3 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono text-cyan-400 truncate flex items-center justify-between">
                 <span className="truncate">{demo.videoUrl}</span>
-                <a href={demo.videoUrl} target="_blank" rel="noreferrer" className="text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:text-white ml-2">
+                <a href={resolveMediaUrl(demo.videoUrl)} target="_blank" rel="noreferrer" className="text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:text-white ml-2">
                   <Play className="w-3.5 h-3.5" />
                 </a>
               </div>
@@ -420,18 +468,23 @@ export const AdminDemoManager: React.FC = () => {
       {/* Add / Edit Form Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-2xl space-y-6"
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-2xl space-y-6 text-slate-900 dark:text-white"
             >
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
                 <h3 className="text-lg font-black text-slate-900 dark:text-white">
                   {editingDemo ? 'Edit Product Demo' : 'Configure New Product Demo'}
                 </h3>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  title="Close (Esc)"
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -441,11 +494,11 @@ export const AdminDemoManager: React.FC = () => {
                   <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">Demo Title</label>
                   <input
                     type="text"
-                    placeholder="e.g. SchoolyCore Demo, HRMS Demo..."
+                    placeholder="e.g. SchoolyCore Demo, Hospital ERP Demo..."
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                     required
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-bold text-slate-900 dark:text-white outline-none"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-bold text-slate-900 dark:text-white outline-none"
                   />
                 </div>
 
@@ -456,7 +509,7 @@ export const AdminDemoManager: React.FC = () => {
                     placeholder="e.g. Next-Gen EHR, OPD Billing & Clinical Workflow..."
                     value={description}
                     onChange={e => setDescription(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-medium text-slate-900 dark:text-white outline-none resize-none"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-medium text-slate-900 dark:text-white outline-none resize-none"
                   />
                 </div>
 
@@ -467,30 +520,30 @@ export const AdminDemoManager: React.FC = () => {
                     placeholder="e.g. 18,500+ Views"
                     value={viewsText}
                     onChange={e => setViewsText(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-bold text-slate-900 dark:text-white outline-none"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-bold text-slate-900 dark:text-white outline-none"
                   />
                 </div>
 
                 {/* Video URL + Media Library Selector */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">Video Source URL (MP4 / Cloudinary)</label>
+                    <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">Video Source URL (MP4 / Upload from PC)</label>
                     <button
                       type="button"
                       onClick={() => setMediaPickerConfig({ isOpen: true, targetField: 'videoUrl', allowedTypes: ['video'] })}
-                      className="text-xs font-black text-cyan-400 hover:underline flex items-center gap-1"
+                      className="text-xs font-black text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <FolderOpen className="w-3.5 h-3.5" />
-                      <span>Pick from Media Library</span>
+                      <span>Upload / Pick Video</span>
                     </button>
                   </div>
                   <input
                     type="text"
-                    placeholder="https://commondatastorage.googleapis.com/... or Cloudinary video URL"
+                    placeholder="Paste video URL or pick/upload from PC via button above"
                     value={videoUrl}
                     onChange={e => setVideoUrl(e.target.value)}
                     required
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-mono text-cyan-400 outline-none"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-mono text-cyan-600 dark:text-cyan-400 outline-none"
                   />
                 </div>
 
@@ -501,18 +554,18 @@ export const AdminDemoManager: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setMediaPickerConfig({ isOpen: true, targetField: 'thumbnailUrl', allowedTypes: ['image'] })}
-                      className="text-xs font-black text-cyan-400 hover:underline flex items-center gap-1"
+                      className="text-xs font-black text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <FolderOpen className="w-3.5 h-3.5" />
-                      <span>Pick Image from Library</span>
+                      <span>Upload / Pick Image</span>
                     </button>
                   </div>
                   <input
                     type="text"
-                    placeholder="https://images.unsplash.com/... or Cloudinary image URL"
+                    placeholder="Paste image URL or pick/upload from PC via button above"
                     value={thumbnailUrl}
                     onChange={e => setThumbnailUrl(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-mono text-cyan-400 outline-none"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-mono text-cyan-600 dark:text-cyan-400 outline-none"
                   />
                 </div>
 
@@ -524,7 +577,7 @@ export const AdminDemoManager: React.FC = () => {
                       placeholder="e.g. Education, Healthcare"
                       value={category}
                       onChange={e => setCategory(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none"
                     />
                   </div>
 
@@ -534,7 +587,7 @@ export const AdminDemoManager: React.FC = () => {
                       type="number"
                       value={order}
                       onChange={e => setOrder(parseInt(e.target.value) || 0)}
-                      className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none"
                     />
                   </div>
                 </div>
@@ -543,14 +596,14 @@ export const AdminDemoManager: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-5 py-3 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white text-xs font-extrabold transition cursor-pointer"
+                    className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-extrabold transition cursor-pointer"
                   >
-                    Cancel
+                    Cancel (Esc)
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-slate-900 dark:text-white font-black text-xs shadow-xl shadow-cyan-500/20 transition cursor-pointer disabled:opacity-50"
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-black text-xs shadow-xl shadow-cyan-500/20 transition cursor-pointer disabled:opacity-50 border-none"
                   >
                     {isSaving ? 'Saving...' : editingDemo ? 'Update Demo' : 'Save Demo'}
                   </button>
@@ -561,7 +614,7 @@ export const AdminDemoManager: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Media Picker Modal */}
+      {/* Media Picker Modal for Video / Image Selection & Upload from PC */}
       <MediaPickerModal
         isOpen={mediaPickerConfig.isOpen}
         onClose={() => setMediaPickerConfig({ ...mediaPickerConfig, isOpen: false })}
@@ -575,14 +628,14 @@ export const AdminDemoManager: React.FC = () => {
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {deleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-5 text-center relative overflow-hidden"
+              initial={{ scale: 0.9, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 15 }}
+              className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-5 text-center relative overflow-hidden text-slate-900 dark:text-white"
             >
-              <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20">
+              <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20">
                 <AlertTriangle className="w-7 h-7" />
               </div>
 
@@ -597,14 +650,14 @@ export const AdminDemoManager: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-extrabold text-xs transition cursor-pointer"
+                  className="flex-1 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold text-xs transition cursor-pointer"
                 >
-                  Cancel
+                  Cancel (Esc)
                 </button>
                 <button
                   type="button"
                   onClick={executeDelete}
-                  className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-slate-900 dark:text-white font-black text-xs shadow-lg shadow-rose-600/30 transition cursor-pointer"
+                  className="flex-1 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs shadow-lg shadow-rose-600/20 transition cursor-pointer border-none"
                 >
                   Confirm Delete
                 </button>
@@ -616,3 +669,5 @@ export const AdminDemoManager: React.FC = () => {
     </div>
   );
 };
+
+export default AdminDemoManager;

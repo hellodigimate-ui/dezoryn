@@ -43,11 +43,24 @@ export const TestimonialsSection: React.FC = () => {
   const [activeIdx, setActiveIdx] = useState(0);
   const [direction, setDirection] = useState(1);
 
-  useEffect(() => {
+  const fetchTestimonials = () => {
     apiFetch(API)
       .then(r => r.json())
-      .then(data => { if (data.success && data.data.length > 0) setItems(data.data); })
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setItems(data.data);
+          setActiveIdx(0);
+        }
+      })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchTestimonials();
+    window.addEventListener('dezoryn-testimonials-updated', fetchTestimonials);
+    return () => {
+      window.removeEventListener('dezoryn-testimonials-updated', fetchTestimonials);
+    };
   }, []);
 
   // Auto-advance

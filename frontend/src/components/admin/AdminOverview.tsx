@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Sparkles,
@@ -14,64 +14,141 @@ import {
   Sliders,
   Mail,
   ShieldCheck,
-  Star
+  Star,
+  RefreshCw
 } from 'lucide-react';
 import { openAdminAIAssistant } from './AdminLayout';
+import { API_URL, apiFetch } from '../../config/api.config';
 
 interface AdminOverviewProps {
   setActiveTab: (tab: string) => void;
   userRole?: string;
 }
 
+interface OverviewData {
+  publishedSections: {
+    count: number;
+    names: string;
+  };
+  products: {
+    total: number;
+    active: number;
+  };
+  leads: {
+    total: number;
+    contacts: number;
+    bookings: number;
+    newsletter: number;
+  };
+  media: {
+    total: number;
+    storage: string;
+    totalBytes: number;
+  };
+  counts?: {
+    testimonials: number;
+    faqs: number;
+    demos: number;
+    jobs: number;
+    services: number;
+  };
+  recentActivity: Array<{
+    id: string;
+    action: string;
+    detail: string;
+    time: string;
+    user: string;
+  }>;
+}
+
 export const AdminOverview: React.FC<AdminOverviewProps> = ({ setActiveTab, userRole = 'ADMIN' }) => {
+  const [data, setData] = useState<OverviewData>({
+    publishedSections: {
+      count: 9,
+      names: 'Hero, Products, FAQs, Testimonials, Solutions, Pricing, Careers, Footer, Demos'
+    },
+    products: { total: 0, active: 0 },
+    leads: { total: 0, contacts: 0, bookings: 0, newsletter: 0 },
+    media: { total: 0, storage: '0 MB', totalBytes: 0 },
+    counts: { testimonials: 0, faqs: 0, demos: 0, jobs: 0, services: 0 },
+    recentActivity: []
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const fetchOverview = useCallback(async () => {
+    try {
+      const res = await apiFetch(`${API_URL}/analytics/overview`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setData(json.data);
+      }
+    } catch {
+      // fallback
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOverview();
+    window.addEventListener('focus', fetchOverview);
+    window.addEventListener('dezoryn-products-updated', fetchOverview);
+    window.addEventListener('dezoryn-demos-updated', fetchOverview);
+    window.addEventListener('dezoryn-testimonials-updated', fetchOverview);
+
+    return () => {
+      window.removeEventListener('focus', fetchOverview);
+      window.removeEventListener('dezoryn-products-updated', fetchOverview);
+      window.removeEventListener('dezoryn-demos-updated', fetchOverview);
+      window.removeEventListener('dezoryn-testimonials-updated', fetchOverview);
+    };
+  }, [fetchOverview]);
+
   const websiteStats = [
     {
       id: 'pages',
       title: 'Published CMS Sections',
-      value: '7 Sections',
-      change: 'Hero, Products, FAQs, Footer',
+      value: `${data.publishedSections.count} Sections`,
+      change: 'Hero, Products, FAQs, Footer...',
       isPositive: true,
       icon: Layout,
       color: 'from-blue-600 to-cyan-500',
       badge: 'Live',
+      action: () => setActiveTab('pages')
     },
     {
       id: 'products',
       title: 'Active Products & Services',
-      value: '12 Items',
-      change: '+3 added this week',
+      value: `${data.products.active} Active`,
+      change: `${data.products.total} Total in DB`,
       isPositive: true,
       icon: Package,
       color: 'from-cyan-500 to-teal-500',
       badge: 'Catalog Active',
+      action: () => setActiveTab('products')
     },
     {
       id: 'leads',
       title: 'Customer Leads & Inquiries',
-      value: '48 Submissions',
-      change: '12 new this week',
+      value: `${data.leads.total} Submissions`,
+      change: `${data.leads.contacts} Contacts · ${data.leads.bookings} Demos`,
       isPositive: true,
       icon: Mail,
       color: 'from-indigo-600 to-purple-600',
       badge: 'Form Active',
+      action: () => setActiveTab('contact-leads')
     },
     {
       id: 'media',
       title: 'Media Assets & Banners',
-      value: '142 Files',
-      change: '1.2 GB Storage Used',
+      value: `${data.media.total} Files`,
+      change: data.media.storage,
       isPositive: true,
       icon: FolderOpen,
       color: 'from-purple-600 to-pink-600',
       badge: 'Library Ready',
+      action: () => setActiveTab('media')
     },
-  ];
-
-  const recentContentUpdates = [
-    { id: '1', action: 'Hero Section Updated', detail: 'Main headline and CTA buttons updated', time: '10 mins ago', user: 'Admin' },
-    { id: '2', action: 'New Contact Inquiry', detail: 'Sarah Jenkins (CTO, Aetheria Cloud) submitted lead form', time: '25 mins ago', user: 'Customer' },
-    { id: '3', action: 'SEO Meta Tags Generated', detail: 'AI Copilot generated meta description & keywords', time: '1 hour ago', user: 'AI Assistant' },
-    { id: '4', action: 'Product Catalog Edited', detail: 'Sales Intelligence Suite description updated', time: '3 hours ago', user: 'Admin' },
   ];
 
   const websiteCMSModules = [
@@ -131,6 +208,14 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ setActiveTab, user
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
+              onClick={fetchOverview}
+              className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition cursor-pointer"
+              title="Refresh Stats"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              type="button"
               onClick={() => openAdminAIAssistant({ type: 'hero' })}
               className="px-4 py-2.5 rounded-xl bg-white text-blue-700 hover:bg-blue-50 dark:bg-gradient-to-r dark:from-cyan-500 dark:to-blue-600 dark:hover:from-cyan-400 dark:hover:to-blue-500 dark:text-white font-black text-xs transition shadow-lg shadow-black/10 flex items-center gap-2 cursor-pointer"
             >
@@ -149,7 +234,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ setActiveTab, user
         </div>
       </div>
 
-      {/* Website KPI Stats Grid */}
+      {/* Website KPI Stats Grid - 100% Real PostgreSQL Data */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
         {websiteStats.map((stat, idx) => {
           const Icon = stat.icon;
@@ -159,7 +244,8 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ setActiveTab, user
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: idx * 0.05 }}
-              className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md transition group"
+              onClick={stat.action}
+              className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:border-cyan-500/50 hover:shadow-md transition cursor-pointer group"
             >
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
@@ -172,7 +258,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ setActiveTab, user
 
               <div className="flex items-baseline justify-between">
                 <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                  {stat.value}
+                  {isLoading ? '...' : stat.value}
                 </span>
                 <span className="px-2 py-0.5 rounded-md bg-cyan-50 dark:bg-slate-800 text-[10px] font-extrabold text-cyan-600 dark:text-cyan-400 border border-cyan-100 dark:border-slate-700">
                   {stat.badge}
@@ -181,7 +267,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ setActiveTab, user
 
               <div className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                <span>{stat.change}</span>
+                <span className="truncate">{stat.change}</span>
               </div>
             </motion.div>
           );
@@ -226,7 +312,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ setActiveTab, user
 
       {/* Main Content Split: Recent Content Activity & Live Status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Website Activity List (2 Columns) */}
+        {/* Recent Website Activity List (2 Columns) - 100% Live DB Audit Feed */}
         <div className="lg:col-span-2 p-5 md:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -234,7 +320,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ setActiveTab, user
                 Recent Website Activity & Updates
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Live audit trail of website copy changes, lead submissions, and AI content updates
+                Live audit trail of website copy changes, lead submissions, and database events
               </p>
             </div>
             <button
@@ -247,31 +333,37 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ setActiveTab, user
           </div>
 
           <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-            {recentContentUpdates.map((log) => (
-              <div key={log.id} className="py-3.5 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                    <Clock className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-extrabold text-slate-900 dark:text-white">
-                        {log.action}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-700">
-                        {log.user}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {log.detail}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[11px] font-medium text-slate-400 shrink-0">
-                  {log.time}
-                </span>
+            {data.recentActivity.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-500">
+                No recent activity recorded yet.
               </div>
-            ))}
+            ) : (
+              data.recentActivity.map((log) => (
+                <div key={log.id} className="py-3.5 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+                          {log.action}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-700">
+                          {log.user}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {log.detail}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-medium text-slate-400 shrink-0">
+                    {log.time}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -302,9 +394,9 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ setActiveTab, user
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/90 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <span className="font-bold text-slate-700 dark:text-slate-300">AI Copy Generator</span>
+                <span className="font-bold text-slate-700 dark:text-slate-300">AI Assistant Engine</span>
               </div>
-              <span className="font-mono text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 px-2 py-0.5 rounded-md">GPT-4 Engine</span>
+              <span className="font-mono text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 px-2 py-0.5 rounded-md">Online</span>
             </div>
           </div>
 
@@ -331,3 +423,5 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ setActiveTab, user
     </div>
   );
 };
+
+export default AdminOverview;

@@ -12,7 +12,7 @@ import {
   LogOut,
   Navigation,
   Package,
-  DollarSign,
+  IndianRupee,
   MessageSquareQuote,
   HelpCircle,
   Briefcase,
@@ -59,7 +59,7 @@ const MENU_CATEGORIES: MenuCategory[] = [
     categoryTitle: 'MARKETPLACE & PRODUCTS',
     items: [
       { id: 'products', label: 'SaaS Marketplace Manager', icon: Package, badge: 'Live DB', badgeColor: 'bg-emerald-500/20 text-emerald-400' },
-      { id: 'pricing', label: 'Pricing Plans & Tiers', icon: DollarSign },
+      { id: 'pricing', label: 'Pricing Plans & Tiers', icon: IndianRupee },
     ],
   },
   {

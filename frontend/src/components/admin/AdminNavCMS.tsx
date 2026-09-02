@@ -594,13 +594,13 @@ export const AdminNavCMS: React.FC = () => {
       </div>
 
       {/* Live Preview Panel */}
-      <div className="p-5 md:p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <Navigation className="w-4 h-4 text-purple-400" />
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-300">
+      <div className="p-5 md:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+          <Navigation className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+          <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
             Live Navbar Preview
           </h4>
-          <span className="ml-auto px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold">
+          <span className="ml-auto px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold border border-emerald-500/20">
             Real-Time
           </span>
         </div>
@@ -613,8 +613,8 @@ export const AdminNavCMS: React.FC = () => {
                 key={item.id}
                 className={`font-medium transition-all cursor-default ${
                   item.isHighlight
-                    ? 'text-amber-400 font-black underline decoration-amber-400 underline-offset-4'
-                    : 'text-slate-300'
+                    ? 'text-amber-500 font-black underline decoration-amber-500 underline-offset-4'
+                    : 'text-slate-700 dark:text-slate-300'
                 }`}
               >
                 {item.label}
@@ -623,7 +623,7 @@ export const AdminNavCMS: React.FC = () => {
         </div>
 
         {navItems.filter((i) => !i.isVisible).length > 0 && (
-          <p className="text-[10px] font-bold text-slate-500">
+          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
             Hidden items: {navItems.filter((i) => !i.isVisible).map((i) => i.label).join(', ')}
           </p>
         )}

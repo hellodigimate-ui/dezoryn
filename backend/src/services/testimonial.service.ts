@@ -63,20 +63,30 @@ export class TestimonialService {
 
   static async create(data: {
     name: string; company?: string; designation?: string; review: string;
-    rating?: number; photo?: string; order?: number; isEnabled?: boolean;
+    rating?: number; photo?: string | null; order?: number; isEnabled?: boolean;
   }) {
     try {
       const count = await prisma.testimonial.count();
+      const rating = typeof data.rating === 'number' && !isNaN(data.rating)
+        ? Math.min(5, Math.max(1, data.rating))
+        : 5;
+      const order = typeof data.order === 'number' && !isNaN(data.order)
+        ? data.order
+        : count;
+      const isEnabled = typeof data.isEnabled === 'boolean'
+        ? data.isEnabled
+        : true;
+
       const created = await prisma.testimonial.create({
         data: {
           name: data.name,
           company: data.company || '',
           designation: data.designation || '',
           review: data.review,
-          rating: Math.min(5, Math.max(1, data.rating ?? 5)),
+          rating,
           photo: data.photo || null,
-          order: data.order ?? count,
-          isEnabled: data.isEnabled ?? true,
+          order,
+          isEnabled,
         },
       });
       return created;
@@ -88,10 +98,35 @@ export class TestimonialService {
 
   static async update(id: string, data: Partial<{
     name: string; company: string; designation: string; review: string;
-    rating: number; photo: string; order: number; isEnabled: boolean;
+    rating: number; photo: string | null; order: number; isEnabled: boolean;
   }>) {
     try {
-      const updated = await prisma.testimonial.update({ where: { id }, data });
+      if (data.photo !== undefined && data.photo !== null) {
+        const existing = await prisma.testimonial.findUnique({ where: { id } });
+        if (existing?.photo && existing.photo !== data.photo && existing.photo.startsWith('/uploads/')) {
+          const oldPath = path.join(process.cwd(), 'public', existing.photo);
+          if (fs.existsSync(oldPath)) {
+            try { fs.unlinkSync(oldPath); } catch {}
+          }
+        }
+      }
+
+      const updatePayload: any = {};
+      if (data.name !== undefined) updatePayload.name = data.name;
+      if (data.company !== undefined) updatePayload.company = data.company;
+      if (data.designation !== undefined) updatePayload.designation = data.designation;
+      if (data.review !== undefined) updatePayload.review = data.review;
+      if (data.rating !== undefined) {
+        updatePayload.rating = Math.min(5, Math.max(1, data.rating));
+      }
+      if (data.order !== undefined) updatePayload.order = data.order;
+      if (data.isEnabled !== undefined) updatePayload.isEnabled = data.isEnabled;
+      if (data.photo !== undefined) updatePayload.photo = data.photo;
+
+      const updated = await prisma.testimonial.update({
+        where: { id },
+        data: updatePayload,
+      });
       return updated;
     } catch (error) {
       console.error(`UPDATE TESTIMONIAL ${id} ERROR:`, error);
@@ -104,7 +139,9 @@ export class TestimonialService {
       const item = await prisma.testimonial.findUnique({ where: { id } });
       if (item?.photo && item.photo.startsWith('/uploads/')) {
         const filePath = path.join(process.cwd(), 'public', item.photo);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        if (fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch {}
+        }
       }
       await prisma.testimonial.delete({ where: { id } });
       return { success: true, deletedId: id };

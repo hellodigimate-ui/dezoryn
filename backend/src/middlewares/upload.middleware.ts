@@ -26,22 +26,17 @@ const fileFilter = (
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  const allowedMimeTypes = [
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-    'image/gif',
-    'image/svg+xml',
-    'application/pdf',
-    'video/mp4',
-  ];
+  const isImage = file.mimetype.startsWith('image/');
+  const isVideo = file.mimetype.startsWith('video/');
+  const isPdf = file.mimetype === 'application/pdf';
+  const isAudio = file.mimetype.startsWith('audio/');
 
-  if (allowedMimeTypes.includes(file.mimetype)) {
+  if (isImage || isVideo || isPdf || isAudio) {
     cb(null, true);
   } else {
     cb(
       new BadRequestError(
-        `File format '${file.mimetype}' is not supported. Allowed formats: images, pdf, mp4.`
+        `File format '${file.mimetype}' is not supported. Allowed formats: images, pdf, video, audio.`
       )
     );
   }

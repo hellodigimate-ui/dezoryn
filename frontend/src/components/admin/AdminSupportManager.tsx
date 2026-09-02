@@ -730,36 +730,36 @@ export const AdminSupportManager: React.FC = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 15 }}
               transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              className="relative w-full max-w-md p-6 sm:p-8 rounded-3xl bg-slate-900 border border-rose-500/30 text-white shadow-2xl overflow-hidden font-['Plus_Jakarta_Sans',sans-serif]"
+              className="relative w-full max-w-md p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-rose-500/30 text-slate-900 dark:text-white shadow-2xl overflow-hidden font-['Plus_Jakarta_Sans',sans-serif]"
             >
               {/* Top ambient glow */}
               <div className="absolute top-0 right-0 w-48 h-48 bg-rose-500/10 rounded-full blur-[70px] pointer-events-none" />
 
               <div className="flex items-start gap-4 relative z-10">
-                <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500 dark:text-rose-400 shrink-0">
                   <AlertTriangle className="w-6 h-6 animate-pulse" />
                 </div>
 
                 <div className="flex-1 min-w-0 text-left">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-400">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-500 dark:text-rose-400">
                     PERMANENT DELETION WARNING
                   </span>
-                  <h3 className="text-lg font-black text-white mt-0.5">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
                     Delete Ticket {deleteConfirmTicket.ticketId}?
                   </h3>
-                  <p className="text-xs text-slate-300 mt-2 font-medium leading-relaxed">
-                    Are you sure you want to delete ticket <span className="font-bold text-white">"{deleteConfirmTicket.ticketId}"</span> ({deleteConfirmTicket.subject})?
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 font-medium leading-relaxed">
+                    Are you sure you want to delete ticket <span className="font-bold text-slate-900 dark:text-white">"{deleteConfirmTicket.ticketId}"</span> ({deleteConfirmTicket.subject})?
                     This ticket record will be permanently removed from PostgreSQL database and storage.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-800 relative z-10">
+              <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 relative z-10">
                 <button
                   type="button"
                   onClick={() => setDeleteConfirmTicket(null)}
                   disabled={isDeleting}
-                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition cursor-pointer border border-slate-700"
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer border border-slate-200 dark:border-slate-700"
                 >
                   Cancel
                 </button>
@@ -767,10 +767,19 @@ export const AdminSupportManager: React.FC = () => {
                   type="button"
                   onClick={confirmDeleteTicket}
                   disabled={isDeleting}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs shadow-lg shadow-rose-600/30 transition cursor-pointer border border-rose-500/40 disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition cursor-pointer flex items-center gap-2 border-none"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  <span>{isDeleting ? 'Deleting...' : 'Delete Ticket'}</span>
+                  {isDeleting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete Ticket</span>
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>

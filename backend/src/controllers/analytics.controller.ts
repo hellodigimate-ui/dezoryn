@@ -18,6 +18,15 @@ export class AnalyticsController {
     }
   }
 
+  static async getOverviewStats(req: Request, res: Response): Promise<void> {
+    try {
+      const data = await AnalyticsService.getOverviewDashboardStats();
+      res.status(200).json({ success: true, data });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message || 'Failed to fetch overview stats' });
+    }
+  }
+
   static async trackEvent(req: Request, res: Response): Promise<void> {
     try {
       const result = await AnalyticsService.trackEvent(req.body);

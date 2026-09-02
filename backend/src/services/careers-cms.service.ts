@@ -208,7 +208,7 @@ export const DEFAULT_CAREERS_CMS = {
         title: 'San Francisco HQ & Glass Hubs',
         category: 'OFFICE ENVIRONMENT',
         tag: 'Office',
-        img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+        img: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80',
         desc: 'State-of-the-art workstations, ergonomic setup, and high-speed fiber internet.'
       },
       {

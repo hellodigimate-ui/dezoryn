@@ -13,7 +13,7 @@ import {
   Cross,
   Users2,
   ShieldCheck,
-  BadgeDollarSign,
+  IndianRupee,
   Factory,
   Home,
   Truck,
@@ -43,7 +43,8 @@ const renderCategoryIcon = (iconName: string | React.ReactNode) => {
     case 'Zap': return <Zap className="w-4 h-4 text-cyan-500" />;
     case 'Building2': return <Building2 className="w-4 h-4 text-sky-500" />;
     case 'ShieldCheck': return <ShieldCheck className="w-4 h-4 text-indigo-500" />;
-    case 'BadgeDollarSign': return <BadgeDollarSign className="w-4 h-4 text-emerald-600" />;
+    case 'IndianRupee':
+    case 'BadgeDollarSign': return <IndianRupee className="w-4 h-4 text-emerald-600" />;
     case 'Factory': return <Factory className="w-4 h-4 text-indigo-600" />;
     case 'Home': return <Home className="w-4 h-4 text-teal-600" />;
     case 'Truck': return <Truck className="w-4 h-4 text-orange-500" />;

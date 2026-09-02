@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Menu, Search, Moon, Sun, Sparkles, X,
-  LayoutDashboard, FileText, Layers, Package, DollarSign,
+  LayoutDashboard, FileText, Layers, Package, IndianRupee,
   Navigation, LayoutGrid, Tv, LifeBuoy, MessageSquareQuote,
   HelpCircle, Briefcase, PhoneCall, FolderOpen, Cog,
   Settings, Building, BarChart3, ExternalLink,
@@ -107,7 +107,7 @@ export const AdminNavbar: React.FC<AdminNavbarProps> = ({
       category: 'CMS Modules',
       description: 'Set subscription tiers, feature checklists, billing periods, and enterprise quotes',
       keywords: ['pricing', 'plans', 'tiers', 'cost', 'subscription', 'monthly', 'annual', 'starter', 'pro'],
-      icon: DollarSign,
+      icon: IndianRupee,
       action: () => handleAdminTabJump('pricing'),
     },
     {

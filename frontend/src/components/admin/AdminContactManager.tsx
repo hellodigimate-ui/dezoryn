@@ -964,24 +964,24 @@ export const AdminContactManager: React.FC<AdminContactManagerProps> = ({ initia
               </div>
 
               {/* Live Preview Card */}
-              <div className="p-6 rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="p-6 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-cyan-400" />
-                    <span className="text-xs font-black text-white uppercase tracking-wider">
+                    <Eye className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+                    <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
                       Live Frontend Preview on /contact-sales
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 bg-slate-900 px-2.5 py-1 rounded-full border border-slate-800">
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-800">
                     {form.officeLocations.length} Locations Configured
                   </span>
                 </div>
 
                 <div className="text-center py-4">
-                  <span className="text-[10px] font-extrabold tracking-widest text-cyan-400 uppercase">
+                  <span className="text-[10px] font-extrabold tracking-widest text-blue-600 dark:text-cyan-400 uppercase">
                     {form.officeLocationsBadge || 'OUR GLOBAL FOOTPRINT'}
                   </span>
-                  <h3 className="text-xl sm:text-2xl font-extrabold text-white mt-0.5">
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-0.5">
                     {form.officeLocationsTitle || 'Worldwide Office Locations'}
                   </h3>
                 </div>
@@ -990,22 +990,22 @@ export const AdminContactManager: React.FC<AdminContactManagerProps> = ({ initia
                   {form.officeLocations.map((office, idx) => (
                     <div
                       key={office.id || idx}
-                      className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-cyan-500/40 transition shadow-sm"
+                      className="bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 relative overflow-hidden group hover:border-blue-500/40 dark:hover:border-cyan-500/40 transition shadow-xs"
                     >
                       {office.isHQ && (
-                        <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-[8px] font-extrabold text-cyan-300 uppercase">
+                        <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-blue-500/15 dark:bg-cyan-500/20 border border-blue-400/30 dark:border-cyan-400/40 text-[8px] font-extrabold text-blue-600 dark:text-cyan-300 uppercase">
                           GLOBAL HQ
                         </span>
                       )}
-                      <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-cyan-400 mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-blue-600 dark:text-cyan-400 mb-3 shadow-xs">
                         <MapPin className="w-4 h-4" />
                       </div>
-                      <h4 className="text-sm font-extrabold text-white truncate">{office.city || 'Untitled City'}</h4>
-                      <p className="text-[11px] font-semibold text-cyan-400 mb-2 truncate">{office.country || 'Country'}</p>
-                      <p className="text-[11px] text-slate-300 leading-relaxed line-clamp-2 mb-3 min-h-[32px]">{office.address || 'Address line'}</p>
-                      <div className="text-[10px] text-slate-400 space-y-0.5 border-t border-slate-800 pt-2">
-                        <div className="truncate"><span className="text-slate-500">Phone:</span> {office.phone || 'N/A'}</div>
-                        <div className="truncate"><span className="text-slate-500">Hours:</span> {office.hours || 'N/A'}</div>
+                      <h4 className="text-sm font-extrabold text-slate-900 dark:text-white truncate">{office.city || 'Untitled City'}</h4>
+                      <p className="text-[11px] font-semibold text-blue-600 dark:text-cyan-400 mb-2 truncate">{office.country || 'Country'}</p>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2 mb-3 min-h-[32px]">{office.address || 'Address line'}</p>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 space-y-0.5 border-t border-slate-200 dark:border-slate-800 pt-2">
+                        <div className="truncate"><span className="text-slate-400 dark:text-slate-500">Phone:</span> {office.phone || 'N/A'}</div>
+                        <div className="truncate"><span className="text-slate-400 dark:text-slate-500">Hours:</span> {office.hours || 'N/A'}</div>
                       </div>
                     </div>
                   ))}

@@ -1,5 +1,6 @@
 import { prisma } from '../config/prisma.config';
 import fs from 'fs';
+import path from 'path';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.config';
 
 function getFileBuffer(file: Express.Multer.File): Buffer {
@@ -171,9 +172,27 @@ export class MediaService {
 
   static async delete(id: string) {
     try {
-      const existing = await MediaService.getById(id);
-      if (existing?.cloudinaryId) {
-        await deleteFromCloudinary(existing.cloudinaryId, existing.resourceType);
+      const existing = await prisma.media.findUnique({ where: { id } });
+      if (!existing) {
+        return { success: true };
+      }
+
+      if (existing.cloudinaryId) {
+        try {
+          await deleteFromCloudinary(existing.cloudinaryId, existing.resourceType);
+        } catch (cErr) {
+          console.warn('Notice deleting from Cloudinary:', cErr);
+        }
+      }
+
+      if (existing.path) {
+        const cleanPath = existing.path.replace(/^\/+/, '');
+        const localPath = path.resolve(process.cwd(), cleanPath);
+        if (fs.existsSync(localPath)) {
+          try {
+            fs.unlinkSync(localPath);
+          } catch {}
+        }
       }
 
       await prisma.media.delete({ where: { id } });
