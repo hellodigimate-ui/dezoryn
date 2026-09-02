@@ -84,6 +84,18 @@ export interface CareersCMSConfig {
     engineLatency: string;
     vectorQPS: string;
     accuracySLA: string;
+    employeeBadge1?: {
+      name: string;
+      role: string;
+      location: string;
+      avatar: string;
+    };
+    employeeBadge2?: {
+      name: string;
+      role: string;
+      location: string;
+      avatar: string;
+    };
   };
   whyJoin: {
     badgeText: string;
@@ -147,7 +159,19 @@ export const DEFAULT_CAREERS_CMS: CareersCMSConfig = {
     engineStatus: 'Multi-Tenant Cluster Active',
     engineLatency: '12ms Latency',
     vectorQPS: '2.4M QPS',
-    accuracySLA: '99.8% SLA'
+    accuracySLA: '99.8% SLA',
+    employeeBadge1: {
+      name: 'Anya Sharma',
+      role: 'Principal AI Architect',
+      location: 'San Francisco, US',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
+    },
+    employeeBadge2: {
+      name: 'David Chen',
+      role: 'Lead Systems Engineer',
+      location: 'London, UK',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'
+    }
   },
   whyJoin: {
     badgeText: 'CULTURE & BENEFITS',
@@ -441,27 +465,69 @@ export const CareersSection: React.FC = () => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('dezoryn_careers_cms');
       if (saved) {
-        try { return JSON.parse(saved); } catch {}
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            return {
+              ...DEFAULT_CAREERS_CMS,
+              ...parsed,
+              hero: { ...DEFAULT_CAREERS_CMS.hero, ...(parsed.hero || {}) },
+              whyJoin: { ...DEFAULT_CAREERS_CMS.whyJoin, ...(parsed.whyJoin || {}) },
+              teamsSection: { ...DEFAULT_CAREERS_CMS.teamsSection, ...(parsed.teamsSection || {}) },
+              gallerySection: { ...DEFAULT_CAREERS_CMS.gallerySection, ...(parsed.gallerySection || {}) },
+            };
+          }
+        } catch {}
       }
     }
     return DEFAULT_CAREERS_CMS;
   });
 
+  const fetchCmsConfig = async () => {
+    try {
+      const res = await apiFetch('/careers/cms', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.data) {
+        const fullConfig: CareersCMSConfig = {
+          hero: { ...DEFAULT_CAREERS_CMS.hero, ...(data.data.hero || {}) },
+          whyJoin: { ...DEFAULT_CAREERS_CMS.whyJoin, ...(data.data.whyJoin || {}) },
+          teamsSection: { ...DEFAULT_CAREERS_CMS.teamsSection, ...(data.data.teamsSection || {}) },
+          gallerySection: { ...DEFAULT_CAREERS_CMS.gallerySection, ...(data.data.gallerySection || {}) },
+        };
+        setCmsConfig(fullConfig);
+        try {
+          localStorage.setItem('dezoryn_careers_cms', JSON.stringify(fullConfig));
+        } catch (_e) {}
+      }
+    } catch (_e) {
+      // offline fallback
+    }
+  };
+
   useEffect(() => {
+    fetchCmsConfig();
+
     const handleCmsUpdate = (e: Event) => {
       const detail = (e as CustomEvent)?.detail;
       if (detail) {
         setCmsConfig(detail);
       } else {
-        const saved = localStorage.getItem('dezoryn_careers_cms');
-        if (saved) {
-          try { setCmsConfig(JSON.parse(saved)); } catch {}
-        }
+        fetchCmsConfig();
       }
     };
 
     window.addEventListener('dezoryn-careers-cms-update', handleCmsUpdate);
-    return () => window.removeEventListener('dezoryn-careers-cms-update', handleCmsUpdate);
+    window.addEventListener('focus', fetchCmsConfig);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchCmsConfig();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('dezoryn-careers-cms-update', handleCmsUpdate);
+      window.removeEventListener('focus', fetchCmsConfig);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   const [jobs, setJobs] = useState<JobOpening[]>([]);
@@ -752,16 +818,16 @@ export const CareersSection: React.FC = () => {
                     DZ
                   </div>
                   <div>
-                    <div className="text-xs font-black text-white">DezoAI Engine v4.2</div>
+                    <div className="text-xs font-black text-white">{cmsConfig.hero.engineVersion || 'DezoAI Engine v4.2'}</div>
                     <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      Multi-Tenant Cluster Active
+                      {cmsConfig.hero.engineStatus || 'Multi-Tenant Cluster Active'}
                     </div>
                   </div>
                 </div>
 
                 <span className="px-2.5 py-1 rounded-md bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 font-extrabold text-[10px]">
-                  12ms Latency
+                  {cmsConfig.hero.engineLatency || '12ms Latency'}
                 </span>
               </div>
 
@@ -812,11 +878,11 @@ export const CareersSection: React.FC = () => {
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <div className="text-[10px] font-extrabold text-slate-400">VECTOR EMBEDDINGS</div>
-                  <div className="text-base font-black text-white mt-0.5">2.4M QPS</div>
+                  <div className="text-base font-black text-white mt-0.5">{cmsConfig.hero.vectorQPS || '2.4M QPS'}</div>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <div className="text-[10px] font-extrabold text-slate-400">ACCURACY SCORE</div>
-                  <div className="text-base font-black text-emerald-400 mt-0.5">99.8% SLA</div>
+                  <div className="text-base font-black text-emerald-400 mt-0.5">{cmsConfig.hero.accuracySLA || '99.8% SLA'}</div>
                 </div>
               </div>
 
@@ -829,15 +895,15 @@ export const CareersSection: React.FC = () => {
               className="absolute -top-6 -left-4 sm:-left-8 bg-slate-900/95 border border-cyan-500/40 p-3 rounded-2xl shadow-2xl backdrop-blur-xl z-20 flex items-center gap-3 text-left max-w-[210px]"
             >
               <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"
-                alt="Anya Sharma"
+                src={cmsConfig.hero.employeeBadge1?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"}
+                alt={cmsConfig.hero.employeeBadge1?.name || "Anya Sharma"}
                 className="w-10 h-10 rounded-xl object-cover border border-cyan-400/50 shrink-0"
               />
               <div className="overflow-hidden">
-                <div className="text-xs font-black text-white truncate">Anya Sharma</div>
-                <div className="text-[10px] text-cyan-400 font-bold truncate">Principal AI Architect</div>
+                <div className="text-xs font-black text-white truncate">{cmsConfig.hero.employeeBadge1?.name || "Anya Sharma"}</div>
+                <div className="text-[10px] text-cyan-400 font-bold truncate">{cmsConfig.hero.employeeBadge1?.role || "Principal AI Architect"}</div>
                 <div className="text-[9px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
-                  <span>San Francisco 🇺🇸</span>
+                  <span>{cmsConfig.hero.employeeBadge1?.location || "San Francisco 🇺🇸"}</span>
                 </div>
               </div>
             </motion.div>
@@ -849,15 +915,15 @@ export const CareersSection: React.FC = () => {
               className="absolute -bottom-6 -right-4 sm:-right-6 bg-slate-900/95 border border-purple-500/40 p-3 rounded-2xl shadow-2xl backdrop-blur-xl z-20 flex items-center gap-3 text-left max-w-[220px]"
             >
               <img
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80"
-                alt="David Chen"
+                src={cmsConfig.hero.employeeBadge2?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80"}
+                alt={cmsConfig.hero.employeeBadge2?.name || "David Chen"}
                 className="w-10 h-10 rounded-xl object-cover border border-purple-400/50 shrink-0"
               />
               <div className="overflow-hidden">
-                <div className="text-xs font-black text-white truncate">David Chen</div>
-                <div className="text-[10px] text-purple-400 font-bold truncate">Lead Systems Engineer</div>
+                <div className="text-xs font-black text-white truncate">{cmsConfig.hero.employeeBadge2?.name || "David Chen"}</div>
+                <div className="text-[10px] text-purple-400 font-bold truncate">{cmsConfig.hero.employeeBadge2?.role || "Lead Systems Engineer"}</div>
                 <div className="text-[9px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
-                  <span>London 🇬🇧</span>
+                  <span>{cmsConfig.hero.employeeBadge2?.location || "London 🇬🇧"}</span>
                 </div>
               </div>
             </motion.div>

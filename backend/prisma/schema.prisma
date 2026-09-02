@@ -520,6 +520,14 @@ model MarketplaceHero {
   @@map("marketplace_hero")
 }
 
+model CareersCMS {
+  id             String   @id @default("default")
+  hero           Json
+  whyJoin        Json
+  teamsSection   Json
+  gallerySection Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-
-
+  @@map("careers_cms")
+}

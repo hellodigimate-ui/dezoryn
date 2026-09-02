@@ -3,16 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Briefcase, Plus, Trash2, Edit3, Eye, EyeOff,
   Save, X, RefreshCw, CheckCircle2, GripVertical,
-  Copy, Search, Filter, ArrowUp, ArrowDown, ChevronDown, ChevronUp,
-  MapPin, DollarSign, Clock, Calendar, Sparkles, Building2,
-  CheckSquare, ListChecks, AlertTriangle, Image, Globe, Brain
+  Copy, Search, MapPin, DollarSign, Clock, Sparkles,
+  AlertTriangle, Image, Globe, Brain,
+  FolderOpen, Users,
+  TrendingUp, RotateCcw
 } from 'lucide-react';
 import { DEFAULT_CAREERS_CMS, type CareersCMSConfig } from '../careers/CareersSection';
-
+import { MediaPickerModal } from './MediaPickerModal';
 import { API_URL, apiFetch } from '../../config/api.config';
 
 const API = `${API_URL}/jobs`;
-
+const API_CAREERS_CMS = `${API_URL}/careers/cms`;
 
 export interface JobData {
   id: string;
@@ -43,7 +44,12 @@ const DEPARTMENTS = [
 ];
 
 const EMPLOYMENT_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Hybrid', 'Remote', 'Internship'];
-const STATUSES = ['active', 'draft', 'closed'];
+
+const ICON_OPTIONS = [
+  'Globe', 'Brain', 'GraduationCap', 'DollarSign', 'HeartPulse',
+  'TrendingUp', 'Laptop', 'Palmtree', 'Code2', 'Layers',
+  'Palette', 'Briefcase', 'Megaphone', 'Headphones', 'Settings', 'Sparkles'
+];
 
 const EMPTY_JOB: Omit<JobData, 'id'> = {
   title: '',
@@ -63,21 +69,29 @@ const EMPTY_JOB: Omit<JobData, 'id'> = {
 
 export const AdminJobManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'jobs' | 'cms'>('jobs');
+  const [cmsSubTab, setCmsSubTab] = useState<'hero' | 'benefits' | 'teams' | 'gallery'>('hero');
+
   const [cmsState, setCmsState] = useState<CareersCMSConfig>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('dezoryn_careers_cms');
       if (saved) {
-        try { return JSON.parse(saved); } catch {}
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            return { ...DEFAULT_CAREERS_CMS, ...parsed };
+          }
+        } catch {}
       }
     }
     return DEFAULT_CAREERS_CMS;
   });
 
-  const saveCmsConfig = () => {
-    localStorage.setItem('dezoryn_careers_cms', JSON.stringify(cmsState));
-    window.dispatchEvent(new CustomEvent('dezoryn-careers-cms-update', { detail: cmsState }));
-    showMsg('success', 'Careers Page CMS updated live!');
-  };
+  // Media Picker state
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const [mediaPickerTarget, setMediaPickerTarget] = useState<{
+    type: 'gallery' | 'employee1' | 'employee2';
+    index?: number;
+  } | null>(null);
 
   const [items, setItems] = useState<JobData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,7 +99,6 @@ export const AdminJobManager: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
-  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info' | 'delete'; text: string } | null>(null);
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; item?: JobData } | null>(null);
@@ -107,12 +120,13 @@ export const AdminJobManager: React.FC = () => {
     setTimeout(() => setMessage(null), 4000);
   };
 
+  // Fetch Jobs from PostgreSQL
   const fetchItems = async () => {
     setIsLoading(true);
     try {
-      const res = await apiFetch(API);
+      const res = await apiFetch(API, { cache: 'no-store' });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setItems(data.data.sort((a: JobData, b: JobData) => a.order - b.order));
       }
     } catch {
@@ -122,10 +136,240 @@ export const AdminJobManager: React.FC = () => {
     }
   };
 
+  // Fetch Careers CMS from PostgreSQL
+  const fetchCmsConfig = async () => {
+    try {
+      const res = await apiFetch(API_CAREERS_CMS, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.data) {
+        const fullConfig: CareersCMSConfig = {
+          hero: { ...DEFAULT_CAREERS_CMS.hero, ...(data.data.hero || {}) },
+          whyJoin: { ...DEFAULT_CAREERS_CMS.whyJoin, ...(data.data.whyJoin || {}) },
+          teamsSection: { ...DEFAULT_CAREERS_CMS.teamsSection, ...(data.data.teamsSection || {}) },
+          gallerySection: { ...DEFAULT_CAREERS_CMS.gallerySection, ...(data.data.gallerySection || {}) },
+        };
+        setCmsState(fullConfig);
+        try {
+          localStorage.setItem('dezoryn_careers_cms', JSON.stringify(fullConfig));
+        } catch (_e) {}
+      }
+    } catch {
+      // offline fallback
+    }
+  };
+
   useEffect(() => {
     fetchItems();
+    fetchCmsConfig();
+
+    window.addEventListener('focus', () => {
+      fetchItems();
+      fetchCmsConfig();
+    });
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchItems();
+        fetchCmsConfig();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
+  // Save Careers CMS to PostgreSQL Database
+  const saveCmsConfig = async () => {
+    setIsSaving(true);
+    try {
+      const res = await apiFetch(API_CAREERS_CMS, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cmsState),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCmsState(data.data);
+        try {
+          localStorage.setItem('dezoryn_careers_cms', JSON.stringify(data.data));
+        } catch (_e) {}
+        window.dispatchEvent(new CustomEvent('dezoryn-careers-cms-update', { detail: data.data }));
+        showMsg('success', 'Careers CMS saved permanently in PostgreSQL Database!');
+      } else {
+        showMsg('error', data.message || 'Failed to save Careers CMS');
+      }
+    } catch {
+      showMsg('error', 'Error connecting to backend server');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Reset Careers CMS to Factory Defaults
+  const resetCmsConfig = async () => {
+    if (!window.confirm('Are you sure you want to reset all Careers CMS content back to factory defaults?')) return;
+    setIsSaving(true);
+    try {
+      const res = await apiFetch(`${API_CAREERS_CMS}/reset`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setCmsState(data.data);
+        try {
+          localStorage.setItem('dezoryn_careers_cms', JSON.stringify(data.data));
+        } catch (_e) {}
+        window.dispatchEvent(new CustomEvent('dezoryn-careers-cms-update', { detail: data.data }));
+        showMsg('info', 'Careers CMS reset to defaults in PostgreSQL.');
+      } else {
+        showMsg('error', data.message || 'Failed to reset CMS');
+      }
+    } catch {
+      showMsg('error', 'Network error during reset');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle Media Picker Select
+  const handleMediaSelect = (url: string) => {
+    if (!mediaPickerTarget) return;
+
+    if (mediaPickerTarget.type === 'employee1') {
+      setCmsState((prev) => ({
+        ...prev,
+        hero: {
+          ...prev.hero,
+          employeeBadge1: {
+            name: prev.hero.employeeBadge1?.name || 'Anya Sharma',
+            role: prev.hero.employeeBadge1?.role || 'Principal AI Architect',
+            location: prev.hero.employeeBadge1?.location || 'San Francisco 🇺🇸',
+            avatar: url,
+          },
+        },
+      }));
+    } else if (mediaPickerTarget.type === 'employee2') {
+      setCmsState((prev) => ({
+        ...prev,
+        hero: {
+          ...prev.hero,
+          employeeBadge2: {
+            name: prev.hero.employeeBadge2?.name || 'David Chen',
+            role: prev.hero.employeeBadge2?.role || 'Lead Systems Engineer',
+            location: prev.hero.employeeBadge2?.location || 'London 🇬🇧',
+            avatar: url,
+          },
+        },
+      }));
+    } else if (mediaPickerTarget.type === 'gallery' && mediaPickerTarget.index !== undefined) {
+      const idx = mediaPickerTarget.index;
+      setCmsState((prev) => {
+        const updated = [...prev.gallerySection.items];
+        if (updated[idx]) {
+          updated[idx] = { ...updated[idx], img: url };
+        }
+        return {
+          ...prev,
+          gallerySection: { ...prev.gallerySection, items: updated },
+        };
+      });
+    }
+
+    setMediaPickerOpen(false);
+    setMediaPickerTarget(null);
+  };
+
+  // Benefit card CRUD
+  const handleAddBenefit = () => {
+    const newB = {
+      id: `b-${Date.now()}`,
+      title: 'New Benefit Title',
+      desc: 'Describe this company perk or benefit in detail here.',
+      gradient: 'from-blue-600 to-cyan-500',
+      badge: 'PERK',
+      iconName: 'Sparkles',
+    };
+    setCmsState((prev) => ({
+      ...prev,
+      whyJoin: {
+        ...prev.whyJoin,
+        benefits: [...prev.whyJoin.benefits, newB],
+      },
+    }));
+  };
+
+  const handleDeleteBenefit = (idx: number) => {
+    setCmsState((prev) => ({
+      ...prev,
+      whyJoin: {
+        ...prev.whyJoin,
+        benefits: prev.whyJoin.benefits.filter((_, i) => i !== idx),
+      },
+    }));
+  };
+
+  // Team department CRUD
+  const handleAddTeam = () => {
+    const newT = {
+      id: `team-${Date.now()}`,
+      name: 'New Department',
+      desc: 'Describe the team mission, projects, and impact here.',
+      teamSize: '10+ Members',
+      openings: 2,
+      gradient: 'from-blue-600 to-cyan-500',
+      color: 'text-cyan-400',
+      borderColor: 'hover:border-cyan-500/50',
+      iconName: 'Code2',
+    };
+    setCmsState((prev) => ({
+      ...prev,
+      teamsSection: {
+        ...prev.teamsSection,
+        teams: [...prev.teamsSection.teams, newT],
+      },
+    }));
+  };
+
+  const handleDeleteTeam = (idx: number) => {
+    setCmsState((prev) => ({
+      ...prev,
+      teamsSection: {
+        ...prev.teamsSection,
+        teams: prev.teamsSection.teams.filter((_, i) => i !== idx),
+      },
+    }));
+  };
+
+  // Gallery moment CRUD
+  const handleAddGalleryMoment = () => {
+    const newG = {
+      id: `moment-${Date.now()}`,
+      title: 'New Culture Moment',
+      category: 'CULTURE & TEAM',
+      tag: 'Team',
+      img: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
+      desc: 'Describe this team milestone, event, retreat, or workshop.',
+    };
+    setCmsState((prev) => ({
+      ...prev,
+      gallerySection: {
+        ...prev.gallerySection,
+        items: [...prev.gallerySection.items, newG],
+      },
+    }));
+  };
+
+  const handleDeleteGalleryMoment = (idx: number) => {
+    setCmsState((prev) => ({
+      ...prev,
+      gallerySection: {
+        ...prev.gallerySection,
+        items: prev.gallerySection.items.filter((_, i) => i !== idx),
+      },
+    }));
+  };
+
+  // Open Job Creation Modal
   const openCreate = () => {
     setForm({ ...EMPTY_JOB, order: items.length });
     setReqsText('');
@@ -134,6 +378,7 @@ export const AdminJobManager: React.FC = () => {
     setModal({ mode: 'create' });
   };
 
+  // Open Job Edit Modal
   const openEdit = (item: JobData) => {
     setForm({
       title: item.title,
@@ -143,1026 +388,1518 @@ export const AdminJobManager: React.FC = () => {
       experience: item.experience,
       employmentType: item.employmentType,
       description: item.description,
-      requirements: item.requirements || [],
-      responsibilities: item.responsibilities || [],
-      status: item.status,
+      requirements: Array.isArray(item.requirements) ? item.requirements : [],
+      responsibilities: Array.isArray(item.responsibilities) ? item.responsibilities : [],
+      status: item.status || 'active',
       closingDate: item.closingDate ? new Date(item.closingDate).toISOString().split('T')[0] : '',
       order: item.order,
       isEnabled: item.isEnabled,
     });
-
     setReqsText(Array.isArray(item.requirements) ? item.requirements.join('\n') : '');
     setRespsText(Array.isArray(item.responsibilities) ? item.responsibilities.join('\n') : '');
-
-    if (!DEPARTMENTS.includes(item.department)) {
-      setCustomDept(item.department);
-    } else {
-      setCustomDept('');
-    }
-
+    setCustomDept(DEPARTMENTS.includes(item.department) ? '' : item.department);
     setModal({ mode: 'edit', item });
   };
 
-  const closeModal = () => {
-    setModal(null);
-    setCustomDept('');
-    setReqsText('');
-    setRespsText('');
-  };
-
-  const handleSave = async () => {
-    if (!form.title.trim() || !form.description.trim() || !form.location.trim()) {
-      showMsg('error', 'Job Title, Location, and Description are required');
+  // Handle Save Job
+  const handleSaveJob = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title.trim()) {
+      showMsg('error', 'Job Title is required');
+      return;
+    }
+    if (!form.description.trim()) {
+      showMsg('error', 'Job Description is required');
       return;
     }
 
-    const finalDept = customDept.trim() || form.department || 'Engineering & AI';
-    const reqsArray = reqsText.split('\n').map(s => s.trim()).filter(Boolean);
-    const respsArray = respsText.split('\n').map(s => s.trim()).filter(Boolean);
-
     setIsSaving(true);
-    try {
-      const payload = {
-        ...form,
-        department: finalDept,
-        requirements: reqsArray,
-        responsibilities: respsArray,
-        closingDate: form.closingDate ? new Date(form.closingDate).toISOString() : null,
-      };
+    const departmentToSave = customDept.trim() || form.department;
+    const reqsArray = reqsText.split('\n').map((s) => s.trim()).filter(Boolean);
+    const respsArray = respsText.split('\n').map((s) => s.trim()).filter(Boolean);
 
-      let res;
-      if (modal?.mode === 'edit' && modal.item) {
-        res = await apiFetch(`${API}/${modal.item.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        res = await apiFetch(API, {
+    const payload = {
+      ...form,
+      department: departmentToSave,
+      requirements: reqsArray,
+      responsibilities: respsArray,
+      closingDate: form.closingDate ? new Date(form.closingDate) : null,
+    };
+
+    try {
+      if (modal?.mode === 'create') {
+        const res = await apiFetch(API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-      }
-
-      const data = await res.json();
-      if (data.success) {
-        showMsg('success', modal?.mode === 'edit' ? 'Job posting updated' : 'Job posting published');
-        closeModal();
-        fetchItems();
-        window.dispatchEvent(new CustomEvent('dezoryn-jobs-updated'));
-      } else {
-        showMsg('error', data.message || 'Operation failed');
+        const data = await res.json();
+        if (data.success) {
+          showMsg('success', 'Job opening posted to PostgreSQL database!');
+          setModal(null);
+          fetchItems();
+          window.dispatchEvent(new Event('dezoryn-jobs-updated'));
+        } else {
+          showMsg('error', data.message || 'Failed to create job');
+        }
+      } else if (modal?.mode === 'edit' && modal.item) {
+        const res = await apiFetch(`${API}/${modal.item.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showMsg('success', 'Job opening updated in PostgreSQL database!');
+          setModal(null);
+          fetchItems();
+          window.dispatchEvent(new Event('dezoryn-jobs-updated'));
+        } else {
+          showMsg('error', data.message || 'Failed to update job');
+        }
       }
     } catch {
-      showMsg('error', 'Network error occurred while saving job');
+      showMsg('error', 'Network error while saving job');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const confirmDelete = (id: string, titleText: string) => {
-    setDeleteConfirm({ id, title: titleText });
-  };
-
-  const executeDelete = async () => {
-    if (!deleteConfirm) return;
+  // Handle Delete Job
+  const handleDeleteJob = async (id: string) => {
     try {
-      const res = await apiFetch(`${API}/${deleteConfirm.id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${API}/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        showMsg('delete', `Job "${deleteConfirm.title}" successfully deleted from PostgreSQL database`);
-        setItems(prev => prev.filter(i => i.id !== deleteConfirm.id));
-        window.dispatchEvent(new CustomEvent('dezoryn-jobs-updated'));
+        showMsg('delete', 'Job opening deleted from database');
+        setDeleteConfirm(null);
+        fetchItems();
+        window.dispatchEvent(new Event('dezoryn-jobs-updated'));
       } else {
-        showMsg('error', data.message || 'Failed to delete');
+        showMsg('error', data.message || 'Failed to delete job');
       }
     } catch {
-      showMsg('error', 'Error deleting job opening');
-    } finally {
-      setDeleteConfirm(null);
+      showMsg('error', 'Network error while deleting job');
     }
   };
 
+  // Handle Toggle Job Status
   const handleToggleStatus = async (item: JobData) => {
     try {
       const res = await apiFetch(`${API}/${item.id}/toggle-status`, { method: 'PATCH' });
       const data = await res.json();
       if (data.success) {
-        showMsg('info', `Status toggled to ${data.data.status}`);
-        setItems(prev => prev.map(i => i.id === item.id ? data.data : i));
-        window.dispatchEvent(new CustomEvent('dezoryn-jobs-updated'));
+        showMsg('info', `Job status updated to ${data.data?.status || 'updated'}`);
+        fetchItems();
+        window.dispatchEvent(new Event('dezoryn-jobs-updated'));
       }
     } catch {
       showMsg('error', 'Failed to toggle status');
     }
   };
 
-  const handleDuplicate = async (id: string) => {
+  // Handle Duplicate Job
+  const handleDuplicateJob = async (id: string) => {
     try {
       const res = await apiFetch(`${API}/${id}/duplicate`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        showMsg('success', 'Job posting duplicated');
+        showMsg('success', 'Job opening duplicated');
         fetchItems();
-        window.dispatchEvent(new CustomEvent('dezoryn-jobs-updated'));
+        window.dispatchEvent(new Event('dezoryn-jobs-updated'));
       }
     } catch {
       showMsg('error', 'Failed to duplicate job');
     }
   };
 
-  // Move up/down ordering
-  const moveItem = async (index: number, direction: 'up' | 'down') => {
-    const targetIdx = direction === 'up' ? index - 1 : index + 1;
-    if (targetIdx < 0 || targetIdx >= items.length) return;
-
-    const newItems = [...items];
-    const [moved] = newItems.splice(index, 1);
-    newItems.splice(targetIdx, 0, moved);
-
-    const reordered = newItems.map((item, idx) => ({ ...item, order: idx }));
-    setItems(reordered);
-    saveOrder(reordered);
+  // Reordering handlers
+  const handleDragStart = (idx: number) => {
+    dragItem.current = idx;
+    setDraggedIdx(idx);
   };
 
-  const saveOrder = async (orderedList: JobData[]) => {
-    try {
-      const orderedIds = orderedList.map(i => i.id);
-      await apiFetch(`${API}/reorder`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderedIds }),
-      });
-      showMsg('success', 'Display order updated');
-    } catch {
-      showMsg('error', 'Failed to save order');
+  const handleDragEnter = (idx: number) => {
+    dragOver.current = idx;
+    setDropIdx(idx);
+  };
+
+  const handleDragEnd = async () => {
+    if (dragItem.current === null || dragOver.current === null || dragItem.current === dragOver.current) {
+      dragItem.current = null;
+      dragOver.current = null;
+      setDraggedIdx(null);
+      setDropIdx(null);
+      return;
     }
-  };
 
-  // Drag & drop handlers
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    dragItem.current = index;
-    setDraggedIdx(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
+    const copy = [...items];
+    const draggedItemContent = copy.splice(dragItem.current, 1)[0];
+    copy.splice(dragOver.current, 0, draggedItemContent);
 
-  const handleDragEnter = (index: number) => {
-    dragOver.current = index;
-    setDropIdx(index);
-  };
-
-  const handleDragEnd = () => {
-    if (dragItem.current !== null && dragOver.current !== null && dragItem.current !== dragOver.current) {
-      const newItems = [...items];
-      const [dragged] = newItems.splice(dragItem.current, 1);
-      newItems.splice(dragOver.current, 0, dragged);
-      const reordered = newItems.map((item, idx) => ({ ...item, order: idx }));
-      setItems(reordered);
-      saveOrder(reordered);
-    }
+    const reorderedList = copy.map((item, index) => ({ ...item, order: index }));
+    setItems(reorderedList);
     dragItem.current = null;
     dragOver.current = null;
     setDraggedIdx(null);
     setDropIdx(null);
+
+    try {
+      await apiFetch(`${API}/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds: reorderedList.map((j) => j.id) }),
+      });
+      showMsg('success', 'Job list reordered and saved in PostgreSQL');
+      window.dispatchEvent(new Event('dezoryn-jobs-updated'));
+    } catch {
+      showMsg('error', 'Failed to save new order');
+    }
   };
 
-  // Filtered items
-  const filteredItems = items.filter(item => {
-    const matchesDept = selectedDept === 'All' || item.department.toLowerCase() === selectedDept.toLowerCase();
-    const matchesStatus = selectedStatus === 'All' || item.status === selectedStatus;
-    const matchesSearch = !searchQuery ||
+  // Filtering
+  const filteredItems = items.filter((item) => {
+    const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesDept && matchesStatus && matchesSearch;
+      item.location.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDept = selectedDept === 'All' || item.department === selectedDept;
+    const matchesStatus = selectedStatus === 'All' || item.status === selectedStatus;
+    return matchesSearch && matchesDept && matchesStatus;
   });
 
-  const departmentList = Array.from(new Set(['All', ...DEPARTMENTS, ...items.map(i => i.department)]));
-
-  const getDeptStyle = (dept: string) => {
-    const d = dept.toLowerCase();
-    if (d.includes('engineering') || d.includes('ai')) {
-      return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30';
-    }
-    if (d.includes('product') || d.includes('design')) {
-      return 'bg-purple-500/10 text-purple-400 border-purple-500/30';
-    }
-    if (d.includes('sales') || d.includes('marketing')) {
-      return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
-    }
-    if (d.includes('customer') || d.includes('success')) {
-      return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
-    }
-    return 'bg-blue-500/10 text-blue-400 border-blue-500/30';
-  };
-
   return (
-    <div className="space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
-      {/* Top Banner Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-700 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 border border-blue-500/30 dark:border-slate-800 text-white shadow-2xl relative overflow-hidden">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 rounded-full bg-cyan-500/10 blur-[100px] pointer-events-none" />
-        <div className="absolute top-0 right-1/3 w-40 h-40 rounded-full bg-indigo-500/10 blur-[80px] pointer-events-none" />
-
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 text-cyan-400 text-xs font-black uppercase tracking-widest mb-1.5">
-            <Briefcase className="w-4 h-4" />
-            <span>Talent Acquisition & Open Positions</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Careers & Job Openings
-          </h1>
-          <p className="text-xs sm:text-sm text-blue-100 dark:text-slate-400 mt-1 max-w-xl font-medium leading-relaxed">
-            Manage active job postings, custom departments, remote tiers, salaries, requirements, and closing dates in real time.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0 relative z-10">
-          <button
-            type="button"
-            onClick={fetchItems}
-            className="p-3 rounded-2xl bg-white/90 dark:bg-slate-900/90 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white transition cursor-pointer shadow-lg"
-            title="Refresh Jobs"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-          <button
-            type="button"
-            onClick={openCreate}
-            className="flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-black text-xs shadow-xl shadow-cyan-500/20 transition cursor-pointer transform hover:-translate-y-0.5"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Post New Job</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Toast Notification Alert */}
+    <div className="space-y-6 text-slate-900 dark:text-slate-100 font-['Plus_Jakarta_Sans',sans-serif] select-none">
+      {/* Toast Message Notification */}
       <AnimatePresence>
         {message && (
           <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className={`fixed bottom-8 right-8 z-50 px-4 py-3.5 rounded-2xl border text-xs font-bold shadow-2xl backdrop-blur-2xl flex items-center gap-3 max-w-md ${
-              message.type === 'delete'
-                ? 'bg-slate-900/95 text-white border-rose-500/40 shadow-rose-500/10'
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl border flex items-center gap-3 text-xs font-bold ${
+              message.type === 'success'
+                ? 'bg-emerald-500/90 text-white border-emerald-400'
                 : message.type === 'error'
-                ? 'bg-slate-900/95 text-white border-rose-500/40 shadow-rose-500/10'
-                : message.type === 'success'
-                ? 'bg-slate-900/95 text-white border-emerald-500/40 shadow-emerald-500/10'
-                : 'bg-slate-900/95 text-white border-cyan-500/40 shadow-cyan-500/10'
+                ? 'bg-rose-500/90 text-white border-rose-400'
+                : message.type === 'delete'
+                ? 'bg-amber-500/90 text-white border-amber-400'
+                : 'bg-blue-500/90 text-white border-blue-400'
             }`}
           >
-            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border shrink-0 ${
-              message.type === 'delete'
-                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                : message.type === 'error'
-                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                : message.type === 'success'
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
-            }`}>
-              {message.type === 'delete' ? 'DELETED' : message.type === 'success' ? 'SUCCESS' : message.type === 'error' ? 'ERROR' : 'NOTICE'}
-            </span>
-
-            <span className="flex-1 leading-snug">{message.text}</span>
-
-            <button
-              type="button"
-              onClick={() => setMessage(null)}
-              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-              title="Dismiss notification"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            {message.type === 'success' && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+            {message.type === 'error' && <AlertTriangle className="w-4 h-4 shrink-0" />}
+            {message.type === 'delete' && <Trash2 className="w-4 h-4 shrink-0" />}
+            <span>{message.text}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* SECTION TAB NAVIGATION */}
-      <div className="flex items-center gap-3 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      {/* Top Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 backdrop-blur-xl shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-cyan-500/20">
+            <Briefcase className="w-6 h-6" />
+          </div>
+          <div className="text-left">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Careers & Culture Management
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              100% dynamic, database-driven careers CMS and active job postings manager.
+            </p>
+          </div>
+        </div>
+
+        {/* Global Action Buttons */}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => {
+              fetchItems();
+              fetchCmsConfig();
+              showMsg('info', 'Refreshed latest data from PostgreSQL database.');
+            }}
+            className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-2 transition cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Refresh</span>
+          </button>
+
+          {activeTab === 'jobs' ? (
+            <button
+              onClick={openCreate}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-md shadow-cyan-500/20 flex items-center gap-2 transition cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Post New Job</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={resetCmsConfig}
+                disabled={isSaving}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-2 transition cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Defaults</span>
+              </button>
+
+              <button
+                onClick={saveCmsConfig}
+                disabled={isSaving}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 flex items-center gap-2 transition cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSaving ? 'Saving...' : 'Save & Publish Live'}</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Tab Switcher */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800">
         <button
-          type="button"
           onClick={() => setActiveTab('jobs')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`px-6 py-3.5 text-xs font-black uppercase tracking-wider transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
             activeTab === 'jobs'
-              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400 bg-cyan-500/5'
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <Briefcase className="w-4 h-4" />
-          <span>Active Job Postings ({items.length})</span>
+          <span>Job Postings ({items.length})</span>
         </button>
 
         <button
-          type="button"
           onClick={() => setActiveTab('cms')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`px-6 py-3.5 text-xs font-black uppercase tracking-wider transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
             activeTab === 'cms'
-              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400 bg-cyan-500/5'
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          <span>Careers Page CMS Customizer</span>
+          <span>Careers Page CMS (Hero, Culture, Teams, Moments)</span>
         </button>
       </div>
 
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* CMS EDITOR TAB                                                */}
+      {/* ───────────────────────────────────────────────────────────── */}
       {activeTab === 'cms' ? (
-        /* CAREERS PAGE CMS EDITOR TAB */
-        <div className="space-y-8 text-left">
-          
-          {/* Header Action Strip */}
-          <div className="flex items-center justify-between p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
-            <div>
-              <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                Live Careers CMS Page Customizer
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Customize hero headlines, benefit cards, department details, and culture gallery photos without touching code.
-              </p>
-            </div>
+        <div className="space-y-6 text-left">
+          {/* Sub Tab Switcher */}
+          <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 max-w-fit">
+            <button
+              onClick={() => setCmsSubTab('hero')}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer flex items-center gap-2 ${
+                cmsSubTab === 'hero'
+                  ? 'bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>1. Hero & Live Telemetry</span>
+            </button>
 
+            <button
+              onClick={() => setCmsSubTab('benefits')}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer flex items-center gap-2 ${
+                cmsSubTab === 'benefits'
+                  ? 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>2. Culture & Benefits ({cmsState.whyJoin.benefits.length})</span>
+            </button>
+
+            <button
+              onClick={() => setCmsSubTab('teams')}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer flex items-center gap-2 ${
+                cmsSubTab === 'teams'
+                  ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>3. Departments & Teams ({cmsState.teamsSection.teams.length})</span>
+            </button>
+
+            <button
+              onClick={() => setCmsSubTab('gallery')}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer flex items-center gap-2 ${
+                cmsSubTab === 'gallery'
+                  ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Image className="w-3.5 h-3.5" />
+              <span>4. Culture Moments Gallery ({cmsState.gallerySection.items.length})</span>
+            </button>
+          </div>
+
+          {/* SUBTAB 1: HERO & TELEMETRY */}
+          {cmsSubTab === 'hero' && (
+            <div className="space-y-6">
+              {/* Main Hero Copy Card */}
+              <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-cyan-600 dark:text-cyan-400 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Main Hero Content & Headings
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Badge Pill Text</label>
+                    <input
+                      type="text"
+                      value={cmsState.hero.badgeText}
+                      onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, badgeText: e.target.value } })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Headline Prefix Text</label>
+                    <input
+                      type="text"
+                      value={cmsState.hero.headlinePrefix}
+                      onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, headlinePrefix: e.target.value } })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Gradient Headline Words</label>
+                    <input
+                      type="text"
+                      value={cmsState.hero.gradientWords}
+                      onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, gradientWords: e.target.value } })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Mission Description Paragraph</label>
+                    <textarea
+                      rows={3}
+                      value={cmsState.hero.description}
+                      onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, description: e.target.value } })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Primary CTA Button Label</label>
+                    <input
+                      type="text"
+                      value={cmsState.hero.viewPositionsBtnText}
+                      onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, viewPositionsBtnText: e.target.value } })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Secondary CTA Button Label</label>
+                    <input
+                      type="text"
+                      value={cmsState.hero.lifeAtDezorynBtnText}
+                      onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, lifeAtDezorynBtnText: e.target.value } })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 Stat Counter Metrics */}
+              <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+                <span className="text-xs font-extrabold uppercase tracking-widest text-cyan-600 dark:text-cyan-400 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Hero 4 Key Metric Counters
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                  {cmsState.hero.stats.map((stat, sIdx) => (
+                    <div key={sIdx} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span className="text-[10px] font-black text-cyan-500 uppercase">Stat #{sIdx + 1}</span>
+                      <div>
+                        <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Label</label>
+                        <input
+                          type="text"
+                          value={stat.label}
+                          onChange={(e) => {
+                            const updated = [...cmsState.hero.stats];
+                            updated[sIdx].label = e.target.value;
+                            setCmsState({ ...cmsState, hero: { ...cmsState.hero, stats: updated } });
+                          }}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-extrabold"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Target Value</label>
+                          <input
+                            type="number"
+                            step="any"
+                            value={stat.target}
+                            onChange={(e) => {
+                              const updated = [...cmsState.hero.stats];
+                              updated[sIdx].target = Number(e.target.value);
+                              setCmsState({ ...cmsState, hero: { ...cmsState.hero, stats: updated } });
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-cyan-400 font-extrabold"
+                          />
+                        </div>
+                        <div>
+                          <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Suffix (e.g. +, %)</label>
+                          <input
+                            type="text"
+                            value={stat.suffix}
+                            onChange={(e) => {
+                              const updated = [...cmsState.hero.stats];
+                              updated[sIdx].suffix = e.target.value;
+                              setCmsState({ ...cmsState, hero: { ...cmsState.hero, stats: updated } });
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-extrabold"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3D Right Column Telemetry & Floating Employee Profiles */}
+              <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+                <span className="text-xs font-extrabold uppercase tracking-widest text-cyan-600 dark:text-cyan-400 flex items-center gap-2">
+                  <Brain className="w-4 h-4" />
+                  Hero Interactive AI Telemetry & Floating Team Badges
+                </span>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Engine Name / Version</label>
+                    <input
+                      type="text"
+                      value={cmsState.hero.engineVersion}
+                      onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, engineVersion: e.target.value } })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Engine Status Pill</label>
+                    <input
+                      type="text"
+                      value={cmsState.hero.engineStatus}
+                      onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, engineStatus: e.target.value } })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-emerald-400 font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Latency SLA Badge</label>
+                    <input
+                      type="text"
+                      value={cmsState.hero.engineLatency}
+                      onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, engineLatency: e.target.value } })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-cyan-400 font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Vector Embeddings Metric</label>
+                    <input
+                      type="text"
+                      value={cmsState.hero.vectorQPS}
+                      onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, vectorQPS: e.target.value } })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Accuracy Score SLA</label>
+                    <input
+                      type="text"
+                      value={cmsState.hero.accuracySLA}
+                      onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, accuracySLA: e.target.value } })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-emerald-400 font-semibold"
+                    />
+                  </div>
+                </div>
+
+                {/* Floating Employee Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs">
+                  {/* Employee 1 */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-cyan-500/30 space-y-3">
+                    <span className="text-[11px] font-black text-cyan-400 uppercase">Floating Profile Card 1 (Top Left)</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Employee Name"
+                        value={cmsState.hero.employeeBadge1?.name || ''}
+                        onChange={(e) =>
+                          setCmsState({
+                            ...cmsState,
+                            hero: {
+                              ...cmsState.hero,
+                              employeeBadge1: { ...cmsState.hero.employeeBadge1!, name: e.target.value },
+                            },
+                          })
+                        }
+                        className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Role Title"
+                        value={cmsState.hero.employeeBadge1?.role || ''}
+                        onChange={(e) =>
+                          setCmsState({
+                            ...cmsState,
+                            hero: {
+                              ...cmsState.hero,
+                              employeeBadge1: { ...cmsState.hero.employeeBadge1!, role: e.target.value },
+                            },
+                          })
+                        }
+                        className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-cyan-400 font-bold"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Location"
+                        value={cmsState.hero.employeeBadge1?.location || ''}
+                        onChange={(e) =>
+                          setCmsState({
+                            ...cmsState,
+                            hero: {
+                              ...cmsState.hero,
+                              employeeBadge1: { ...cmsState.hero.employeeBadge1!, location: e.target.value },
+                            },
+                          })
+                        }
+                        className="w-1/2 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMediaPickerTarget({ type: 'employee1' });
+                          setMediaPickerOpen(true);
+                        }}
+                        className="w-1/2 px-2.5 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 font-bold border border-cyan-500/30 flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                        <span>Pick Photo</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Employee 2 */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-purple-500/30 space-y-3">
+                    <span className="text-[11px] font-black text-purple-400 uppercase">Floating Profile Card 2 (Bottom Right)</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Employee Name"
+                        value={cmsState.hero.employeeBadge2?.name || ''}
+                        onChange={(e) =>
+                          setCmsState({
+                            ...cmsState,
+                            hero: {
+                              ...cmsState.hero,
+                              employeeBadge2: { ...cmsState.hero.employeeBadge2!, name: e.target.value },
+                            },
+                          })
+                        }
+                        className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Role Title"
+                        value={cmsState.hero.employeeBadge2?.role || ''}
+                        onChange={(e) =>
+                          setCmsState({
+                            ...cmsState,
+                            hero: {
+                              ...cmsState.hero,
+                              employeeBadge2: { ...cmsState.hero.employeeBadge2!, role: e.target.value },
+                            },
+                          })
+                        }
+                        className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-purple-400 font-bold"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Location"
+                        value={cmsState.hero.employeeBadge2?.location || ''}
+                        onChange={(e) =>
+                          setCmsState({
+                            ...cmsState,
+                            hero: {
+                              ...cmsState.hero,
+                              employeeBadge2: { ...cmsState.hero.employeeBadge2!, location: e.target.value },
+                            },
+                          })
+                        }
+                        className="w-1/2 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMediaPickerTarget({ type: 'employee2' });
+                          setMediaPickerOpen(true);
+                        }}
+                        className="w-1/2 px-2.5 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 font-bold border border-purple-500/30 flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                        <span>Pick Photo</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SUBTAB 2: CULTURE & BENEFITS */}
+          {cmsSubTab === 'benefits' && (
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-5 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <span className="text-xs font-extrabold uppercase tracking-widest text-purple-600 dark:text-purple-400 flex items-center gap-2">
+                  <Globe className="w-4 h-4" />
+                  Culture & Benefits Section Content
+                </span>
+                <button
+                  type="button"
+                  onClick={handleAddBenefit}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add New Benefit Card</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Section Badge</label>
+                  <input
+                    type="text"
+                    value={cmsState.whyJoin.badgeText}
+                    onChange={(e) => setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, badgeText: e.target.value } })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Section Title</label>
+                  <input
+                    type="text"
+                    value={cmsState.whyJoin.title}
+                    onChange={(e) => setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, title: e.target.value } })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Section Subtitle</label>
+                  <input
+                    type="text"
+                    value={cmsState.whyJoin.subtitle}
+                    onChange={(e) => setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, subtitle: e.target.value } })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Benefit Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-3">
+                {cmsState.whyJoin.benefits.map((b, bIdx) => (
+                  <div key={b.id || bIdx} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs relative group">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBenefit(bIdx)}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                      title="Delete Benefit"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+
+                    <div>
+                      <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Benefit Title</label>
+                      <input
+                        type="text"
+                        value={b.title}
+                        onChange={(e) => {
+                          const updated = [...cmsState.whyJoin.benefits];
+                          updated[bIdx].title = e.target.value;
+                          setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, benefits: updated } });
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-black"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Pill Badge</label>
+                        <input
+                          type="text"
+                          value={b.badge}
+                          onChange={(e) => {
+                            const updated = [...cmsState.whyJoin.benefits];
+                            updated[bIdx].badge = e.target.value;
+                            setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, benefits: updated } });
+                          }}
+                          className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-purple-400 font-bold text-[10px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Icon</label>
+                        <select
+                          value={b.iconName}
+                          onChange={(e) => {
+                            const updated = [...cmsState.whyJoin.benefits];
+                            updated[bIdx].iconName = e.target.value;
+                            setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, benefits: updated } });
+                          }}
+                          className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold text-[10px]"
+                        >
+                          {ICON_OPTIONS.map((ic) => (
+                            <option key={ic} value={ic}>{ic}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Description</label>
+                      <textarea
+                        rows={2}
+                        value={b.desc}
+                        onChange={(e) => {
+                          const updated = [...cmsState.whyJoin.benefits];
+                          updated[bIdx].desc = e.target.value;
+                          setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, benefits: updated } });
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-medium text-[11px]"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* SUBTAB 3: DEPARTMENTS & TEAMS */}
+          {cmsSubTab === 'teams' && (
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-5 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <span className="text-xs font-extrabold uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Organization & Department Teams Content
+                </span>
+                <button
+                  type="button"
+                  onClick={handleAddTeam}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Department Team</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Section Title</label>
+                  <input
+                    type="text"
+                    value={cmsState.teamsSection.title}
+                    onChange={(e) => setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, title: e.target.value } })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Section Subtitle</label>
+                  <input
+                    type="text"
+                    value={cmsState.teamsSection.subtitle}
+                    onChange={(e) => setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, subtitle: e.target.value } })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Team Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-3">
+                {cmsState.teamsSection.teams.map((t, tIdx) => (
+                  <div key={t.id || tIdx} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs relative group">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTeam(tIdx)}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                      title="Delete Department"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+
+                    <div>
+                      <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Department Name</label>
+                      <input
+                        type="text"
+                        value={t.name}
+                        onChange={(e) => {
+                          const updated = [...cmsState.teamsSection.teams];
+                          updated[tIdx].name = e.target.value;
+                          setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, teams: updated } });
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-black"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Team Size</label>
+                        <input
+                          type="text"
+                          value={t.teamSize}
+                          onChange={(e) => {
+                            const updated = [...cmsState.teamsSection.teams];
+                            updated[tIdx].teamSize = e.target.value;
+                            setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, teams: updated } });
+                          }}
+                          className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-cyan-400 font-extrabold text-[10px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Open Positions</label>
+                        <input
+                          type="number"
+                          value={t.openings}
+                          onChange={(e) => {
+                            const updated = [...cmsState.teamsSection.teams];
+                            updated[tIdx].openings = Number(e.target.value);
+                            setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, teams: updated } });
+                          }}
+                          className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-emerald-400 font-extrabold text-[10px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Description</label>
+                      <textarea
+                        rows={2}
+                        value={t.desc}
+                        onChange={(e) => {
+                          const updated = [...cmsState.teamsSection.teams];
+                          updated[tIdx].desc = e.target.value;
+                          setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, teams: updated } });
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-medium text-[11px]"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* SUBTAB 4: CULTURE MOMENTS GALLERY */}
+          {cmsSubTab === 'gallery' && (
+            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-5 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                  <Image className="w-4 h-4" />
+                  Life at Dezoryn Gallery Moments
+                </span>
+                <button
+                  type="button"
+                  onClick={handleAddGalleryMoment}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Culture Photo Card</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Section Title</label>
+                  <input
+                    type="text"
+                    value={cmsState.gallerySection.title}
+                    onChange={(e) => setCmsState({ ...cmsState, gallerySection: { ...cmsState.gallerySection, title: e.target.value } })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Section Subtitle</label>
+                  <input
+                    type="text"
+                    value={cmsState.gallerySection.subtitle}
+                    onChange={(e) => setCmsState({ ...cmsState, gallerySection: { ...cmsState.gallerySection, subtitle: e.target.value } })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Gallery Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3">
+                {cmsState.gallerySection.items.map((g, gIdx) => (
+                  <div key={g.id || gIdx} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs relative group">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteGalleryMoment(gIdx)}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 opacity-0 group-hover:opacity-100 transition cursor-pointer z-10"
+                      title="Delete Photo"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+
+                    <div className="h-28 rounded-xl overflow-hidden relative border border-slate-200 dark:border-slate-800 bg-slate-900">
+                      <img src={g.img || 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80'} alt={g.title} className="w-full h-full object-cover" />
+                      <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full bg-slate-950/80 text-cyan-300 text-[9px] font-extrabold border border-cyan-500/30 backdrop-blur-md">
+                        {g.tag || 'Moment'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMediaPickerTarget({ type: 'gallery', index: gIdx });
+                          setMediaPickerOpen(true);
+                        }}
+                        className="absolute bottom-1.5 right-1.5 px-2.5 py-1 rounded-lg bg-slate-950/90 hover:bg-cyan-600 text-white text-[10px] font-bold border border-white/20 transition cursor-pointer flex items-center gap-1 shadow-md"
+                      >
+                        <FolderOpen className="w-3 h-3" />
+                        <span>Change</span>
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Moment Title</label>
+                      <input
+                        type="text"
+                        value={g.title}
+                        onChange={(e) => {
+                          const updated = [...cmsState.gallerySection.items];
+                          updated[gIdx].title = e.target.value;
+                          setCmsState({ ...cmsState, gallerySection: { ...cmsState.gallerySection, items: updated } });
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-black text-xs"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Tag Filter</label>
+                        <input
+                          type="text"
+                          value={g.tag}
+                          onChange={(e) => {
+                            const updated = [...cmsState.gallerySection.items];
+                            updated[gIdx].tag = e.target.value;
+                            setCmsState({ ...cmsState, gallerySection: { ...cmsState.gallerySection, items: updated } });
+                          }}
+                          className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-emerald-400 font-bold text-[10px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Category</label>
+                        <input
+                          type="text"
+                          value={g.category}
+                          onChange={(e) => {
+                            const updated = [...cmsState.gallerySection.items];
+                            updated[gIdx].category = e.target.value;
+                            setCmsState({ ...cmsState, gallerySection: { ...cmsState.gallerySection, items: updated } });
+                          }}
+                          className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[10px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-500 text-[10px] block mb-0.5">Description</label>
+                      <textarea
+                        rows={2}
+                        value={g.desc}
+                        onChange={(e) => {
+                          const updated = [...cmsState.gallerySection.items];
+                          updated[gIdx].desc = e.target.value;
+                          setCmsState({ ...cmsState, gallerySection: { ...cmsState.gallerySection, items: updated } });
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-medium text-[11px]"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Bottom Save Bar */}
+          <div className="flex items-center justify-between p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md">
+            <span className="text-xs text-slate-500 font-medium">
+              Save your changes to publish immediately across all live Careers visitors.
+            </span>
             <button
               type="button"
               onClick={saveCmsConfig}
+              disabled={isSaving}
               className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs shadow-lg shadow-cyan-500/20 transition cursor-pointer flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
-              <span>Save & Publish Live</span>
+              <span>{isSaving ? 'Publishing...' : 'Save All Careers CMS Changes'}</span>
             </button>
           </div>
-
-          {/* 1. HERO SECTION CMS */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
-            <div className="flex items-center gap-2 text-cyan-500 font-black text-sm uppercase tracking-wider">
-              <Sparkles className="w-4 h-4" />
-              <span>Hero Section CMS</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="font-extrabold text-slate-500 dark:text-slate-400 block mb-1">Badge Text</label>
-                <input
-                  type="text"
-                  value={cmsState.hero.badgeText}
-                  onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, badgeText: e.target.value } })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="font-extrabold text-slate-500 dark:text-slate-400 block mb-1">Headline Prefix</label>
-                <input
-                  type="text"
-                  value={cmsState.hero.headlinePrefix}
-                  onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, headlinePrefix: e.target.value } })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="font-extrabold text-slate-500 dark:text-slate-400 block mb-1">Gradient Words</label>
-                <input
-                  type="text"
-                  value={cmsState.hero.gradientWords}
-                  onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, gradientWords: e.target.value } })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="font-extrabold text-slate-500 dark:text-slate-400 block mb-1">Mission Description</label>
-                <textarea
-                  rows={2}
-                  value={cmsState.hero.description}
-                  onChange={(e) => setCmsState({ ...cmsState, hero: { ...cmsState.hero, description: e.target.value } })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 2. WHY JOIN BENEFITS CMS */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
-            <div className="flex items-center gap-2 text-purple-500 font-black text-sm uppercase tracking-wider">
-              <Globe className="w-4 h-4" />
-              <span>Why Join Dezoryn (Benefits Grid CMS)</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="font-extrabold text-slate-500 dark:text-slate-400 block mb-1">Section Badge</label>
-                <input
-                  type="text"
-                  value={cmsState.whyJoin.badgeText}
-                  onChange={(e) => setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, badgeText: e.target.value } })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="font-extrabold text-slate-500 dark:text-slate-400 block mb-1">Section Title</label>
-                <input
-                  type="text"
-                  value={cmsState.whyJoin.title}
-                  onChange={(e) => setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, title: e.target.value } })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="font-extrabold text-slate-500 dark:text-slate-400 block mb-1">Section Subtitle</label>
-                <input
-                  type="text"
-                  value={cmsState.whyJoin.subtitle}
-                  onChange={(e) => setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, subtitle: e.target.value } })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-              {cmsState.whyJoin.benefits.map((b, idx) => (
-                <div key={b.id || idx} className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-                  <input
-                    type="text"
-                    value={b.title}
-                    onChange={(e) => {
-                      const updated = [...cmsState.whyJoin.benefits];
-                      updated[idx].title = e.target.value;
-                      setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, benefits: updated } });
-                    }}
-                    className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-black"
-                  />
-                  <input
-                    type="text"
-                    value={b.badge}
-                    onChange={(e) => {
-                      const updated = [...cmsState.whyJoin.benefits];
-                      updated[idx].badge = e.target.value;
-                      setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, benefits: updated } });
-                    }}
-                    className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-cyan-500 font-bold text-[10px]"
-                  />
-                  <textarea
-                    rows={2}
-                    value={b.desc}
-                    onChange={(e) => {
-                      const updated = [...cmsState.whyJoin.benefits];
-                      updated[idx].desc = e.target.value;
-                      setCmsState({ ...cmsState, whyJoin: { ...cmsState.whyJoin, benefits: updated } });
-                    }}
-                    className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-medium text-[11px]"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 3. MEET OUR TEAMS CMS */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
-            <div className="flex items-center gap-2 text-blue-500 font-black text-sm uppercase tracking-wider">
-              <Brain className="w-4 h-4" />
-              <span>Meet Our Teams CMS</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="font-extrabold text-slate-500 dark:text-slate-400 block mb-1">Section Title</label>
-                <input
-                  type="text"
-                  value={cmsState.teamsSection.title}
-                  onChange={(e) => setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, title: e.target.value } })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="font-extrabold text-slate-500 dark:text-slate-400 block mb-1">Section Subtitle</label>
-                <input
-                  type="text"
-                  value={cmsState.teamsSection.subtitle}
-                  onChange={(e) => setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, subtitle: e.target.value } })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-              {cmsState.teamsSection.teams.map((t, idx) => (
-                <div key={t.id || idx} className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-                  <input
-                    type="text"
-                    value={t.name}
-                    onChange={(e) => {
-                      const updated = [...cmsState.teamsSection.teams];
-                      updated[idx].name = e.target.value;
-                      setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, teams: updated } });
-                    }}
-                    className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-black"
-                  />
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={t.teamSize}
-                      onChange={(e) => {
-                        const updated = [...cmsState.teamsSection.teams];
-                        updated[idx].teamSize = e.target.value;
-                        setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, teams: updated } });
-                      }}
-                      className="w-1/2 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-cyan-400 font-extrabold text-[10px]"
-                    />
-                    <input
-                      type="number"
-                      value={t.openings}
-                      onChange={(e) => {
-                        const updated = [...cmsState.teamsSection.teams];
-                        updated[idx].openings = Number(e.target.value);
-                        setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, teams: updated } });
-                      }}
-                      className="w-1/2 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-emerald-400 font-extrabold text-[10px]"
-                    />
-                  </div>
-                  <textarea
-                    rows={2}
-                    value={t.desc}
-                    onChange={(e) => {
-                      const updated = [...cmsState.teamsSection.teams];
-                      updated[idx].desc = e.target.value;
-                      setCmsState({ ...cmsState, teamsSection: { ...cmsState.teamsSection, teams: updated } });
-                    }}
-                    className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-medium text-[11px]"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 4. LIFE AT DEZORYN GALLERY CMS */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
-            <div className="flex items-center gap-2 text-emerald-500 font-black text-sm uppercase tracking-wider">
-              <Image className="w-4 h-4" />
-              <span>Life at Dezoryn Gallery CMS</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="font-extrabold text-slate-500 dark:text-slate-400 block mb-1">Section Title</label>
-                <input
-                  type="text"
-                  value={cmsState.gallerySection.title}
-                  onChange={(e) => setCmsState({ ...cmsState, gallerySection: { ...cmsState.gallerySection, title: e.target.value } })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="font-extrabold text-slate-500 dark:text-slate-400 block mb-1">Section Subtitle</label>
-                <input
-                  type="text"
-                  value={cmsState.gallerySection.subtitle}
-                  onChange={(e) => setCmsState({ ...cmsState, gallerySection: { ...cmsState.gallerySection, subtitle: e.target.value } })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-              {cmsState.gallerySection.items.map((g, idx) => (
-                <div key={g.id || idx} className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-                  <div className="h-20 rounded-xl overflow-hidden relative">
-                    <img src={g.img} alt={g.title} className="w-full h-full object-cover" />
-                    <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-bold">
-                      {g.tag}
-                    </span>
-                  </div>
-
-                  <input
-                    type="text"
-                    value={g.title}
-                    onChange={(e) => {
-                      const updated = [...cmsState.gallerySection.items];
-                      updated[idx].title = e.target.value;
-                      setCmsState({ ...cmsState, gallerySection: { ...cmsState.gallerySection, items: updated } });
-                    }}
-                    className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-black"
-                  />
-
-                  <input
-                    type="text"
-                    value={g.img}
-                    onChange={(e) => {
-                      const updated = [...cmsState.gallerySection.items];
-                      updated[idx].img = e.target.value;
-                      setCmsState({ ...cmsState, gallerySection: { ...cmsState.gallerySection, items: updated } });
-                    }}
-                    placeholder="Image URL..."
-                    className="w-full px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-cyan-400 text-[10px] font-mono"
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={saveCmsConfig}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black text-xs shadow-lg transition cursor-pointer flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save All Careers CMS Changes</span>
-              </button>
-            </div>
-          </div>
-
         </div>
       ) : (
-        /* ACTIVE JOBS LISTING TAB */
-        <>
+        /* ───────────────────────────────────────────────────────────── */
+        /* ACTIVE JOBS LISTING TAB                                       */
+        /* ───────────────────────────────────────────────────────────── */
+        <div className="space-y-6 text-left">
           {/* KPI Stats Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-300 dark:border-slate-800/80 shadow-sm flex items-center gap-4 hover:border-slate-400 dark:hover:border-slate-700 transition">
-          <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-            <Briefcase className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 dark:text-white">{items.length}</div>
-            <div className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Postings</div>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-300 dark:border-slate-800/80 shadow-sm flex items-center gap-4 hover:border-slate-400 dark:hover:border-slate-700 transition">
-          <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 dark:text-white">
-              {items.filter(i => i.status === 'active').length}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-xs flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-2xl font-black text-slate-900 dark:text-white">{items.length}</div>
+                <div className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Postings</div>
+              </div>
             </div>
-            <div className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Openings</div>
-          </div>
-        </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-300 dark:border-slate-800/80 shadow-sm flex items-center gap-4 hover:border-slate-400 dark:hover:border-slate-700 transition">
-          <div className="p-3 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
-            <Building2 className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 dark:text-white">
-              {new Set(items.map(i => i.department)).size}
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-xs flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-2xl font-black text-emerald-500">{items.filter((j) => j.status === 'active' && j.isEnabled).length}</div>
+                <div className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Openings</div>
+              </div>
             </div>
-            <div className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Departments</div>
-          </div>
-        </div>
 
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-300 dark:border-slate-800/80 shadow-sm flex items-center gap-4 hover:border-slate-400 dark:hover:border-slate-700 transition">
-          <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <Calendar className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900 dark:text-white">
-              {items.filter(i => i.status === 'draft' || i.status === 'closed').length}
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-xs flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-2xl font-black text-amber-500">{items.filter((j) => j.status === 'draft').length}</div>
+                <div className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Drafts</div>
+              </div>
             </div>
-            <div className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Closed / Drafts</div>
+
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-xs flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                <X className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-2xl font-black text-rose-500">{items.filter((j) => j.status === 'closed' || !j.isEnabled).length}</div>
+                <div className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Closed / Disabled</div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Filters & Search Toolbar */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-300 dark:border-slate-800/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        {/* Search */}
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search jobs by title, dept, location..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-8 py-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 focus:border-cyan-500/60 text-xs font-bold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+          {/* Search & Filter Toolbar */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search job title, department, location..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-semibold"
+              />
+            </div>
 
-        {/* Dropdowns */}
-        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto">
-          <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-500 dark:text-slate-400 shrink-0">
-            <Filter className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Dept:</span>
-          </div>
-          <select
-            value={selectedDept}
-            onChange={e => setSelectedDept(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
-          >
-            {departmentList.map(dept => (
-              <option key={dept} value={dept}>{dept}</option>
-            ))}
-          </select>
-
-          <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-500 dark:text-slate-400 shrink-0 ml-2">
-            <span>Status:</span>
-          </div>
-          <select
-            value={selectedStatus}
-            onChange={e => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer capitalize"
-          >
-            <option value="All">All Statuses</option>
-            {STATUSES.map(st => (
-              <option key={st} value={st}>{st}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Managed Jobs List */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between px-2 text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-          <span>Active & Managed Job Postings ({filteredItems.length})</span>
-          <span className="text-[11px] text-slate-500 dark:text-slate-500 font-semibold">Drag handle or use arrows to reorder display sequence</span>
-        </div>
-
-        {isLoading ? (
-          <div className="p-12 text-center rounded-2xl bg-slate-50/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-            <RefreshCw className="w-6 h-6 animate-spin text-cyan-400 mx-auto mb-2" />
-            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Loading job postings...</p>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl bg-slate-50/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
-            <Briefcase className="w-10 h-10 mx-auto mb-3 text-slate-700" />
-            <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No job postings found</p>
-            <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Try creating a new job opening or adjusting filters.</p>
-          </div>
-        ) : (
-          filteredItems.map((item, index) => {
-            const isExpanded = expandedJobId === item.id;
-            const isDragging = draggedIdx === index;
-            const isDropTarget = dropIdx === index;
-
-            return (
-              <div
-                key={item.id}
-                draggable
-                onDragStart={e => handleDragStart(e, index)}
-                onDragEnter={() => handleDragEnter(index)}
-                onDragOver={e => e.preventDefault()}
-                onDragEnd={handleDragEnd}
-                className={`group p-5 rounded-2xl bg-white dark:bg-slate-900/80 border transition-all duration-200 ${
-                  isDragging ? 'opacity-40 scale-[0.99] border-dashed border-cyan-500' : ''
-                } ${
-                  isDropTarget ? 'border-cyan-500 ring-2 ring-cyan-500/20' : 'border-slate-300 dark:border-slate-800/80 hover:border-slate-400 dark:hover:border-slate-700'
-                }`}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <select
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value)}
+                className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-semibold"
               >
-                <div className="flex items-start justify-between gap-4">
-                  {/* Left drag handle + order badge + job info */}
-                  <div className="flex items-start gap-3.5 flex-1 min-w-0">
-                    <button
-                      type="button"
-                      className="p-1 text-slate-600 group-hover:text-slate-500 dark:text-slate-400 cursor-grab active:cursor-grabbing shrink-0 mt-1 transition"
-                      title="Drag to reorder"
-                    >
-                      <GripVertical className="w-5 h-5" />
-                    </button>
+                <option value="All">All Departments</option>
+                {DEPARTMENTS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
 
-                    <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-black text-cyan-400 shrink-0 mt-0.5 shadow-inner">
-                      #{index + 1}
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white font-semibold"
+              >
+                <option value="All">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Job Postings List */}
+          {isLoading ? (
+            <div className="p-12 text-center text-slate-500 font-bold text-sm">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-cyan-500" />
+              Loading job postings from PostgreSQL database...
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="p-16 text-center rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 space-y-3">
+              <Briefcase className="w-10 h-10 text-slate-400 mx-auto" />
+              <div className="text-base font-black text-slate-800 dark:text-slate-200">No Job Postings Found</div>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                No active openings match your current search or filters. Click below to publish your first position.
+              </p>
+              <button
+                type="button"
+                onClick={openCreate}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md transition cursor-pointer"
+              >
+                + Post Job Opening
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredItems.map((job, idx) => (
+                <div
+                  key={job.id}
+                  draggable
+                  onDragStart={() => handleDragStart(idx)}
+                  onDragEnter={() => handleDragEnter(idx)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => e.preventDefault()}
+                  className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border transition-all duration-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                    draggedIdx === idx
+                      ? 'opacity-40 border-cyan-500 scale-[0.98]'
+                      : dropIdx === idx
+                      ? 'border-cyan-400 bg-cyan-500/5'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 pt-1">
+                      <GripVertical className="w-5 h-5" />
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border ${getDeptStyle(item.department)}`}>
-                          {item.department}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="text-base font-extrabold text-slate-900 dark:text-white">
+                          {job.title}
                         </span>
-
-                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
-                          item.status === 'active'
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                            : item.status === 'draft'
-                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                            : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                        }`}>
-                          {item.status}
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                          {job.department}
                         </span>
-
-                        <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
-                          {item.employmentType}
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                            job.status === 'active' && job.isEnabled
+                              ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                              : job.status === 'draft'
+                              ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                              : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                          }`}
+                        >
+                          {job.status === 'active' && job.isEnabled ? 'Active' : job.status === 'draft' ? 'Draft' : 'Closed'}
                         </span>
                       </div>
 
-                      <h3
-                        onClick={() => setExpandedJobId(isExpanded ? null : item.id)}
-                        className="text-base font-black text-slate-900 dark:text-white cursor-pointer hover:text-cyan-400 transition"
-                      >
-                        {item.title}
-                      </h3>
-
-                      {/* Details pills */}
-                      <div className="flex flex-wrap items-center gap-y-1.5 gap-x-4 mt-2.5 text-xs font-bold text-slate-500 dark:text-slate-400">
-                        <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                          <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-                          <span>{item.location}</span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 text-emerald-400">
-                          <DollarSign className="w-3.5 h-3.5" />
-                          <span>{item.salary}</span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 text-purple-400">
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>Exp: {item.experience}</span>
-                        </div>
-
-                        {item.closingDate && (
-                          <div className="flex items-center gap-1.5 text-amber-400 font-extrabold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                            <Calendar className="w-3 h-3" />
-                            <span>Closes: {new Date(item.closingDate).toLocaleDateString()}</span>
-                          </div>
-                        )}
+                      <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                          {job.location}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="w-3.5 h-3.5 text-slate-400" />
+                          {job.salary}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          {job.employmentType}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Briefcase className="w-3.5 h-3.5 text-slate-400" />
+                          {job.experience}
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Right Actions Toolbar */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Move Up / Down */}
-                    <div className="flex items-center bg-white dark:bg-slate-950 rounded-xl p-0.5 border border-slate-200 dark:border-slate-800">
-                      <button
-                        type="button"
-                        onClick={() => moveItem(index, 'up')}
-                        disabled={index === 0}
-                        className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white disabled:opacity-20 transition cursor-pointer"
-                        title="Move up"
-                      >
-                        <ArrowUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveItem(index, 'down')}
-                        disabled={index === items.length - 1}
-                        className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white disabled:opacity-20 transition cursor-pointer"
-                        title="Move down"
-                      >
-                        <ArrowDown className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Expand/Collapse preview */}
+                  {/* Action Controls */}
+                  <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
                     <button
-                      type="button"
-                      onClick={() => setExpandedJobId(isExpanded ? null : item.id)}
-                      className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 transition cursor-pointer"
-                      title={isExpanded ? 'Collapse' : 'Expand preview'}
+                      onClick={() => handleToggleStatus(job)}
+                      className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+                      title={job.isEnabled ? 'Disable Posting' : 'Enable Posting'}
                     >
-                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      {job.isEnabled ? <Eye className="w-4 h-4 text-emerald-400" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
                     </button>
 
-                    {/* Toggle status */}
                     <button
-                      type="button"
-                      onClick={() => handleToggleStatus(item)}
-                      className={`p-2 rounded-xl border transition cursor-pointer ${
-                        item.status === 'active'
-                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
-                          : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white'
-                      }`}
-                      title={item.status === 'active' ? 'Close Posting' : 'Activate Posting'}
-                    >
-                      {item.status === 'active' ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                    </button>
-
-                    {/* Duplicate */}
-                    <button
-                      type="button"
-                      onClick={() => handleDuplicate(item.id)}
-                      className="p-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-cyan-400 hover:border-cyan-500/40 transition cursor-pointer"
+                      onClick={() => handleDuplicateJob(job.id)}
+                      className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
                       title="Duplicate Posting"
                     >
                       <Copy className="w-4 h-4" />
                     </button>
 
-                    {/* Edit */}
                     <button
-                      type="button"
-                      onClick={() => openEdit(item)}
-                      className="p-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-indigo-400 hover:border-indigo-500/40 transition cursor-pointer"
-                      title="Edit Posting"
+                      onClick={() => openEdit(job)}
+                      className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-500 hover:text-blue-600 transition cursor-pointer"
+                      title="Edit Job"
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
 
-                    {/* Delete */}
                     <button
-                      type="button"
-                      onClick={() => confirmDelete(item.id, item.title)}
-                      className="p-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-rose-400 hover:border-rose-500/40 hover:bg-rose-500/10 transition cursor-pointer"
-                      title="Delete Posting"
+                      onClick={() => setDeleteConfirm({ id: job.id, title: job.title })}
+                      className="p-2 rounded-xl hover:bg-rose-500/10 text-rose-500 transition cursor-pointer"
+                      title="Delete Job"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-
-                {/* Expanded Details Body */}
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="mt-4 pt-4 border-t border-slate-200/80 dark:border-slate-800/80 space-y-4 text-xs text-slate-600 dark:text-slate-300 pl-10">
-                        {/* Description */}
-                        <div className="p-4 rounded-2xl bg-slate-100/80 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Job Description</div>
-                          <p className="leading-relaxed font-medium text-slate-600 dark:text-slate-300">{item.description}</p>
-                        </div>
-
-                        {/* Responsibilities & Requirements Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Responsibilities */}
-                          <div className="p-4 rounded-2xl bg-slate-100/80 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80">
-                            <div className="text-[10px] font-black uppercase tracking-widest text-cyan-400 mb-2 flex items-center gap-1.5">
-                              <ListChecks className="w-3.5 h-3.5" />
-                              <span>Key Responsibilities ({item.responsibilities?.length || 0})</span>
-                            </div>
-                            <ul className="space-y-1.5 list-disc pl-4 text-slate-600 dark:text-slate-300 font-medium">
-                              {item.responsibilities?.map((resp, i) => (
-                                <li key={i}>{resp}</li>
-                              ))}
-                            </ul>
-                          </div>
-
-                          {/* Requirements */}
-                          <div className="p-4 rounded-2xl bg-slate-100/80 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80">
-                            <div className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-2 flex items-center gap-1.5">
-                              <CheckSquare className="w-3.5 h-3.5" />
-                              <span>Job Requirements ({item.requirements?.length || 0})</span>
-                            </div>
-                            <ul className="space-y-1.5 list-disc pl-4 text-slate-600 dark:text-slate-300 font-medium">
-                              {item.requirements?.map((req, i) => (
-                                <li key={i}>{req}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })
-        )}
-      </div>
-      </>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Sleek Custom Glassmorphic Delete Confirmation Modal */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* JOB POSTING CREATE / EDIT MODAL                               */}
+      {/* ───────────────────────────────────────────────────────────── */}
       <AnimatePresence>
-        {deleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-md">
+        {modal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-5 text-center relative overflow-hidden"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-2xl text-left"
             >
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-16 bg-rose-500/20 rounded-full blur-2xl pointer-events-none" />
-
-              <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20">
-                <AlertTriangle className="w-7 h-7" />
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                    <Briefcase className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                      {modal.mode === 'create' ? 'Create New Job Opening' : 'Edit Job Opening'}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Syncs directly with PostgreSQL and reflects immediately on /careers.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setModal(null)}
+                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white">Delete Job Opening?</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                  Are you sure you want to delete <span className="font-extrabold text-slate-900 dark:text-white">"{deleteConfirm.title}"</span>? This job posting will be removed from your careers portal.
+              <form onSubmit={handleSaveJob} className="space-y-4 text-xs">
+                <div>
+                  <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Job Title *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Lead Systems AI Engineer"
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Department</label>
+                    <select
+                      value={form.department}
+                      onChange={(e) => setForm({ ...form, department: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    >
+                      {DEPARTMENTS.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                      <option value="Custom">Custom Department...</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Location</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Remote (US / EU / APAC)"
+                      value={form.location}
+                      onChange={(e) => setForm({ ...form, location: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Salary Range</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. ₹15,00,000 - ₹22,00,000"
+                      value={form.salary}
+                      onChange={(e) => setForm({ ...form, salary: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Employment Type</label>
+                    <select
+                      value={form.employmentType}
+                      onChange={(e) => setForm({ ...form, employmentType: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    >
+                      {EMPLOYMENT_TYPES.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Experience Level</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 3-5 Years"
+                      value={form.experience}
+                      onChange={(e) => setForm({ ...form, experience: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Role Description *</label>
+                  <textarea
+                    rows={3}
+                    required
+                    placeholder="Describe the mission, day-to-day impact, and team context..."
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">
+                      Key Responsibilities (One per line)
+                    </label>
+                    <textarea
+                      rows={4}
+                      placeholder="Architect distributed backend pipelines&#10;Lead core code reviews&#10;Deploy on AWS ECS"
+                      value={respsText}
+                      onChange={(e) => setRespsText(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">
+                      Requirements & Skills (One per line)
+                    </label>
+                    <textarea
+                      rows={4}
+                      placeholder="Proficiency in Node.js & TypeScript&#10;Experience with PostgreSQL & Prisma&#10;Strong communication skills"
+                      value={reqsText}
+                      onChange={(e) => setReqsText(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Status</label>
+                    <select
+                      value={form.status}
+                      onChange={(e) => setForm({ ...form, status: e.target.value, isEnabled: e.target.value === 'active' })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    >
+                      <option value="active">Active (Visible)</option>
+                      <option value="draft">Draft (Hidden)</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-extrabold text-slate-700 dark:text-slate-300 block mb-1">Application Closing Date</label>
+                    <input
+                      type="date"
+                      value={form.closingDate || ''}
+                      onChange={(e) => setForm({ ...form, closingDate: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setModal(null)}
+                    className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-xs shadow-md cursor-pointer"
+                  >
+                    {isSaving ? 'Saving...' : modal.mode === 'create' ? 'Publish Job' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 space-y-4 shadow-2xl text-left"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
+                <Trash2 className="w-6 h-6" />
+              </div>
+
+              <div className="text-center space-y-1">
+                <h4 className="text-base font-black text-slate-900 dark:text-white">Delete Job Opening?</h4>
+                <p className="text-xs text-slate-500">
+                  Are you sure you want to permanently delete <strong className="text-slate-800 dark:text-slate-200">"{deleteConfirm.title}"</strong> from PostgreSQL?
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex items-center justify-center gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-extrabold text-xs transition cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  onClick={executeDelete}
-                  className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-slate-900 dark:text-white font-black text-xs shadow-lg shadow-rose-600/30 transition cursor-pointer"
+                  onClick={() => handleDeleteJob(deleteConfirm.id)}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-md shadow-rose-500/20 cursor-pointer"
                 >
                   Confirm Delete
                 </button>
@@ -1172,274 +1909,17 @@ export const AdminJobManager: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Modal Dialog for Create & Edit */}
-      <AnimatePresence>
-        {modal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-3xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
-            >
-              {/* Modal Header */}
-              <div className="p-6 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                    <Briefcase className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                      {modal.mode === 'create' ? 'Post New Job Opening' : 'Edit Job Posting'}
-                    </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Configure title, department, salary, requirements, and closing date</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-200 dark:bg-slate-800 transition cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Modal Form Body */}
-              <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-                {/* Title */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                    Job Title <span className="text-rose-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Senior Full-Stack AI Engineer"
-                    value={form.title}
-                    onChange={e => setForm({ ...form, title: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-bold text-slate-900 dark:text-white outline-none transition"
-                  />
-                </div>
-
-                {/* Department, Location & Employment Type Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Department */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                      Department
-                    </label>
-                    <select
-                      value={DEPARTMENTS.includes(form.department) ? form.department : 'custom'}
-                      onChange={e => {
-                        const val = e.target.value;
-                        if (val === 'custom') {
-                          setForm({ ...form, department: customDept || 'Custom' });
-                        } else {
-                          setForm({ ...form, department: val });
-                          setCustomDept('');
-                        }
-                      }}
-                      className="w-full px-3 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none cursor-pointer"
-                    >
-                      {DEPARTMENTS.map(dept => (
-                        <option key={dept} value={dept}>{dept}</option>
-                      ))}
-                      <option value="custom">+ Custom Department</option>
-                    </select>
-
-                    {(!DEPARTMENTS.includes(form.department) || customDept) && (
-                      <input
-                        type="text"
-                        placeholder="Custom dept name..."
-                        value={customDept}
-                        onChange={e => {
-                          setCustomDept(e.target.value);
-                          setForm({ ...form, department: e.target.value });
-                        }}
-                        className="w-full mt-2 px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-cyan-500/50 text-xs font-bold text-slate-900 dark:text-white outline-none"
-                      />
-                    )}
-                  </div>
-
-                  {/* Location */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                      Location <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Remote (US/EU) or Hybrid (NY)"
-                      value={form.location}
-                      onChange={e => setForm({ ...form, location: e.target.value })}
-                      className="w-full px-3 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none"
-                    />
-                  </div>
-
-                  {/* Employment Type */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                      Employment Type
-                    </label>
-                    <select
-                      value={form.employmentType}
-                      onChange={e => setForm({ ...form, employmentType: e.target.value })}
-                      className="w-full px-3 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none cursor-pointer"
-                    >
-                      {EMPLOYMENT_TYPES.map(type => (
-                        <option key={type} value={type}>{type}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Salary, Experience & Closing Date Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Salary */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                      Salary Range
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. ₹13,00,000 - ₹17,00,000 / yr"
-                      value={form.salary}
-                      onChange={e => setForm({ ...form, salary: e.target.value })}
-                      className="w-full px-3 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none"
-                    />
-                  </div>
-
-                  {/* Experience */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                      Required Experience
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 4+ Years"
-                      value={form.experience}
-                      onChange={e => setForm({ ...form, experience: e.target.value })}
-                      className="w-full px-3 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none"
-                    />
-                  </div>
-
-                  {/* Closing Date */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Closing Date</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={form.closingDate || ''}
-                      onChange={e => setForm({ ...form, closingDate: e.target.value })}
-                      className="w-full px-3 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none cursor-pointer"
-                    />
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                    Description <span className="text-rose-400">*</span>
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Provide role summary and team overview..."
-                    value={form.description}
-                    onChange={e => setForm({ ...form, description: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-medium text-slate-900 dark:text-white outline-none transition resize-none"
-                  />
-                </div>
-
-                {/* Responsibilities */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                    <ListChecks className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Responsibilities (One per line)</span>
-                  </label>
-                  <textarea
-                    rows={4}
-                    placeholder="Architect scalable workflows&#10;Develop reactive front-end dashboards&#10;Optimize API latencies"
-                    value={respsText}
-                    onChange={e => setRespsText(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-mono text-slate-900 dark:text-white outline-none transition resize-none"
-                  />
-                </div>
-
-                {/* Requirements */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                    <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Requirements (One per line)</span>
-                  </label>
-                  <textarea
-                    rows={4}
-                    placeholder="Strong proficiency in TypeScript, React, Node.js&#10;3+ years SaaS experience&#10;PostgreSQL database experience"
-                    value={reqsText}
-                    onChange={e => setReqsText(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-mono text-slate-900 dark:text-white outline-none transition resize-none"
-                  />
-                </div>
-
-                {/* Status & Display Order Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Status */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                      Status
-                    </label>
-                    <select
-                      value={form.status}
-                      onChange={e => setForm({ ...form, status: e.target.value, isEnabled: e.target.value === 'active' })}
-                      className="w-full px-3 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white outline-none cursor-pointer capitalize"
-                    >
-                      {STATUSES.map(st => (
-                        <option key={st} value={st}>
-                          {st.charAt(0).toUpperCase() + st.slice(1)} {st === 'active' ? '(Visible on Landing Page)' : st === 'draft' ? '(Draft Posting)' : '(Closed Position)'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Display Order */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-                      Display Order Index
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={form.order}
-                      onChange={e => setForm({ ...form, order: parseInt(e.target.value, 10) || 0 })}
-                      className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:border-cyan-500 text-xs font-bold text-slate-900 dark:text-white outline-none transition"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-6 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-extrabold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:bg-slate-800 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-slate-900 dark:text-white font-black text-xs shadow-lg shadow-cyan-500/20 transition cursor-pointer disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>{isSaving ? 'Saving...' : 'Save Job Posting'}</span>
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Media Picker Modal */}
+      <MediaPickerModal
+        isOpen={mediaPickerOpen}
+        onClose={() => {
+          setMediaPickerOpen(false);
+          setMediaPickerTarget(null);
+        }}
+        onSelect={handleMediaSelect}
+        title="Select Media Asset from Library"
+      />
     </div>
   );
 };
+export default AdminJobManager;

@@ -47,182 +47,15 @@ export interface ServiceCategory {
   isEnabled?: boolean;
 }
 
-const DEFAULT_CATEGORIES: ServiceCategory[] = [
-  {
-    id: 'software-development',
-    title: 'Software Development',
-    category: 'Software Development',
-    badge: 'ENTERPRISE ARCHITECTURE',
-    description: 'Custom enterprise software solutions tailored to automate complex workflows, enhance operational efficiency, and scale seamlessly with your business growth.',
-    iconName: 'Code2',
-    bgColor: 'bg-blue-50 dark:bg-cyan-500/10',
-    borderColor: 'border-blue-200 dark:border-cyan-500/30',
-    glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(56,189,248,0.3)]',
-    services: [
-      'Custom Software Development',
-      'CRM Development',
-      'ERP Development',
-      'Business Management Software',
-      'SaaS Development',
-      'Software Customization'
-    ],
-    ctaText: 'Explore Software Services',
-    ctaLink: '/contact-sales'
-  },
-  {
-    id: 'website-development',
-    title: 'Website Development',
-    category: 'Website Development',
-    badge: 'WEB PLATFORMS',
-    description: 'Modern, high-performance websites and web applications built with intuitive UI/UX, ultra-fast loading speeds, and bank-grade security protocols.',
-    iconName: 'Globe',
-    bgColor: 'bg-cyan-50 dark:bg-cyan-400/10',
-    borderColor: 'border-cyan-200 dark:border-cyan-400/30',
-    glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(34,211,238,0.3)]',
-    services: [
-      'Business Website',
-      'Corporate Website',
-      'E-commerce Website',
-      'Custom Web Application',
-      'Landing Page',
-      'Portal Development'
-    ],
-    ctaText: 'Explore Web Services',
-    ctaLink: '/contact-sales'
-  },
-  {
-    id: 'mobile-app-development',
-    title: 'Mobile App Development',
-    category: 'Mobile App Development',
-    badge: 'IOS & ANDROID',
-    description: 'Native and cross-platform mobile apps for iOS and Android delivering engaging user experiences, offline capabilities, and real-time data sync.',
-    iconName: 'Smartphone',
-    bgColor: 'bg-indigo-50 dark:bg-indigo-500/10',
-    borderColor: 'border-indigo-200 dark:border-indigo-500/30',
-    glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(99,102,241,0.3)]',
-    services: [
-      'Android App',
-      'iOS App',
-      'Cross-Platform App',
-      'Customer Apps',
-      'Employee Apps',
-      'Admin Apps'
-    ],
-    ctaText: 'Explore Mobile Services',
-    ctaLink: '/contact-sales'
-  },
-  {
-    id: 'business-management',
-    title: 'Business Management Solutions',
-    category: 'Business Management Solutions',
-    badge: 'AUTOMATION SUITE',
-    description: 'Integrated business automation platforms covering HRMS, automated payroll, inventory management, billing, and complete operational control.',
-    iconName: 'Briefcase',
-    bgColor: 'bg-purple-50 dark:bg-purple-500/10',
-    borderColor: 'border-purple-200 dark:border-purple-500/30',
-    glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(168,85,247,0.3)]',
-    services: [
-      'CRM',
-      'HRM & Payroll',
-      'ERP',
-      'Billing & Accounting',
-      'Inventory Management',
-      'Customer Management',
-      'Employee Management',
-      'Reporting & Analytics'
-    ],
-    ctaText: 'Explore Business Solutions',
-    ctaLink: '/contact-sales'
-  },
-  {
-    id: 'industry-solutions',
-    title: 'Industry-Specific Solutions',
-    category: 'Industry-Specific Solutions',
-    badge: 'TURNKEY VERTICALS',
-    description: 'Specialized turnkey software suites customized for healthcare, education, real estate, retail, manufacturing, and logistics domains.',
-    iconName: 'Factory',
-    bgColor: 'bg-emerald-50 dark:bg-emerald-500/10',
-    borderColor: 'border-emerald-200 dark:border-emerald-500/30',
-    glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(16,185,129,0.3)]',
-    services: [
-      'School Management',
-      'Hospital Management',
-      'Property Management',
-      'Society Management',
-      'Restaurant Management',
-      'Hotel Management',
-      'Retail Management',
-      'Logistics Management',
-      'Real Estate Solutions',
-      'Other Industry Solutions'
-    ],
-    ctaText: 'Explore Industry Solutions',
-    ctaLink: '/contact-sales'
-  },
-  {
-    id: 'api-integration',
-    title: 'API & Integration Services',
-    category: 'API & Integration Services',
-    badge: 'CONNECTIVITY & SYNC',
-    description: 'Seamless RESTful & GraphQL API integration, microservices architecture, webhooks, and multi-tenant SaaS ecosystem connectivity.',
-    iconName: 'Layers',
-    bgColor: 'bg-amber-50 dark:bg-amber-500/10',
-    borderColor: 'border-amber-200 dark:border-amber-500/30',
-    glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(245,158,11,0.3)]',
-    services: [
-      'Meta Lead Integration',
-      'WhatsApp Integration',
-      'Payment Gateway',
-      'Google Services',
-      'CRM Integration',
-      'API Development',
-      'Third-Party Integration'
-    ],
-    ctaText: 'Explore API Services',
-    ctaLink: '/contact-sales'
-  },
-  {
-    id: 'digital-marketing',
-    title: 'Digital Marketing',
-    category: 'Digital Marketing',
-    badge: 'GROWTH & LEADS',
-    description: 'Data-driven digital marketing campaigns engineered to expand brand visibility, generate high-intent enterprise leads, and maximize ROI.',
-    iconName: 'Megaphone',
-    bgColor: 'bg-rose-50 dark:bg-rose-500/10',
-    borderColor: 'border-rose-200 dark:border-rose-500/30',
-    glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(244,63,94,0.3)]',
-    services: [
-      'Social Media Marketing',
-      'Meta Ads',
-      'Google Ads',
-      'Lead Generation',
-      'Content Marketing',
-      'Campaign Management'
-    ],
-    ctaText: 'Explore Digital Marketing',
-    ctaLink: '/contact-sales'
-  },
-  {
-    id: 'seo-services',
-    title: 'SEO Services',
-    category: 'SEO Services',
-    badge: 'ORGANIC RANKINGS',
-    description: 'Comprehensive Search Engine Optimization (SEO) strategies to rank #1 on Google, capture high-converting organic search traffic, and build domain authority.',
-    iconName: 'TrendingUp',
-    bgColor: 'bg-teal-50 dark:bg-teal-500/10',
-    borderColor: 'border-teal-200 dark:border-teal-500/30',
-    glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(20,184,166,0.3)]',
-    services: [
-      'Website SEO',
-      'Local SEO',
-      'Technical SEO',
-      'Keyword Research',
-      'On-Page SEO',
-      'SEO Audit'
-    ],
-    ctaText: 'Explore SEO Services',
-    ctaLink: '/contact-sales'
-  }
+const COLOR_THEMES = [
+  { bgColor: 'bg-blue-50 dark:bg-cyan-500/10', borderColor: 'border-blue-200 dark:border-cyan-500/30', glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(56,189,248,0.3)]' },
+  { bgColor: 'bg-cyan-50 dark:bg-cyan-400/10', borderColor: 'border-cyan-200 dark:border-cyan-400/30', glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(34,211,238,0.3)]' },
+  { bgColor: 'bg-indigo-50 dark:bg-indigo-500/10', borderColor: 'border-indigo-200 dark:border-indigo-500/30', glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(99,102,241,0.3)]' },
+  { bgColor: 'bg-purple-50 dark:bg-purple-500/10', borderColor: 'border-purple-200 dark:border-purple-500/30', glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(168,85,247,0.3)]' },
+  { bgColor: 'bg-emerald-50 dark:bg-emerald-500/10', borderColor: 'border-emerald-200 dark:border-emerald-500/30', glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(16,185,129,0.3)]' },
+  { bgColor: 'bg-amber-50 dark:bg-amber-500/10', borderColor: 'border-amber-200 dark:border-amber-500/30', glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(245,158,11,0.3)]' },
+  { bgColor: 'bg-rose-50 dark:bg-rose-500/10', borderColor: 'border-rose-200 dark:border-rose-500/30', glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(244,63,94,0.3)]' },
+  { bgColor: 'bg-teal-50 dark:bg-teal-500/10', borderColor: 'border-teal-200 dark:border-teal-500/30', glowColor: 'hover:shadow-[0_12px_36px_-10px_rgba(20,184,166,0.3)]' },
 ];
 
 const renderServiceIcon = (iconName?: string) => {
@@ -272,68 +105,63 @@ const renderServiceIcon = (iconName?: string) => {
 
 export const ServicesPage: React.FC = () => {
   const { navigateTo } = useNavigation();
-  const [categories, setCategories] = useState<ServiceCategory[]>(DEFAULT_CATEGORIES);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
-  // Fetch Services dynamic data from backend API & local storage sync
+  // Fetch Services dynamic data directly from backend API
   useEffect(() => {
     const fetchServices = async () => {
-      let rawData: any[] = [];
-
       try {
-        const res = await apiFetch('/services?enabled=true');
+        const res = await apiFetch('/services?enabled=true', { cache: 'no-store' });
         const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          rawData = data.data;
-        }
-      } catch (_error) {
-        // network notice
-      }
-
-      // Check local storage sync only if network returned nothing
-      if (rawData.length === 0) {
-        const stored = localStorage.getItem('dezo_services_cms');
-        if (stored) {
+        if (data.success && Array.isArray(data.data)) {
+          const mapped: ServiceCategory[] = data.data.map((item: any, idx: number) => {
+            const theme = COLOR_THEMES[idx % COLOR_THEMES.length];
+            return {
+              id: item.id || `srv-${idx}`,
+              title: item.title,
+              category: item.category || item.title,
+              badge: item.badge || 'ENTERPRISE SOLUTION',
+              description: item.description || '',
+              iconName: item.icon || 'Code2',
+              bgColor: theme.bgColor,
+              borderColor: theme.borderColor,
+              glowColor: theme.glowColor,
+              services: Array.isArray(item.services) ? item.services : [],
+              ctaText: item.ctaText || 'Explore Services',
+              ctaLink: item.ctaLink || '/contact-sales',
+              status: item.status || 'active',
+              isEnabled: item.isEnabled ?? true,
+            };
+          });
+          setCategories(mapped);
           try {
-            const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              rawData = parsed.filter((item: any) => item.isEnabled ?? item.status === 'active');
-            }
+            localStorage.removeItem('dezo_services_cms');
           } catch (_e) {}
         }
-      }
-
-      if (rawData.length > 0) {
-        const mapped: ServiceCategory[] = rawData.map((item: any, idx: number) => {
-          const fallback = DEFAULT_CATEGORIES[idx % DEFAULT_CATEGORIES.length] || DEFAULT_CATEGORIES[0];
-          return {
-            id: item.id || `srv-${idx}`,
-            title: item.title || fallback.title,
-            category: item.category || fallback.category,
-            badge: item.badge || fallback.badge || 'ENTERPRISE SOLUTION',
-            description: item.description || fallback.description,
-            iconName: item.icon || fallback.iconName || 'Code2',
-            bgColor: fallback.bgColor || 'bg-blue-50 dark:bg-cyan-500/10',
-            borderColor: fallback.borderColor || 'border-blue-200 dark:border-cyan-500/30',
-            glowColor: fallback.glowColor || 'hover:shadow-[0_12px_36px_-10px_rgba(56,189,248,0.3)]',
-            services: Array.isArray(item.services) && item.services.length > 0 ? item.services : ['Custom Solution'],
-            ctaText: item.ctaText || 'Explore Services',
-            ctaLink: item.ctaLink || '/contact-sales',
-            status: item.status || 'active',
-            isEnabled: item.isEnabled ?? true,
-          };
-        });
-        setCategories(mapped);
+      } catch (_error) {
+        // network error
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchServices();
     window.addEventListener('dezo_services_updated', fetchServices);
+    window.addEventListener('focus', fetchServices);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchServices();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       window.removeEventListener('dezo_services_updated', fetchServices);
+      window.removeEventListener('focus', fetchServices);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
@@ -457,71 +285,100 @@ export const ServicesPage: React.FC = () => {
             </p>
           </div>
 
-          {/* 8 Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((cat, index) => (
-              <motion.div
-                key={cat.id || index}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.1 }}
-                transition={{ duration: 0.28, ease: 'easeOut', delay: index * 0.05 }}
-                whileHover={{ y: -5 }}
-                className="group relative bg-white/95 dark:bg-slate-900/90 rounded-3xl border border-slate-200/90 dark:border-slate-800 hover:border-blue-500/60 dark:hover:border-cyan-500/50 p-6 flex flex-col justify-between shadow-xs hover:shadow-[0_14px_36px_-10px_rgba(37,99,235,0.16)] dark:hover:shadow-[0_14px_36px_-10px_rgba(34,211,238,0.12)] transition-all duration-300 ease-out backdrop-blur-xl text-left overflow-hidden cursor-pointer"
-              >
-                {/* Top Border Accent Glow on Hover */}
-                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-
-                <div>
-                  {/* Card Header: Icon + Badge */}
-                  <div className="flex items-center justify-between mb-5">
-                    <div className={`p-3.5 rounded-2xl ${cat.bgColor || 'bg-blue-50/80 dark:bg-cyan-500/10'} border ${cat.borderColor || 'border-blue-200/80 dark:border-cyan-500/30'} group-hover:bg-blue-100/90 dark:group-hover:bg-cyan-500/20 group-hover:border-blue-300 dark:group-hover:border-cyan-400/50 group-hover:-translate-y-0.5 group-hover:scale-[1.05] transition-all duration-300 ease-out`}>
-                      {renderServiceIcon(cat.iconName)}
-                    </div>
-                    {cat.badge && (
-                      <span className="text-[9px] font-black tracking-wider uppercase px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                        {cat.badge}
-                      </span>
-                    )}
+          {/* Services Cards Grid */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <div key={n} className="bg-white/95 dark:bg-slate-900/90 rounded-3xl border border-slate-200/90 dark:border-slate-800 p-6 flex flex-col justify-between shadow-xs animate-pulse space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                    <div className="w-20 h-4 rounded-full bg-slate-200 dark:bg-slate-800" />
                   </div>
+                  <div className="space-y-2">
+                    <div className="w-3/4 h-5 rounded-lg bg-slate-200 dark:bg-slate-800" />
+                    <div className="w-full h-3 rounded bg-slate-200 dark:bg-slate-800" />
+                    <div className="w-5/6 h-3 rounded bg-slate-200 dark:bg-slate-800" />
+                  </div>
+                  <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <div className="w-full h-3 rounded bg-slate-200 dark:bg-slate-800" />
+                    <div className="w-4/5 h-3 rounded bg-slate-200 dark:bg-slate-800" />
+                  </div>
+                  <div className="w-full h-10 rounded-xl bg-slate-200 dark:bg-slate-800 pt-2" />
+                </div>
+              ))}
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-16 p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
+              <Layers className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+              <h3 className="text-base font-black text-slate-700 dark:text-slate-300">No Services Available</h3>
+              <p className="text-xs text-slate-500 mt-1">Please check back soon as our catalog is updated.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {categories.map((cat, index) => (
+                <motion.div
+                  key={cat.id || index}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.1 }}
+                  transition={{ duration: 0.28, ease: 'easeOut', delay: index * 0.05 }}
+                  whileHover={{ y: -5 }}
+                  className="group relative bg-white/95 dark:bg-slate-900/90 rounded-3xl border border-slate-200/90 dark:border-slate-800 hover:border-blue-500/60 dark:hover:border-cyan-500/50 p-6 flex flex-col justify-between shadow-xs hover:shadow-[0_14px_36px_-10px_rgba(37,99,235,0.16)] dark:hover:shadow-[0_14px_36px_-10px_rgba(34,211,238,0.12)] transition-all duration-300 ease-out backdrop-blur-xl text-left overflow-hidden cursor-pointer"
+                >
+                  {/* Top Border Accent Glow on Hover */}
+                  <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
 
-                  {/* Title */}
-                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-cyan-300 transition-colors duration-300 ease-out">
-                    {cat.title}
-                  </h3>
-
-                  {/* Description */}
-                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                    {cat.description}
-                  </p>
-
-                  {/* Service Bullets List */}
-                  <div className="space-y-2.5 mb-8 border-t border-slate-100 dark:border-slate-800/80 pt-5">
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 block mb-3">
-                      KEY DELIVERABLES
-                    </span>
-                    {cat.services.map((item, idx) => (
-                      <div key={idx} className="flex items-start gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-cyan-400 shrink-0 mt-0.5" />
-                        <span className="leading-snug">{item}</span>
+                  <div>
+                    {/* Card Header: Icon + Badge */}
+                    <div className="flex items-center justify-between mb-5">
+                      <div className={`p-3.5 rounded-2xl ${cat.bgColor || 'bg-blue-50/80 dark:bg-cyan-500/10'} border ${cat.borderColor || 'border-blue-200/80 dark:border-cyan-500/30'} group-hover:bg-blue-100/90 dark:group-hover:bg-cyan-500/20 group-hover:border-blue-300 dark:group-hover:border-cyan-400/50 group-hover:-translate-y-0.5 group-hover:scale-[1.05] transition-all duration-300 ease-out`}>
+                        {renderServiceIcon(cat.iconName)}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                      {cat.badge && (
+                        <span className="text-[9px] font-black tracking-wider uppercase px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                          {cat.badge}
+                        </span>
+                      )}
+                    </div>
 
-                {/* Footer CTA Button */}
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">
-                  <button
-                    onClick={() => navigateTo((cat.ctaLink as any) || '/contact-sales')}
-                    className="w-full py-3 px-4 rounded-xl border border-blue-600/60 dark:border-cyan-400/50 bg-slate-50 dark:bg-slate-800/80 group-hover:bg-white group-hover:border-blue-600 dark:group-hover:bg-slate-800 dark:group-hover:border-cyan-400 hover:!bg-blue-600 hover:!border-blue-600 dark:hover:!bg-cyan-500 text-slate-900 dark:text-slate-100 hover:!text-white dark:hover:!text-slate-950 font-extrabold text-xs transition-all duration-300 ease-out cursor-pointer flex items-center justify-center gap-2 group/btn shadow-xs hover:shadow-md hover:shadow-blue-500/25"
-                  >
-                    <span className="font-extrabold transition-colors duration-300">{cat.ctaText || 'Explore Services'}</span>
-                    <ArrowRight className="w-4 h-4 text-blue-600 dark:text-cyan-400 group-hover/btn:!text-white dark:group-hover/btn:!text-slate-950 group-hover:translate-x-0.75 group-hover/btn:translate-x-1 transition-all duration-300 ease-out shrink-0" />
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                    {/* Title */}
+                    <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-cyan-300 transition-colors duration-300 ease-out">
+                      {cat.title}
+                    </h3>
+
+                    {/* Description */}
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                      {cat.description}
+                    </p>
+
+                    {/* Service Bullets List */}
+                    <div className="space-y-2.5 mb-8 border-t border-slate-100 dark:border-slate-800/80 pt-5">
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 block mb-3">
+                        KEY DELIVERABLES
+                      </span>
+                      {cat.services.map((item, idx) => (
+                        <div key={idx} className="flex items-start gap-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-cyan-400 shrink-0 mt-0.5" />
+                          <span className="leading-snug">{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Footer CTA Button */}
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                    <button
+                      onClick={() => navigateTo((cat.ctaLink as any) || '/contact-sales')}
+                      className="w-full py-3 px-4 rounded-xl border border-blue-600/60 dark:border-cyan-400/50 bg-slate-50 dark:bg-slate-800/80 group-hover:bg-white group-hover:border-blue-600 dark:group-hover:bg-slate-800 dark:group-hover:border-cyan-400 hover:!bg-blue-600 hover:!border-blue-600 dark:hover:!bg-cyan-500 text-slate-900 dark:text-slate-100 hover:!text-white dark:hover:!text-slate-950 font-extrabold text-xs transition-all duration-300 ease-out cursor-pointer flex items-center justify-center gap-2 group/btn shadow-xs hover:shadow-md hover:shadow-blue-500/25"
+                    >
+                      <span className="font-extrabold transition-colors duration-300">{cat.ctaText || 'Explore Services'}</span>
+                      <ArrowRight className="w-4 h-4 text-blue-600 dark:text-cyan-400 group-hover/btn:!text-white dark:group-hover/btn:!text-slate-950 group-hover:translate-x-0.75 group-hover/btn:translate-x-1 transition-all duration-300 ease-out shrink-0" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
 
         </div>
 

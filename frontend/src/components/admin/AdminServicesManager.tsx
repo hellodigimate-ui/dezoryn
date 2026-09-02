@@ -49,22 +49,9 @@ const ICON_OPTIONS = [
   { name: 'Award', label: 'Enterprise Grade', icon: Award },
 ];
 
-const getInitialSavedServices = (): ServiceRecord[] => {
-  try {
-    const saved = localStorage.getItem('dezo_services_cms');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (_e) {}
-  return [];
-};
-
 export const AdminServicesManager: React.FC = () => {
-  const [services, setServices] = useState<ServiceRecord[]>(getInitialSavedServices);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [services, setServices] = useState<ServiceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('All');
@@ -102,9 +89,9 @@ export const AdminServicesManager: React.FC = () => {
     setTimeout(() => setMessage(null), 3500);
   };
 
-  const syncLocalStorageAndNotify = (updatedList: ServiceRecord[]) => {
+  const syncLocalStorageAndNotify = (_updatedList: ServiceRecord[]) => {
     try {
-      localStorage.setItem('dezo_services_cms', JSON.stringify(updatedList));
+      localStorage.removeItem('dezo_services_cms');
       window.dispatchEvent(new Event('dezo_services_updated'));
     } catch (_e) {
       // storage
@@ -112,39 +99,38 @@ export const AdminServicesManager: React.FC = () => {
   };
 
   const fetchServices = async () => {
-    let fetchedList: ServiceRecord[] = [];
     try {
-      const res = await apiFetch(API_SERVICES);
+      const res = await apiFetch(API_SERVICES, { cache: 'no-store' });
       const data = await res.json();
-      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        fetchedList = data.data;
+      if (data.success && Array.isArray(data.data)) {
+        setServices(data.data);
+        try {
+          localStorage.removeItem('dezo_services_cms');
+        } catch (_e) {}
+        window.dispatchEvent(new Event('dezo_services_updated'));
       }
     } catch (_e) {
-      // network
+      // network error
+    } finally {
+      setIsLoading(false);
     }
-
-    if (fetchedList.length > 0) {
-      setServices(fetchedList);
-      try {
-        localStorage.setItem('dezo_services_cms', JSON.stringify(fetchedList));
-      } catch (_e) {}
-      window.dispatchEvent(new Event('dezo_services_updated'));
-    } else {
-      const saved = localStorage.getItem('dezo_services_cms');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setServices(parsed);
-          }
-        } catch (_err) {}
-      }
-    }
-    setIsLoading(false);
   };
 
   useEffect(() => {
+    try {
+      localStorage.removeItem('dezo_services_cms');
+    } catch (_e) {}
     fetchServices();
+    window.addEventListener('focus', fetchServices);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchServices();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('focus', fetchServices);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   const openCreateModal = () => {
@@ -160,11 +146,7 @@ export const AdminServicesManager: React.FC = () => {
     setOrder(services.length + 1);
     setStatus('active');
     setIsEnabled(true);
-    setDeliverables([
-      'Custom Enterprise ERP & CRM',
-      'SaaS Product Architecture',
-      'Cloud Infrastructure & DevOps'
-    ]);
+    setDeliverables([]);
     setNewItemInput('');
     setEditingItemIdx(null);
     setIsModalOpen(true);
@@ -370,17 +352,23 @@ export const AdminServicesManager: React.FC = () => {
   // Delete Service
   const handleDeleteService = async () => {
     if (!deleteConfirm) return;
+    setIsLoading(true);
     try {
-      await apiFetch(`${API_SERVICES}/${deleteConfirm.id}`, {
+      const res = await apiFetch(`${API_SERVICES}/${deleteConfirm.id}`, {
         method: 'DELETE',
-      }).catch(() => null);
-    } catch (_err) {}
-
-    const updatedList = services.filter(s => s.id !== deleteConfirm.id);
-    setServices(updatedList);
-    syncLocalStorageAndNotify(updatedList);
-    setDeleteConfirm(null);
-    showMsg('success', 'Service category deleted');
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success !== false) {
+        showMsg('success', `Service "${deleteConfirm.title}" permanently deleted from database.`);
+      } else {
+        showMsg('error', data.message || 'Failed to delete service from database.');
+      }
+    } catch (err: any) {
+      showMsg('error', err.message || 'Network error while deleting service.');
+    } finally {
+      setDeleteConfirm(null);
+      await fetchServices();
+    }
   };
 
   // Duplicate Service

@@ -24,6 +24,7 @@ import serviceRoutes from './service.routes';
 import homepageStatsRoutes from './homepage-stats.routes';
 import supportRoutes from './support.routes';
 import marketplaceHeroRoutes from './marketplace-hero.routes';
+import careerRoutes from './career.routes';
 
 const router = Router();
 
@@ -51,6 +52,7 @@ router.use('/pricing-plans', pricingRoutes);
 router.use('/testimonials', testimonialRoutes);
 router.use('/faqs', faqRoutes);
 router.use('/jobs', jobRoutes);
+router.use('/careers', careerRoutes);
 router.use('/contact', contactRoutes);
 router.use('/support', supportRoutes);
 router.use('/support-tickets', supportRoutes);

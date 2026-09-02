@@ -168,6 +168,10 @@ export const AdminHeroCMS: React.FC = () => {
       setIsSaving(false);
 
       if (resData.success) {
+        try {
+          localStorage.setItem('dezo_hero_cms', JSON.stringify(formData));
+          window.dispatchEvent(new Event('dezo_hero_updated'));
+        } catch (_e) {}
         setMessage({ type: 'success', text: 'Hero Section updated & saved permanently in PostgreSQL Database!' });
       } else {
         setMessage({ type: 'error', text: resData.message || 'Failed to save to PostgreSQL database' });
@@ -193,6 +197,10 @@ export const AdminHeroCMS: React.FC = () => {
     }
 
     setFormData(DEFAULT_HERO_CMS);
+    try {
+      localStorage.setItem('dezo_hero_cms', JSON.stringify(DEFAULT_HERO_CMS));
+      window.dispatchEvent(new Event('dezo_hero_updated'));
+    } catch (_e) {}
     setIsResetting(false);
     setMessage({ type: 'info', text: 'Hero Section content reset in PostgreSQL Database.' });
     setTimeout(() => setMessage(null), 4000);

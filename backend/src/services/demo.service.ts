@@ -60,20 +60,10 @@ export class DemoService {
    */
   static async getAll(activeOnly: boolean = false) {
     try {
-      let demos = await prisma.productDemo.findMany({
+      const demos = await prisma.productDemo.findMany({
         where: activeOnly ? { isActive: true } : {},
         orderBy: { order: 'asc' },
       });
-
-      if (!demos || demos.length === 0) {
-        await prisma.productDemo.createMany({
-          data: DEFAULT_DEMOS,
-        });
-        demos = await prisma.productDemo.findMany({
-          where: activeOnly ? { isActive: true } : {},
-          orderBy: { order: 'asc' },
-        });
-      }
 
       return demos;
     } catch (error) {

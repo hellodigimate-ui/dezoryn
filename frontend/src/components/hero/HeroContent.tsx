@@ -220,11 +220,21 @@ const EnterpriseCTAButton: React.FC<EnterpriseCTAButtonProps> = ({
 export const HeroContent: React.FC = React.memo(() => {
   const { navigateTo } = useNavigation();
 
-  const [heroData, setHeroData] = useState(DEFAULT_HERO_DATA);
+  const [heroData, setHeroData] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dezo_hero_cms');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return { ...DEFAULT_HERO_DATA, ...parsed };
+        }
+      }
+    } catch (_e) {}
+    return DEFAULT_HERO_DATA;
+  });
 
-  // Fetch Hero Section content directly from PostgreSQL Database API on mount
-  useEffect(() => {
-    apiFetch('/hero')
+  const fetchHeroData = () => {
+    apiFetch('/hero', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.data) {
@@ -241,14 +251,31 @@ export const HeroContent: React.FC = React.memo(() => {
             statsCards: Array.isArray(data.data.statsCards) && data.data.statsCards.length > 0 ? data.data.statsCards : DEFAULT_HERO_DATA.statsCards,
             techTags: Array.isArray(data.data.techTags) && data.data.techTags.length > 0 ? data.data.techTags : DEFAULT_HERO_DATA.techTags,
           };
-          if (JSON.stringify(fetched) !== JSON.stringify(DEFAULT_HERO_DATA)) {
-            setHeroData(fetched);
-          }
+          setHeroData(fetched);
+          try {
+            localStorage.setItem('dezo_hero_cms', JSON.stringify(fetched));
+          } catch (_e) {}
         }
       })
       .catch(() => {
         // Fallback silently if API is offline
       });
+  };
+
+  useEffect(() => {
+    fetchHeroData();
+    window.addEventListener('dezo_hero_updated', fetchHeroData);
+    window.addEventListener('focus', fetchHeroData);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchHeroData();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('dezo_hero_updated', fetchHeroData);
+      window.removeEventListener('focus', fetchHeroData);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   const tagIcons = [Zap, CheckCircle2, ShieldCheck, TrendingUp];
@@ -282,7 +309,7 @@ export const HeroContent: React.FC = React.memo(() => {
 
       {/* Product Tag Chips Strip */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
-        {heroData.techTags.map((tagName, idx) => {
+        {(heroData.techTags || []).map((tagName: string, idx: number) => {
           const TagIcon = tagIcons[idx % tagIcons.length];
           const getTagRoute = (tag: string) => {
             const lower = tag.toLowerCase();
@@ -358,7 +385,7 @@ export const HeroContent: React.FC = React.memo(() => {
 
       {/* Enterprise Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-        {heroData.statsCards.map((stat, idx) => (
+        {(heroData.statsCards || []).map((stat: any, idx: number) => (
           <StatCounterItem
             key={stat.id || idx}
             value={stat.value}

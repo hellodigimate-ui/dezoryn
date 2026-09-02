@@ -52,18 +52,9 @@ export class TimelineService {
    */
   static async getAll() {
     try {
-      let items = await prisma.companyTimeline.findMany({
+      const items = await prisma.companyTimeline.findMany({
         orderBy: { orderIndex: 'asc' },
       });
-
-      if (!items || items.length === 0) {
-        await prisma.companyTimeline.createMany({
-          data: DEFAULT_TIMELINE,
-        });
-        items = await prisma.companyTimeline.findMany({
-          orderBy: { orderIndex: 'asc' },
-        });
-      }
 
       return items;
     } catch (error) {

@@ -145,7 +145,7 @@ export async function cachedApiFetch(input: string | URL, init?: RequestInit): P
   const method = (init?.method || 'GET').toUpperCase();
   const isGet = method === 'GET';
 
-  const configEndpoints = ['/site-settings', '/theme', '/contact', '/footer', '/nav', '/hero', '/faqs'];
+  const configEndpoints = ['/site-settings', '/theme', '/contact', '/footer', '/nav', '/faqs'];
   const isConfigRoute = configEndpoints.some((ep) => urlStr.includes(ep));
 
   if (isGet && isConfigRoute) {

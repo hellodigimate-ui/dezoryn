@@ -27,44 +27,7 @@ import { useNavigation } from '../../utils/NavigationContext';
 import { apiFetch } from '../../config/api.config';
 import type { ServiceCategory } from './ServicesPage';
 
-const DEFAULT_HOMEPAGE_SERVICES: ServiceCategory[] = [
-  {
-    id: 'software-dev',
-    title: 'Software Development',
-    badge: 'ENTERPRISE ARCHITECTURE',
-    description: 'Custom enterprise software solutions tailored to automate complex workflows, enhance operational efficiency, and scale seamlessly with your business growth.',
-    iconName: 'Code2',
-    services: ['Custom Software Development', 'CRM Development', 'ERP Development'],
-    ctaText: 'Explore Software Services'
-  },
-  {
-    id: 'web-dev',
-    title: 'Website Development',
-    badge: 'WEB PLATFORMS',
-    description: 'Modern, high-performance websites and web applications built with intuitive UI/UX, ultra-fast loading speeds, and bank-grade security protocols.',
-    iconName: 'Globe',
-    services: ['Business Website', 'Corporate Website', 'E-commerce Website'],
-    ctaText: 'Explore Web Services'
-  },
-  {
-    id: 'mobile-dev',
-    title: 'Mobile App Development',
-    badge: 'IOS & ANDROID',
-    description: 'Native and cross-platform mobile apps for iOS and Android delivering engaging user experiences, offline capabilities, and real-time data sync.',
-    iconName: 'Smartphone',
-    services: ['Android App', 'iOS App', 'Cross-Platform App'],
-    ctaText: 'Explore Mobile Services'
-  },
-  {
-    id: 'business-mgmt',
-    title: 'Business Management Solutions',
-    badge: 'AUTOMATION SUITE',
-    description: 'Integrated business automation platforms covering HRMS, automated payroll, inventory management, billing, and complete operational control.',
-    iconName: 'Briefcase',
-    services: ['CRM', 'HRM & Payroll', 'ERP'],
-    ctaText: 'Explore Business Solutions'
-  }
-];
+
 
 interface CardTheme {
   topGradient: string;
@@ -210,51 +173,48 @@ const renderWhiteIcon = (iconName?: string) => {
 
 export const ServicesSection: React.FC = () => {
   const { navigateTo } = useNavigation();
-  const [services, setServices] = useState<ServiceCategory[]>(DEFAULT_HOMEPAGE_SERVICES);
+  const [services, setServices] = useState<ServiceCategory[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchHomepageServices = async () => {
-      let rawData: any[] = [];
-
       try {
-        const res = await apiFetch('/services?enabled=true');
+        const res = await apiFetch('/services?enabled=true', { cache: 'no-store' });
         const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          rawData = data.data;
-        }
-      } catch (_e) {}
-
-      // Fall back to local storage only if network fetch returned nothing
-      if (rawData.length === 0) {
-        const stored = localStorage.getItem('dezo_services_cms');
-        if (stored) {
+        if (data.success && Array.isArray(data.data)) {
+          const mapped: ServiceCategory[] = data.data.slice(0, 4).map((item: any, idx: number) => ({
+            id: item.id || `srv-${idx}`,
+            title: item.title,
+            badge: item.badge || 'ENTERPRISE',
+            description: item.description || '',
+            iconName: item.icon || 'Code2',
+            services: Array.isArray(item.services) && item.services.length > 0 ? item.services.slice(0, 4) : [],
+            ctaText: item.ctaText || 'Explore Services'
+          }));
+          setServices(mapped);
           try {
-            const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              rawData = parsed.filter((item: any) => item.isEnabled ?? item.status === 'active');
-            }
-          } catch (_err) {}
+            localStorage.removeItem('dezo_services_cms');
+          } catch (_e) {}
         }
-      }
-
-      if (rawData.length > 0) {
-        const mapped: ServiceCategory[] = rawData.slice(0, 4).map((item: any, idx: number) => ({
-          id: item.id || `srv-${idx}`,
-          title: item.title,
-          badge: item.badge || 'ENTERPRISE',
-          description: item.description,
-          iconName: item.icon || 'Code2',
-          services: Array.isArray(item.services) && item.services.length > 0 ? item.services.slice(0, 3) : ['Custom Solution'],
-          ctaText: item.ctaText || 'Explore Services'
-        }));
-        setServices(mapped);
+      } catch (_e) {
+        // network notice
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchHomepageServices();
     window.addEventListener('dezo_services_updated', fetchHomepageServices);
+    window.addEventListener('focus', fetchHomepageServices);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchHomepageServices();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       window.removeEventListener('dezo_services_updated', fetchHomepageServices);
+      window.removeEventListener('focus', fetchHomepageServices);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
@@ -289,9 +249,33 @@ export const ServicesSection: React.FC = () => {
         </div>
 
         {/* 4 Cards Grid with Futuristic 3D Glass Panel Styling */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {services.map((item, idx) => {
-            const theme = CARD_THEMES[idx % CARD_THEMES.length];
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className="bg-white/90 dark:bg-slate-900/90 rounded-3xl border border-slate-200/90 dark:border-slate-800 p-6 flex flex-col justify-between shadow-xs animate-pulse space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                  <div className="w-20 h-4 rounded-full bg-slate-200 dark:bg-slate-800" />
+                </div>
+                <div className="space-y-2">
+                  <div className="w-3/4 h-5 rounded-lg bg-slate-200 dark:bg-slate-800" />
+                  <div className="w-full h-3 rounded bg-slate-200 dark:bg-slate-800" />
+                  <div className="w-5/6 h-3 rounded bg-slate-200 dark:bg-slate-800" />
+                </div>
+                <div className="w-full h-10 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+              </div>
+            ))}
+          </div>
+        ) : services.length === 0 ? (
+          <div className="text-center py-16 p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
+            <Layers className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+            <h3 className="text-base font-black text-slate-700 dark:text-slate-300">No Services Available</h3>
+            <p className="text-xs text-slate-500 mt-1">Services configured in the Admin Panel will appear here.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {services.map((item, idx) => {
+              const theme = CARD_THEMES[idx % CARD_THEMES.length];
 
             return (
               <motion.div
@@ -378,6 +362,7 @@ export const ServicesSection: React.FC = () => {
             );
           })}
         </div>
+      )}
       </div>
     </section>
   );

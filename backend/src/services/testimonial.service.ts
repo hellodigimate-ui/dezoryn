@@ -43,11 +43,7 @@ export class TestimonialService {
   static async getAll(onlyEnabled = false) {
     try {
       const where = onlyEnabled ? { isEnabled: true } : {};
-      let items = await prisma.testimonial.findMany({ where, orderBy: { order: 'asc' } });
-      if (!items || items.length === 0) {
-        await prisma.testimonial.createMany({ data: DEFAULTS });
-        items = await prisma.testimonial.findMany({ orderBy: { order: 'asc' } });
-      }
+      const items = await prisma.testimonial.findMany({ where, orderBy: { order: 'asc' } });
       return items;
     } catch (error) {
       console.error('GET TESTIMONIALS ERROR:', error);

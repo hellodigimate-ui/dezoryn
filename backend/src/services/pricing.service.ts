@@ -89,12 +89,7 @@ export class PricingService {
   static async getAll(onlyEnabled = false) {
     try {
       const where = onlyEnabled ? { isEnabled: true } : {};
-      let plans = await prisma.pricingPlan.findMany({ where, orderBy: { order: 'asc' } });
-
-      if (!plans || plans.length === 0) {
-        await prisma.pricingPlan.createMany({ data: DEFAULTS });
-        plans = await prisma.pricingPlan.findMany({ orderBy: { order: 'asc' } });
-      }
+      const plans = await prisma.pricingPlan.findMany({ where, orderBy: { order: 'asc' } });
 
       return plans.map(formatPlanWithPricing);
     } catch (error) {

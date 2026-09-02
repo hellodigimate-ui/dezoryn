@@ -93,57 +93,16 @@ const renderModuleIcon = (iconName?: string, category?: string) => {
   return <Zap className="w-5 h-5 text-blue-600 dark:text-cyan-400" />;
 };
 
-const FALLBACK_PLANS: GlobalPricingPlan[] = [
-  {
-    id: 'starter-plan',
-    name: 'Starter',
-    price: '29',
-    monthlyPrice: 29,
-    annualPrice: 24,
-    currency: '₹',
-    description: 'Essential pipeline management & basic lead scoring for small sales teams.',
-    features: ['Up to 10 Sales Rep Seats', 'Basic AI Lead Scoring', 'Email & SMS Cadences', 'Kanban Deal Pipelines', '99.5% SLA Uptime'],
-    buttonText: 'Start Free Trial',
-    buttonUrl: '/book-demo',
-    isHighlight: false,
-    colorTheme: 'slate'
-  },
-  {
-    id: 'professional-plan',
-    name: 'Professional',
-    price: '79',
-    monthlyPrice: 79,
-    annualPrice: 64,
-    currency: '₹',
-    description: 'Advanced predictive intelligence, multi-channel cadences & AI forecasting.',
-    features: ['Unlimited Sales Seats', '50+ Intent Signals', 'Multi-Channel Automation', 'AI Revenue Forecasting', 'Multi-Currency Support', 'Dedicated Onboarding'],
-    buttonText: 'Schedule Walkthrough',
-    buttonUrl: '/book-demo',
-    isHighlight: true,
-    ribbon: 'Most Popular',
-    colorTheme: 'blue'
-  },
-  {
-    id: 'enterprise-plan',
-    name: 'Enterprise',
-    price: 'Custom',
-    currency: '₹',
-    description: 'Dedicated cloud cluster, custom AI model training & SOC2 compliance.',
-    features: ['Isolated Cloud Cluster', 'SOC2 Type II & GDPR', 'Custom AI Fine-Tuning', '24/7 Priority Support', 'Technical Account Manager', 'Custom SSO Integration'],
-    buttonText: 'Contact Us',
-    buttonUrl: '/contact-sales',
-    isHighlight: false,
-    colorTheme: 'violet'
-  }
-];
+
 
 export const PricingPage: React.FC = () => {
   const { navigateTo } = useNavigation();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [plans, setPlans] = useState<GlobalPricingPlan[]>(FALLBACK_PLANS);
+  const [plans, setPlans] = useState<GlobalPricingPlan[]>([]);
   const [modules, setModules] = useState<SolutionModule[]>([]);
   const [selectedModuleForTiers, setSelectedModuleForTiers] = useState<SolutionModule | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     // 1. Fetch Global Pricing Plans (Admin Pricing Manager sync)
@@ -151,14 +110,14 @@ export const PricingPage: React.FC = () => {
       try {
         const res = await apiFetch('/pricing');
         const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        if (data.success && Array.isArray(data.data)) {
           const activeOnly = data.data.filter((p: any) => p.isEnabled !== false);
-          if (activeOnly.length > 0) {
-            setPlans(activeOnly);
-          }
+          setPlans(activeOnly);
         }
       } catch (_e) {
-        // Retain FALLBACK_PLANS
+        // network notice
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -345,30 +304,55 @@ export const PricingPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {plans.map((plan, idx) => {
-              const theme = getPlanTheme(plan.colorTheme, plan.isHighlight);
-              const isCustom = String(plan.price).toLowerCase().includes('custom') || plan.price === 'Custom';
-              
-              let displayPrice = plan.price;
-              if (!isCustom) {
-                if (billingCycle === 'annual' && plan.annualPrice) {
-                  displayPrice = `${plan.currency || '₹'}${plan.annualPrice}`;
-                } else if (plan.monthlyPrice) {
-                  displayPrice = `${plan.currency || '₹'}${plan.monthlyPrice}`;
-                } else if (!displayPrice.startsWith('₹') && !displayPrice.startsWith('$')) {
-                  displayPrice = `${plan.currency || '₹'}${displayPrice}`;
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="rounded-3xl p-6 flex flex-col justify-between border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 animate-pulse space-y-6">
+                  <div className="space-y-3">
+                    <div className="w-1/2 h-6 rounded-lg bg-slate-200 dark:bg-slate-800" />
+                    <div className="w-full h-4 rounded bg-slate-200 dark:bg-slate-800" />
+                    <div className="w-2/3 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 mt-4" />
+                  </div>
+                  <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    {[1, 2, 3, 4].map((f) => (
+                      <div key={f} className="w-full h-4 rounded bg-slate-200 dark:bg-slate-800" />
+                    ))}
+                  </div>
+                  <div className="w-full h-12 rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                </div>
+              ))}
+            </div>
+          ) : plans.length === 0 ? (
+            <div className="text-center py-16 p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
+              <DollarSign className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+              <h3 className="text-base font-black text-slate-700 dark:text-slate-300">No Pricing Plans Published</h3>
+              <p className="text-xs text-slate-500 mt-1">Configure your subscription plans in the Admin Portal.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {plans.map((plan, idx) => {
+                const theme = getPlanTheme(plan.colorTheme, plan.isHighlight);
+                const isCustom = String(plan.price).toLowerCase().includes('custom') || plan.price === 'Custom';
+                
+                let displayPrice = plan.price;
+                if (!isCustom) {
+                  if (billingCycle === 'annual' && plan.annualPrice) {
+                    displayPrice = `${plan.currency || '₹'}${plan.annualPrice}`;
+                  } else if (plan.monthlyPrice) {
+                    displayPrice = `${plan.currency || '₹'}${plan.monthlyPrice}`;
+                  } else if (!displayPrice.startsWith('₹') && !displayPrice.startsWith('$')) {
+                    displayPrice = `${plan.currency || '₹'}${displayPrice}`;
+                  }
                 }
-              }
 
-              return (
-                <motion.div
-                  key={plan.id || idx}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * idx }}
-                  className={`rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden backdrop-blur-xl transition-all duration-300 ${theme.cardBg} ${theme.border}`}
-                >
+                return (
+                  <motion.div
+                    key={plan.id || idx}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 * idx }}
+                    className={`rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden backdrop-blur-xl transition-all duration-300 ${theme.cardBg} ${theme.border}`}
+                  >
                   {/* Ribbon Badge */}
                   {plan.ribbon && (
                     <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${theme.badgeBg}`}>
@@ -429,7 +413,8 @@ export const PricingPage: React.FC = () => {
               );
             })}
           </div>
-        </div>
+        )}
+      </div>
 
         {/* ── SECTION 2: MARKETPLACE SOFTWARE SOLUTIONS (ADMIN MARKETPLACE MANAGER SYNC) ── */}
         <div className="mb-20">

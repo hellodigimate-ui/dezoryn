@@ -145,14 +145,10 @@ export const MiddleGridSection: React.FC = React.memo(() => {
         const res = await apiFetch(API_DEMOS);
         const data = await res.json();
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          const merged = data.data.map((d: ProductDemo, idx: number) => ({
-            ...DEFAULT_DEMOS[idx % DEFAULT_DEMOS.length],
-            ...d
-          }));
-          setDemos(merged);
+          setDemos(data.data);
         }
       } catch {
-        // use default fallback
+        // network notice
       }
     };
 
