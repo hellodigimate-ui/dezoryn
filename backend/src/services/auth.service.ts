@@ -8,46 +8,45 @@ import { Role } from '../constants/roles';
 export class AuthService {
   public static async login(input: LoginInput) {
     const cleanEmail = (input.email || '').trim().toLowerCase();
+    const plainPassword = input.password || '';
 
     let user = await prisma.user.findUnique({
       where: { email: cleanEmail },
     }).catch(() => null);
 
-    // Auto-provision or synchronize default Admin user if missing or password mismatch
-    if (cleanEmail === 'dezoryntechnology@gmail.com' && input.password === 'dezoryn@2025') {
+    // Auto-provision default Admin user once if missing in fresh database
+    if (!user && cleanEmail === 'dezoryntechnology@gmail.com' && plainPassword === 'dezoryn@2025') {
       const hashedPassword = await PasswordUtil.hash('dezoryn@2025');
-      if (!user) {
-        user = await prisma.user.create({
-          data: {
-            email: 'dezoryntechnology@gmail.com',
-            password: hashedPassword,
-            firstName: 'Dezoryn',
-            lastName: 'Admin',
-            role: Role.ADMIN,
-            isActive: true,
-          },
-        }).catch(() => null);
-      } else {
-        const isMatch = await PasswordUtil.compare(input.password, user.password).catch(() => false);
-        if (!isMatch || !user.isActive || user.role !== Role.ADMIN) {
-          user = await prisma.user.update({
-            where: { email: 'dezoryntechnology@gmail.com' },
-            data: {
-              password: hashedPassword,
-              role: Role.ADMIN,
-              isActive: true,
-            },
-          }).catch(() => user);
-        }
-      }
+      user = await prisma.user.create({
+        data: {
+          email: 'dezoryntechnology@gmail.com',
+          password: hashedPassword,
+          firstName: 'Dezoryn',
+          lastName: 'Admin',
+          role: Role.ADMIN,
+          isActive: true,
+        },
+      }).catch(() => null);
     }
 
     if (!user || !user.isActive) {
       throw new UnauthorizedError('Invalid credentials or account disabled');
     }
 
-    const isPasswordValid = await PasswordUtil.compare(input.password, user.password);
-    if (!isPasswordValid) {
+    // Fast single bcrypt comparison
+    let isPasswordValid = await PasswordUtil.compare(plainPassword, user.password).catch(() => false);
+
+    // Recovery if default admin user password in database was out of sync
+    if (!isPasswordValid && cleanEmail === 'dezoryntechnology@gmail.com' && plainPassword === 'dezoryn@2025') {
+      const hashedPassword = await PasswordUtil.hash('dezoryn@2025');
+      user = await prisma.user.update({
+        where: { email: 'dezoryntechnology@gmail.com' },
+        data: { password: hashedPassword, role: Role.ADMIN, isActive: true },
+      }).catch(() => user);
+      isPasswordValid = true;
+    }
+
+    if (!user || !user.isActive || !isPasswordValid) {
       throw new UnauthorizedError('Invalid credentials');
     }
 
@@ -60,21 +59,15 @@ export class AuthService {
     const accessToken = JwtUtil.generateAccessToken(payload);
     const refreshToken = JwtUtil.generateRefreshToken(payload);
 
-    // Save refresh token in database (expires in 7 days)
-    try {
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-
-      await prisma.refreshToken.create({
-        data: {
-          token: refreshToken,
-          userId: user.id,
-          expiresAt,
-        },
-      });
-    } catch (_err) {
-      // Allow login token issuance to succeed
-    }
+    // Save refresh token asynchronously without delaying login response
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt,
+      },
+    }).catch(() => {});
 
     return {
       user: {
