@@ -12,6 +12,7 @@
     "prisma:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
     "db:seed:products": "ts-node prisma/seed_products.ts",
+    "seed:products": "ts-node prisma/seed_products.ts",
     "db:seed:jobs": "ts-node prisma/seed_jobs.ts"
   },
   "keywords": [

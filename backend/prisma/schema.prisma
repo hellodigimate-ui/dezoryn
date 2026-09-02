@@ -493,5 +493,33 @@ model SupportTicket {
   @@map("support_tickets")
 }
 
+model MarketplaceHero {
+  id                String   @id @default("default")
+  tagline           String   @default("DEZORYN SOFTWARE ECOSYSTEM")
+  title1            String   @default("Discover, Deploy & Scale")
+  titleGradient     String   @default("Next-Gen SaaS Products")
+  description       String   @default("Dezoryn Technologies builds intelligent digital solutions that connect people, processes and data—helping organizations simplify complex operations, automate workflows and scale with confidence.") @db.Text
+  popularTags       Json     @default("[\"SchoolyCore\", \"HMS Health\", \"HRMS Pulse\", \"Sales AI\", \"InventoryPro\"]")
+  statProducts      String   @default("50+")
+  statIndustries    String   @default("15+")
+  statClients       String   @default("1000+")
+  statUptime        String   @default("99.9%")
+  statSupport       String   @default("24x7")
+  hubActiveProducts String   @default("48 / 50")
+  hubApiSla         String   @default("99.98%")
+  hubLatency        String   @default("Avg Latency: 18ms")
+  badge1Title       String   @default("SchoolyCore ERP")
+  badge1Sub         String   @default("★ 4.9 (12k Students)")
+  badge2Title       String   @default("HMS Care")
+  badge2Sub         String   @default("NABH Ready")
+  badge3Title       String   @default("DezoAI Sales Copilot")
+  badge3Sub         String   @default("99.4% Accuracy")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("marketplace_hero")
+}
+
+
 
 

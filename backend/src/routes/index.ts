@@ -23,6 +23,7 @@ import newsletterRoutes from './newsletter.routes';
 import serviceRoutes from './service.routes';
 import homepageStatsRoutes from './homepage-stats.routes';
 import supportRoutes from './support.routes';
+import marketplaceHeroRoutes from './marketplace-hero.routes';
 
 const router = Router();
 
@@ -40,6 +41,8 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/uploads', uploadRoutes);
 router.use('/hero', heroRoutes);
+router.use('/marketplace-hero', marketplaceHeroRoutes);
+router.use('/marketplace/hero', marketplaceHeroRoutes);
 router.use('/nav', navRoutes);
 router.use('/products', productRoutes);
 router.use('/pricing', pricingRoutes);

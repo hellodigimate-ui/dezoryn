@@ -137,147 +137,12 @@ const FALLBACK_PLANS: GlobalPricingPlan[] = [
   }
 ];
 
-const FALLBACK_MODULES: SolutionModule[] = [
-  {
-    id: 'schoolycore',
-    name: 'SchoolyCore ERP',
-    badge: 'CAMPUS SUITE',
-    subtitle: 'K-12 & Higher Education Operations OS',
-    description: 'Academic management suite powering admissions, fee billing, attendance, report card transcripts, and parent mobile apps.',
-    price: 'From ₹49/mo',
-    icon: <GraduationCap className="w-5 h-5 text-violet-600 dark:text-violet-400" />,
-    accentBg: 'bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-400/30',
-    glowColor: 'from-violet-600/20 via-purple-500/10 to-transparent',
-    features: [
-      'Digital Admissions & Student Records',
-      'Auto Fee Billing & Payment Links',
-      'Biometric & Geo-Fenced Mobile Attendance',
-      'Custom Board Report Cards Generator'
-    ],
-    metrics: [
-      { value: '4.9/5', label: 'Parent Rating' },
-      { value: '+45%', label: 'Time Saved' }
-    ],
-    marketSearchTerm: 'schoolycore'
-  },
-  {
-    id: 'dezo-crm-suite',
-    name: 'Dezoryn CRM 360',
-    badge: 'CRM PLATFORM',
-    subtitle: 'AI-Powered Lead Scoring & Sales OS',
-    description: 'Autonomous sales pipeline intelligence with lead scoring across 50+ intent signals and multi-channel email/SMS cadences.',
-    price: 'From ₹29/mo',
-    icon: <Zap className="w-5 h-5 text-blue-600 dark:text-cyan-400" />,
-    accentBg: 'bg-blue-50 dark:bg-cyan-500/10 border-blue-200 dark:border-cyan-400/30',
-    glowColor: 'from-blue-600/20 via-cyan-500/10 to-transparent',
-    features: [
-      '50+ Real-Time Buyer Intent Signals',
-      'Automated Round-Robin Lead Assignment',
-      'Multi-Channel Cadences (Email, SMS, WhatsApp)',
-      'Quarterly Quota & Velocity Predictions'
-    ],
-    metrics: [
-      { value: '3.4x', label: 'Win Rate Lift' },
-      { value: '94%', label: 'Scoring Accuracy' }
-    ],
-    marketSearchTerm: 'crm'
-  },
-  {
-    id: 'prop360-estate',
-    name: 'Real Estate OS',
-    badge: 'PROPERTY ERP',
-    subtitle: 'Portfolio, Tenant & Operations Engine',
-    description: 'Comprehensive real estate management suite for residential and commercial assets with automated rent invoicing.',
-    price: 'From ₹55/mo',
-    icon: <Hotel className="w-5 h-5 text-rose-600 dark:text-rose-400" />,
-    accentBg: 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-400/30',
-    glowColor: 'from-rose-600/20 via-pink-500/10 to-transparent',
-    features: [
-      'Automated Monthly Rent Invoicing',
-      'Tenant Portal & Maintenance Desk',
-      'Lease Expiration & Auto-Renewal Alerts',
-      'Multi-Property Ledger Reconciliation'
-    ],
-    metrics: [
-      { value: '99.4%', label: 'Rent Recovery' },
-      { value: '-60%', label: 'Admin Hours' }
-    ],
-    marketSearchTerm: 'estate'
-  },
-  {
-    id: 'schoolycore-lite',
-    name: 'SchoolyCore Lite',
-    badge: 'LITE MODULE',
-    subtitle: 'Essential Single-Campus Suite',
-    description: 'Lightweight institute management focused on core attendance, basic fee billing, parent alerts, and student records.',
-    price: 'From ₹24/mo',
-    icon: <Building className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
-    accentBg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-400/30',
-    glowColor: 'from-emerald-600/20 via-teal-500/10 to-transparent',
-    features: [
-      'Core Student Roster & Contact Directory',
-      'Basic Fee Receipt Generator & Payment Tracking',
-      'Daily Attendance Logging & SMS Parent Alerts',
-      '1-Click CSV Student Data Import / Export'
-    ],
-    metrics: [
-      { value: '< 24h', label: 'Deploy Time' },
-      { value: '100%', label: 'Cloud Native' }
-    ],
-    marketSearchTerm: 'schoolycore-lite'
-  },
-  {
-    id: 'hms-health',
-    name: 'Dezo Care HMS',
-    badge: 'HEALTHCARE OS',
-    subtitle: 'Hospital OPD/IPD & EHR Management',
-    description: 'NABH ready Hospital Management System covering digital doctor prescriptions, pharmacy inventory, and lab billing.',
-    price: 'From ₹89/mo',
-    icon: <Cross className="w-5 h-5 text-emerald-500" />,
-    accentBg: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-400/30',
-    glowColor: 'from-emerald-600/20 via-teal-500/10 to-transparent',
-    features: [
-      'OPD / IPD Patient & Bed Management',
-      'EHR & Digital Doctor Prescriptions Engine',
-      'Pharmacy & Pathology Lab Sync',
-      'NABH Compliance Audit Logging'
-    ],
-    metrics: [
-      { value: '-40%', label: 'Wait Time' },
-      { value: '99.5%', label: 'OPD Billing' }
-    ],
-    marketSearchTerm: 'hms-health'
-  },
-  {
-    id: 'sales-ai-copilot',
-    name: 'DezoAI Sales Copilot',
-    badge: 'AI COPILOT',
-    subtitle: 'Predictive Sales Agent & Lead Scoring',
-    description: 'Autonomous AI agent to score leads, generate personalized multi-channel outreach, and predict pipeline deal win rates.',
-    price: 'From ₹79/mo',
-    icon: <Zap className="w-5 h-5 text-cyan-400" />,
-    accentBg: 'bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-400/30',
-    glowColor: 'from-cyan-600/20 via-blue-500/10 to-transparent',
-    features: [
-      'Predictive Intent Signal Scoring',
-      'Autonomous Multi-Channel Cadences',
-      'Deal Win Rate Predictive Forecasting',
-      'Bi-Directional 1-Click CRM Sync'
-    ],
-    metrics: [
-      { value: '4.8x', label: 'Win Rate Boost' },
-      { value: '18h/wk', label: 'Time Saved' }
-    ],
-    marketSearchTerm: 'sales-ai-copilot'
-  }
-];
-
 export const PricingPage: React.FC = () => {
   const { navigateTo } = useNavigation();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [plans, setPlans] = useState<GlobalPricingPlan[]>(FALLBACK_PLANS);
-  const [modules, setModules] = useState<SolutionModule[]>(FALLBACK_MODULES);
+  const [modules, setModules] = useState<SolutionModule[]>([]);
   const [selectedModuleForTiers, setSelectedModuleForTiers] = useState<SolutionModule | null>(null);
 
   useEffect(() => {
@@ -302,32 +167,39 @@ export const PricingPage: React.FC = () => {
       try {
         const res = await apiFetch('/products');
         const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          const mapped: SolutionModule[] = data.data.map((p: any) => ({
-            id: p.id,
-            name: p.title || p.name,
-            badge: (p.badge || p.categoryLabel || 'SOFTWARE MODULE').toUpperCase(),
-            subtitle: p.subtitle || `${p.categoryLabel || 'Enterprise'} Automation Suite`,
-            description: p.description || p.shortDesc || `Enterprise platform engineered for ${p.title}.`,
-            price: p.price || 'From ₹49/mo',
-            priceValue: p.priceValue,
-            icon: renderModuleIcon(p.icon, p.category),
-            accentBg: 'bg-blue-50 dark:bg-cyan-500/10 border-blue-200 dark:border-cyan-400/30',
-            glowColor: 'from-blue-600/20 via-cyan-500/10 to-transparent',
-            features: (Array.isArray(p.features) && p.features.length > 0)
-              ? p.features.slice(0, 4)
-              : ['Workflow Automation', 'Real-Time Analytics & Logs', 'Enterprise RBAC Security', '24/7 Priority Support'],
-            metrics: [
-              { value: `${p.rating || 4.9}★`, label: `${(p.reviewsCount || 850).toLocaleString()} Verified` },
-              { value: p.price || 'From ₹49/mo', label: 'Starting Price' }
-            ],
-            marketSearchTerm: p.id,
-            pricingTiers: Array.isArray(p.pricingTiers) ? p.pricingTiers : []
-          }));
-          setModules(mapped);
+        if (data.success && Array.isArray(data.data)) {
+          const activeOnly = data.data.filter((p: any) => p.isEnabled !== false);
+          if (activeOnly.length > 0) {
+            const mapped: SolutionModule[] = activeOnly.map((p: any) => ({
+              id: p.id,
+              name: p.title || p.name,
+              badge: (p.badge || p.categoryLabel || 'SOFTWARE MODULE').toUpperCase(),
+              subtitle: p.subtitle || `${p.categoryLabel || 'Enterprise'} Automation Suite`,
+              description: p.description || p.shortDesc || `Enterprise platform engineered for ${p.title}.`,
+              price: p.price || (p.priceValue ? `From ₹${p.priceValue}/mo` : 'From ₹49/mo'),
+              priceValue: p.priceValue,
+              icon: renderModuleIcon(p.icon, p.category),
+              accentBg: 'bg-blue-50 dark:bg-cyan-500/10 border-blue-200 dark:border-cyan-400/30',
+              glowColor: 'from-blue-600/20 via-cyan-500/10 to-transparent',
+              features: (Array.isArray(p.features) && p.features.length > 0)
+                ? p.features.slice(0, 4)
+                : ['Workflow Automation', 'Real-Time Analytics & Logs', 'Enterprise RBAC Security', '24/7 Priority Support'],
+              metrics: [
+                { value: `${p.rating || 4.9}★`, label: `${(p.reviewsCount || 0).toLocaleString()} Verified` },
+                { value: p.price || (p.priceValue ? `From ₹${p.priceValue}/mo` : 'From ₹49/mo'), label: 'Starting Price' }
+              ],
+              marketSearchTerm: p.id,
+              pricingTiers: Array.isArray(p.pricingTiers) ? p.pricingTiers : []
+            }));
+            setModules(mapped);
+          } else {
+            setModules([]);
+          }
+        } else {
+          setModules([]);
         }
       } catch (_e) {
-        // Retain FALLBACK_MODULES
+        setModules([]);
       }
     };
 
@@ -581,110 +453,129 @@ export const PricingPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {modules.map((module, idx) => (
-              <motion.div
-                key={module.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 * idx }}
-                className="bg-white dark:bg-slate-900/90 rounded-3xl border border-slate-200/90 dark:border-slate-800 p-6 shadow-lg backdrop-blur-xl flex flex-col justify-between relative overflow-hidden group hover:border-blue-500/50 transition-all duration-300"
+          {modules.length === 0 ? (
+            <div className="text-center py-12 px-6 rounded-3xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 backdrop-blur-xl max-w-xl mx-auto shadow-sm">
+              <Store className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1.5">
+                Marketplace Software Solutions
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 font-normal leading-relaxed">
+                No marketplace software modules currently published. Explore our global enterprise subscription plans above.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigateTo('/marketplace')}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-md shadow-blue-500/20 transition cursor-pointer"
               >
-                {/* Card Ambient Glow */}
-                <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${module.glowColor} blur-3xl pointer-events-none -z-10`} />
+                Explore Marketplace
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {modules.map((module, idx) => (
+                <motion.div
+                  key={module.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 * idx }}
+                  className="bg-white dark:bg-slate-900/90 rounded-3xl border border-slate-200/90 dark:border-slate-800 p-6 shadow-lg backdrop-blur-xl flex flex-col justify-between relative overflow-hidden group hover:border-blue-500/50 transition-all duration-300"
+                >
+                  {/* Card Ambient Glow */}
+                  <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${module.glowColor} blur-3xl pointer-events-none -z-10`} />
 
-                <div>
-                  {/* Compact Header Row */}
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl ${module.accentBg} shadow-xs shrink-0 transition-transform duration-300 group-hover:scale-105`}>
-                        {module.icon}
+                  <div>
+                    {/* Compact Header Row */}
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-xl ${module.accentBg} shadow-xs shrink-0 transition-transform duration-300 group-hover:scale-105`}>
+                          {module.icon}
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-blue-600 dark:text-cyan-400 uppercase tracking-widest px-2 py-0.5 rounded bg-blue-50 dark:bg-cyan-500/10 border border-blue-200 dark:border-cyan-400/20">
+                            {module.badge}
+                          </span>
+                          <h3 className="text-lg font-black text-slate-900 dark:text-white mt-0.5 line-clamp-1">
+                            {module.name}
+                          </h3>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[9px] font-black text-blue-600 dark:text-cyan-400 uppercase tracking-widest px-2 py-0.5 rounded bg-blue-50 dark:bg-cyan-500/10 border border-blue-200 dark:border-cyan-400/20">
-                          {module.badge}
-                        </span>
-                        <h3 className="text-lg font-black text-slate-900 dark:text-white mt-0.5 line-clamp-1">
-                          {module.name}
-                        </h3>
+                    </div>
+
+                    <p className="text-xs font-bold text-blue-600 dark:text-cyan-300 mb-2 line-clamp-1">
+                      {module.subtitle}
+                    </p>
+
+                    <p className="text-xs text-slate-600 dark:text-slate-300 font-normal leading-relaxed mb-3 line-clamp-2">
+                      {module.description}
+                    </p>
+
+                    {/* Starting Price Pill */}
+                    {module.price && (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 text-xs font-black text-emerald-600 dark:text-emerald-400 mb-3">
+                        <BadgeDollarSign className="w-3.5 h-3.5" />
+                        <span>{module.price}</span>
                       </div>
+                    )}
+
+                    {/* Key Features List */}
+                    <div className="space-y-1.5 mb-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
+                        Core Capabilities
+                      </span>
+                      {module.features.slice(0, 4).map((feat, fIdx) => (
+                        <div key={fIdx} className="flex items-start gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                          <span className="line-clamp-1">{feat}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Impact Metrics Badges */}
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      {module.metrics.map((m, mIdx) => (
+                        <div key={mIdx} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-left">
+                          <div className="text-sm font-black text-blue-600 dark:text-cyan-300">{m.value}</div>
+                          <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 truncate">{m.label}</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  <p className="text-xs font-bold text-blue-600 dark:text-cyan-300 mb-2 line-clamp-1">
-                    {module.subtitle}
-                  </p>
+                  {/* ACTION BUTTONS STACK */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    {Array.isArray(module.pricingTiers) && module.pricingTiers.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedModuleForTiers(module)}
+                        className="py-2.5 px-3 rounded-xl bg-violet-50 dark:bg-violet-950/50 hover:bg-violet-100 dark:hover:bg-violet-900/60 text-violet-700 dark:text-violet-300 font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-1 border border-violet-200 dark:border-violet-800"
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>View Plans ({module.pricingTiers.length})</span>
+                      </button>
+                    )}
 
-                  <p className="text-xs text-slate-600 dark:text-slate-300 font-normal leading-relaxed mb-3 line-clamp-2">
-                    {module.description}
-                  </p>
-
-                  {/* Starting Price Pill */}
-                  {module.price && (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 text-xs font-black text-emerald-600 dark:text-emerald-400 mb-3">
-                      <BadgeDollarSign className="w-3.5 h-3.5" />
-                      <span>{module.price}</span>
-                    </div>
-                  )}
-
-                  {/* Key Features List */}
-                  <div className="space-y-1.5 mb-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
-                      Core Capabilities
-                    </span>
-                    {module.features.slice(0, 4).map((feat, fIdx) => (
-                      <div key={fIdx} className="flex items-start gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span className="line-clamp-1">{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Impact Metrics Badges */}
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    {module.metrics.map((m, mIdx) => (
-                      <div key={mIdx} className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-left">
-                        <div className="text-sm font-black text-blue-600 dark:text-cyan-300">{m.value}</div>
-                        <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 truncate">{m.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* ACTION BUTTONS STACK */}
-                <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  {Array.isArray(module.pricingTiers) && module.pricingTiers.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => setSelectedModuleForTiers(module)}
-                      className="py-2.5 px-3 rounded-xl bg-violet-50 dark:bg-violet-950/50 hover:bg-violet-100 dark:hover:bg-violet-900/60 text-violet-700 dark:text-violet-300 font-extrabold text-xs transition cursor-pointer flex items-center justify-center gap-1 border border-violet-200 dark:border-violet-800"
+                      onClick={() => navigateTo(`/marketplace?product=${encodeURIComponent(module.marketSearchTerm)}`)}
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-md shadow-blue-500/20 transition cursor-pointer flex items-center justify-center gap-1.5 border-none"
                     >
-                      <Layers className="w-3.5 h-3.5" />
-                      <span>View Plans ({module.pricingTiers.length})</span>
+                      <Store className="w-3.5 h-3.5" />
+                      <span>Marketplace</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
-                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => navigateTo(`/marketplace?product=${encodeURIComponent(module.marketSearchTerm)}`)}
-                    className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-md shadow-blue-500/20 transition cursor-pointer flex items-center justify-center gap-1.5 border-none"
-                  >
-                    <Store className="w-3.5 h-3.5" />
-                    <span>Marketplace</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => navigateTo(`/product-detail?id=${module.id}`)}
-                    className="py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1 border border-slate-200 dark:border-slate-700"
-                  >
-                    <span>Specs</span>
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                    <button
+                      type="button"
+                      onClick={() => navigateTo(`/product-detail?id=${module.id}`)}
+                      className="py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1 border border-slate-200 dark:border-slate-700"
+                    >
+                      <span>Specs</span>
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── MARKETPLACE PRICING RESPONSIBILITY BANNER ── */}

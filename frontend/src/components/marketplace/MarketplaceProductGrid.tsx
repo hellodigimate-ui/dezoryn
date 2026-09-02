@@ -180,15 +180,21 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
             exit={{ opacity: 0, scale: 0.96 }}
             className="text-center py-16 px-6 bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl max-w-2xl mx-auto"
           >
-            <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 flex items-center justify-center mx-auto mb-4 text-rose-500">
-              <Search className="w-8 h-8" />
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-cyan-500/10 border border-blue-200 dark:border-cyan-400/30 flex items-center justify-center mx-auto mb-4 text-blue-600 dark:text-cyan-400">
+              {searchQuery ? <Search className="w-8 h-8" /> : <Store className="w-8 h-8" />}
             </div>
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">No matching software products found</h3>
+            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">
+              {searchQuery ? 'No matching software products found' : 'No products available in catalog'}
+            </h3>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-              We couldn't find any software matching <span className="font-bold text-slate-800 dark:text-slate-200">"{searchQuery}"</span>. Try adjusting your sort options or resetting category filters.
+              {searchQuery ? (
+                <>We couldn't find any software matching <span className="font-bold text-slate-800 dark:text-slate-200">"{searchQuery}"</span>. Try adjusting your search query or resetting filters.</>
+              ) : (
+                'There are currently no software products published in the marketplace catalog. Please check back soon!'
+              )}
             </p>
 
-            {onResetAllFilters && (
+            {searchQuery && onResetAllFilters && (
               <button
                 type="button"
                 onClick={onResetAllFilters}

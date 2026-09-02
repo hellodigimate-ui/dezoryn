@@ -34,7 +34,6 @@ import {
 } from 'lucide-react';
 import { DEFAULT_HERO_CMS, type MarketplaceHeroCMSConfig } from '../marketplace/MarketplaceHero';
 import { AdminMarketplaceAnalytics } from './AdminMarketplaceAnalytics';
-import { PRODUCT_DETAILS_MAP, normalizeProductId } from '../marketplace/ProductDetailPage';
 import { MediaPickerModal } from './MediaPickerModal';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
@@ -288,8 +287,18 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
     setMediaPickerTarget(null);
   }, [mediaPickerTarget, showMsg]);
 
-  // Load Hero CMS Config
-  useEffect(() => {
+  // Load Hero CMS Config directly from PostgreSQL database
+  const loadHeroConfigFromBackend = useCallback(async () => {
+    try {
+      const res = await apiFetch(`${API_URL}/marketplace-hero`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setHeroConfig({ ...DEFAULT_HERO_CMS, ...data.data });
+        return;
+      }
+    } catch (_e) {
+      // Handled gracefully
+    }
     try {
       const saved = localStorage.getItem('dezoryn_hero_cms');
       if (saved) {
@@ -300,15 +309,51 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
     }
   }, []);
 
-  const saveHeroCMSConfig = useCallback(() => {
+  useEffect(() => {
+    loadHeroConfigFromBackend();
+  }, [loadHeroConfigFromBackend]);
+
+  const saveHeroCMSConfig = useCallback(async () => {
     try {
-      localStorage.setItem('dezoryn_hero_cms', JSON.stringify(heroConfig));
-      window.dispatchEvent(new Event('hero-cms-updated'));
-      showMsg('success', 'Hero text, stats counters, & floating badges updated live!');
+      const res = await apiFetch(`${API_URL}/marketplace-hero`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(heroConfig)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        localStorage.setItem('dezoryn_hero_cms', JSON.stringify(data.data || heroConfig));
+        window.dispatchEvent(new Event('hero-cms-updated'));
+        showMsg('success', 'Marketplace Hero headlines, stats counters, & badges saved to PostgreSQL database.');
+      } else {
+        showMsg('error', data.message || 'Failed to save Hero configuration to database.');
+      }
     } catch (_e) {
-      showMsg('error', 'Failed to save Hero configuration.');
+      showMsg('error', 'Network error: Failed to save Hero configuration.');
     }
   }, [heroConfig, showMsg]);
+
+  const resetHeroCMSConfig = useCallback(async () => {
+    if (!window.confirm('Reset Marketplace Hero content and metrics to clean defaults?')) return;
+    try {
+      const res = await apiFetch(`${API_URL}/marketplace-hero/reset`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.data) {
+        setHeroConfig(data.data);
+        localStorage.setItem('dezoryn_hero_cms', JSON.stringify(data.data));
+        window.dispatchEvent(new Event('hero-cms-updated'));
+        showMsg('success', 'Hero section reset to clean defaults.');
+      } else {
+        setHeroConfig(DEFAULT_HERO_CMS);
+        showMsg('info', 'Hero section reset locally.');
+      }
+    } catch (_e) {
+      setHeroConfig(DEFAULT_HERO_CMS);
+      showMsg('info', 'Hero section reset locally.');
+    }
+  }, [showMsg]);
 
   // ── 1. FETCH REAL PRODUCT DATA FROM POSTGRESQL BACKEND ──
   const fetchProducts = useCallback(async () => {
@@ -687,11 +732,13 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
 
             <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 shadow-xs dark:shadow-xl transition-colors">
               <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
-                <span>Demo Clicks & Leads</span>
-                <BarChart3 className="w-5 h-5 text-purple-500" />
+                <span>Active Sectors</span>
+                <Layers className="w-5 h-5 text-purple-500" />
               </div>
-              <div className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-300">2,530</div>
-              <div className="text-xs text-purple-600 dark:text-purple-400 font-bold mt-2">High-intent buyer leads</div>
+              <div className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-300">
+                {new Set(products.map((p) => (p.categoryLabel || p.category || 'General').trim()).filter(Boolean)).size}
+              </div>
+              <div className="text-xs text-purple-600 dark:text-purple-400 font-bold mt-2">Product Categories</div>
             </div>
           </div>
 
@@ -733,116 +780,195 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80">
-                  <AnimatePresence>
-                    {filteredProducts.map((prod) => (
-                      <tr
-                        key={prod.id}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
-                      >
-                        <td className="p-4">
-                          <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center shrink-0">
-                            {prod.image || prod.thumbnail ? (
-                              <img
-                                src={prod.image || prod.thumbnail}
-                                alt={prod.title}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <ImageIcon className="w-5 h-5 text-slate-400 dark:text-slate-600" />
-                            )}
-                          </div>
-                        </td>
-
-                        <td className="p-4 font-black text-slate-900 dark:text-white">
-                          <div className="text-sm">{prod.name || prod.title}</div>
-                          <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono">
-                            /{prod.slug || prod.id}
-                          </div>
-                        </td>
-
-                        <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">
-                          <div className="text-blue-600 dark:text-blue-400 font-bold">{prod.categoryLabel || prod.category}</div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400">{prod.industry}</div>
-                        </td>
-
-                        <td className="p-4 font-black text-emerald-600 dark:text-emerald-400">
-                          <div>{prod.price || `$${prod.priceValue || 49}/mo`}</div>
-                          {prod.discount ? (
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[9px] font-bold">
-                              -{prod.discount}% OFF
-                            </span>
-                          ) : null}
-                        </td>
-
-                        <td className="p-4">
-                          <div className="flex flex-wrap gap-1">
-                            {prod.aiPowered && (
-                              <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-400/30 text-[9px] font-black inline-flex items-center gap-1">
-                                <Sparkles className="w-3 h-3" />
-                                <span>AI</span>
-                              </span>
-                            )}
-                            {prod.isFeatured && (
-                              <span className="px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-400/30 text-[9px] font-black">
-                                Featured
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        <td className="p-4">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleProductStatus(prod.id)}
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-black cursor-pointer uppercase border transition ${
-                              prod.status === 'featured'
-                                ? 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40'
-                                : prod.status === 'draft'
-                                ? 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
-                                : 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
-                            }`}
-                          >
-                            {prod.status || 'ACTIVE'}
-                          </button>
-                        </td>
-
-                        <td className="p-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                  {filteredProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-12 text-center text-slate-500 dark:text-slate-400">
+                        <div className="max-w-md mx-auto space-y-3">
+                          <Package className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto" />
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                            {products.length === 0
+                              ? 'No products found in database'
+                              : 'No products match your search or filter'}
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {products.length === 0
+                              ? 'Your marketplace database is currently empty. Create your first product.'
+                              : 'Try adjusting your search keywords or filter category.'}
+                          </p>
+                          {products.length === 0 && (
                             <button
                               type="button"
                               onClick={() => {
                                 setModalTab('basic');
-                                const canonicalId = normalizeProductId(prod.id);
-                                const baseTiers = PRODUCT_DETAILS_MAP[canonicalId]?.pricingTiers;
-                                const tiersToUse = (Array.isArray(prod.pricingTiers) && prod.pricingTiers.length > 0)
-                                  ? prod.pricingTiers
-                                  : (baseTiers && baseTiers.length > 0 ? baseTiers : [
-                                      { name: 'Starter Tier', price: prod.price || '₹49', period: '/month', features: ['Core Module Access', 'Standard Support'], ctaText: 'Start Free Trial' },
-                                      { name: 'Pro Tier', price: '₹149', period: '/month', popular: true, features: ['Unlimited Workflows & Users', '24/7 Priority Support'], ctaText: 'Start Free Trial' },
-                                      { name: 'Enterprise Network', price: 'Custom', period: '', features: ['Dedicated Private Cloud Cluster', 'Custom SLA'], ctaText: 'Contact Enterprise Team' }
-                                    ]);
-                                setEditModalProduct({ ...prod, pricingTiers: tiersToUse });
+                                setEditModalProduct({
+                                  id: '',
+                                  name: '',
+                                  title: '',
+                                  slug: '',
+                                  subtitle: '',
+                                  category: 'erp',
+                                  categoryLabel: 'Enterprise ERP',
+                                  industry: 'General Business',
+                                  badge: 'ENTERPRISE',
+                                  shortDesc: '',
+                                  description: '',
+                                  price: 'From ₹49/mo',
+                                  priceValue: 49,
+                                  discount: 0,
+                                  rating: 5.0,
+                                  reviewsCount: 0,
+                                  thumbnail: '',
+                                  image: '',
+                                  gallery: [],
+                                  videoUrl: '',
+                                  demoUrl: '',
+                                  documentation: '',
+                                  features: ['Cloud Automation', 'Role-based Access', 'Real-time Analytics'],
+                                  specifications: 'Cloud Native SaaS • 99.99% Uptime SLA',
+                                  integrations: ['WhatsApp API', 'Stripe'],
+                                  platforms: ['Web App (Browser)', 'iOS App', 'Android App'],
+                                  status: 'active',
+                                  isFeatured: false,
+                                  isPopular: false,
+                                  aiPowered: false,
+                                  apiAvailable: true,
+                                  cloudNative: true,
+                                  mobileApp: false,
+                                  whatsAppIntegration: false,
+                                  isEnabled: true,
+                                  sortOrder: 1,
+                                  metaTitle: '',
+                                  metaDescription: '',
+                                  metaKeywords: '',
+                                  deployment: ['Cloud Hosted (SaaS)'],
+                                  businessSizes: ['SMB', 'Enterprise'],
+                                  languages: ['English'],
+                                  countries: ['India']
+                                });
                                 setIsEditModalOpen(true);
                               }}
-                              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-300 transition cursor-pointer border border-slate-200 dark:border-slate-700/80"
-                              title="Edit Product Details"
+                              className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-black text-xs inline-flex items-center gap-1.5 cursor-pointer shadow-md border-none"
                             >
-                              <Edit3 className="w-4 h-4" />
+                              <Plus className="w-4 h-4" />
+                              <span>Create Your First Product</span>
                             </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <AnimatePresence>
+                      {filteredProducts.map((prod) => (
+                        <tr
+                          key={prod.id}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                        >
+                          <td className="p-4">
+                            <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center shrink-0">
+                              {prod.image || prod.thumbnail ? (
+                                <img
+                                  src={resolveMediaUrl(prod.image || prod.thumbnail || '')}
+                                  alt={prod.title}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <ImageIcon className="w-5 h-5 text-slate-400 dark:text-slate-600" />
+                              )}
+                            </div>
+                          </td>
 
+                          <td className="p-4 font-black text-slate-900 dark:text-white">
+                            <div className="text-sm">{prod.name || prod.title}</div>
+                            <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono">
+                              /{prod.slug || prod.id}
+                            </div>
+                          </td>
+
+                          <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">
+                            <div className="text-blue-600 dark:text-blue-400 font-bold">{prod.categoryLabel || prod.category}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400">{prod.industry}</div>
+                          </td>
+
+                          <td className="p-4 font-black text-emerald-600 dark:text-emerald-400">
+                            <div>{prod.price || `$${prod.priceValue || 49}/mo`}</div>
+                            {prod.discount ? (
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[9px] font-bold">
+                                -{prod.discount}% OFF
+                              </span>
+                            ) : null}
+                          </td>
+
+                          <td className="p-4">
+                            <div className="flex flex-wrap gap-1">
+                              {prod.aiPowered && (
+                                <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-400/30 text-[9px] font-black inline-flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3" />
+                                  <span>AI</span>
+                                </span>
+                              )}
+                              {prod.isFeatured && (
+                                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-400/30 text-[9px] font-black">
+                                  Featured
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="p-4">
                             <button
                               type="button"
-                              onClick={() => setDeleteProductTarget({ id: prod.id, title: prod.title })}
-                              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 transition cursor-pointer border border-slate-200 dark:border-slate-700/80"
-                              title="Delete Product"
+                              onClick={() => handleToggleProductStatus(prod.id)}
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-black cursor-pointer uppercase border transition ${
+                                prod.status === 'featured'
+                                  ? 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40'
+                                  : prod.status === 'draft'
+                                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                                  : 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                              }`}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {prod.status || 'ACTIVE'}
                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </AnimatePresence>
+                          </td>
+
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setModalTab('basic');
+                                  const tiersToUse = (Array.isArray(prod.pricingTiers) && prod.pricingTiers.length > 0)
+                                    ? prod.pricingTiers
+                                    : [
+                                        { name: 'Starter Tier', price: prod.price || '₹49', period: '/month', features: ['Core Module Access', 'Standard Support'], ctaText: 'Start Free Trial' },
+                                        { name: 'Pro Tier', price: '₹149', period: '/month', popular: true, features: ['Unlimited Workflows & Users', '24/7 Priority Support'], ctaText: 'Start Free Trial' },
+                                        { name: 'Enterprise Network', price: 'Custom', period: '', features: ['Dedicated Private Cloud Cluster', 'Custom SLA'], ctaText: 'Contact Enterprise Team' }
+                                      ];
+                                  setEditModalProduct({ ...prod, pricingTiers: tiersToUse });
+                                  setIsEditModalOpen(true);
+                                }}
+                                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-300 transition cursor-pointer border border-slate-200 dark:border-slate-700/80"
+                                title="Edit Product Details"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setDeleteProductTarget({ id: prod.id, title: prod.title })}
+                                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950 text-rose-600 dark:text-rose-400 transition cursor-pointer border border-slate-200 dark:border-slate-700/80"
+                                title="Delete Product"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </AnimatePresence>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -858,25 +984,35 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
               <div>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-amber-500" />
-                  <span>Marketplace Hero Section & Floating Badges Customizer</span>
+                  <span>Marketplace Hero Section & Control Hub Customizer</span>
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Customize main Hero text, stats counters, & floating product badges live!
+                  Customize main Hero headlines, search tags, statistics counters, floating badges, & Control Hub screen live into PostgreSQL database.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={saveHeroCMSConfig}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-xs shadow-md shadow-blue-500/25 transition cursor-pointer flex items-center gap-2 border-none"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Save Hero Config Live</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={resetHeroCMSConfig}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Reset Defaults</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={saveHeroCMSConfig}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-xs shadow-md shadow-blue-500/25 transition cursor-pointer flex items-center gap-2 border-none"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Save Hero Config Live</span>
+                </button>
+              </div>
             </div>
 
             {/* Section 1: Main Hero Headlines */}
             <div className="space-y-4">
-              <h4 className="text-sm font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">1. Hero Headlines & Subtitle</h4>
+              <h4 className="text-sm font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">1. Hero Headlines & Description</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Tagline Pill</label>
@@ -884,7 +1020,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                     type="text"
                     value={heroConfig.tagline}
                     onChange={(e) => setHeroConfig({ ...heroConfig, tagline: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none focus:border-cyan-400"
                   />
                 </div>
 
@@ -894,7 +1030,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                     type="text"
                     value={heroConfig.title1}
                     onChange={(e) => setHeroConfig({ ...heroConfig, title1: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none focus:border-cyan-400"
                   />
                 </div>
               </div>
@@ -905,7 +1041,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                   type="text"
                   value={heroConfig.titleGradient}
                   onChange={(e) => setHeroConfig({ ...heroConfig, titleGradient: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-950 text-cyan-600 dark:text-cyan-300 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 text-cyan-600 dark:text-cyan-300 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none focus:border-cyan-400"
                 />
               </div>
 
@@ -915,14 +1051,42 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                   rows={3}
                   value={heroConfig.description}
                   onChange={(e) => setHeroConfig({ ...heroConfig, description: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-normal px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-normal px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none focus:border-cyan-400 leading-relaxed"
                 />
               </div>
             </div>
 
-            {/* Section 2: Statistics Row Counters */}
+            {/* Section 2: Popular Search Keywords */}
             <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-              <h4 className="text-sm font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">2. Statistics Row Counters</h4>
+              <h4 className="text-sm font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">2. Popular Search Keywords (Tags)</h4>
+              <div>
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Comma Separated Keywords (e.g. SchoolyCore, HMS Health, HRMS Pulse, Sales AI, InventoryPro)</label>
+                <input
+                  type="text"
+                  value={(heroConfig.popularTags || []).join(', ')}
+                  onChange={(e) => setHeroConfig({ ...heroConfig, popularTags: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none focus:border-blue-400"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {(heroConfig.popularTags || []).map((tag, idx) => (
+                  <span key={idx} className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-400/30 text-blue-600 dark:text-blue-300 text-xs font-bold flex items-center gap-1.5">
+                    <span>{tag}</span>
+                    <button
+                      type="button"
+                      onClick={() => setHeroConfig({ ...heroConfig, popularTags: (heroConfig.popularTags || []).filter((_, i) => i !== idx) })}
+                      className="hover:text-rose-500 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Section 3: Statistics Row Counters */}
+            <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <h4 className="text-sm font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">3. Statistics Row Counters</h4>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Products</label>
@@ -976,20 +1140,22 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
               </div>
             </div>
 
-            {/* Section 3: Floating Badges */}
+            {/* Section 4: Floating Badges */}
             <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-              <h4 className="text-sm font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider">3. Floating Product Badges</h4>
+              <h4 className="text-sm font-black text-purple-600 dark:text-purple-400 uppercase tracking-wider">4. Floating Product Badges</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
                   <div className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">Floating Badge 1</div>
                   <input
                     type="text"
+                    placeholder="Title"
                     value={heroConfig.badge1Title}
                     onChange={(e) => setHeroConfig({ ...heroConfig, badge1Title: e.target.value })}
                     className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none"
                   />
                   <input
                     type="text"
+                    placeholder="Subtitle / Rating"
                     value={heroConfig.badge1Sub}
                     onChange={(e) => setHeroConfig({ ...heroConfig, badge1Sub: e.target.value })}
                     className="w-full bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none"
@@ -1000,12 +1166,14 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                   <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">Floating Badge 2</div>
                   <input
                     type="text"
+                    placeholder="Title"
                     value={heroConfig.badge2Title}
                     onChange={(e) => setHeroConfig({ ...heroConfig, badge2Title: e.target.value })}
                     className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none"
                   />
                   <input
                     type="text"
+                    placeholder="Subtitle / Status"
                     value={heroConfig.badge2Sub}
                     onChange={(e) => setHeroConfig({ ...heroConfig, badge2Sub: e.target.value })}
                     className="w-full bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none"
@@ -1016,15 +1184,53 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                   <div className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase">Floating Badge 3</div>
                   <input
                     type="text"
+                    placeholder="Title"
                     value={heroConfig.badge3Title}
                     onChange={(e) => setHeroConfig({ ...heroConfig, badge3Title: e.target.value })}
                     className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none"
                   />
                   <input
                     type="text"
+                    placeholder="Subtitle / Metric"
                     value={heroConfig.badge3Sub}
                     onChange={(e) => setHeroConfig({ ...heroConfig, badge3Sub: e.target.value })}
                     className="w-full bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-300 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Section 5: Control Hub Interactive Laptop Screen */}
+            <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+              <h4 className="text-sm font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">5. Control Hub Graphic Screen Metrics</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Active Products Counter</label>
+                  <input
+                    type="text"
+                    value={heroConfig.hubActiveProducts || '48 / 50'}
+                    onChange={(e) => setHeroConfig({ ...heroConfig, hubActiveProducts: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none focus:border-indigo-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400">API Request SLA</label>
+                  <input
+                    type="text"
+                    value={heroConfig.hubApiSla || '99.98%'}
+                    onChange={(e) => setHeroConfig({ ...heroConfig, hubApiSla: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 text-cyan-600 dark:text-cyan-300 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none focus:border-indigo-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Latency / Response Status</label>
+                  <input
+                    type="text"
+                    value={heroConfig.hubLatency || 'Avg Latency: 18ms'}
+                    onChange={(e) => setHeroConfig({ ...heroConfig, hubLatency: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none focus:border-indigo-400"
                   />
                 </div>
               </div>
@@ -1188,9 +1394,12 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                     <div className="relative w-full h-36 rounded-xl bg-slate-100 dark:bg-slate-900 overflow-hidden border border-slate-200 dark:border-slate-800 mb-3 group">
                       {p.image || p.thumbnail ? (
                         <img
-                          src={p.image || p.thumbnail}
+                          src={resolveMediaUrl(p.image || p.thumbnail || '')}
                           alt={p.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 text-xs p-4 text-center">

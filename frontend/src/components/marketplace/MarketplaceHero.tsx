@@ -102,10 +102,10 @@ export const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
     setMousePos({ x, y });
   };
 
-  // Read hero CMS config from API / fallback to localStorage
+  // Read hero CMS config directly from PostgreSQL database via /marketplace-hero
   const loadHeroConfig = async () => {
     try {
-      const res = await apiFetch('/hero');
+      const res = await apiFetch('/marketplace-hero');
       const data = await res.json();
       if (data.success && data.data) {
         setHeroConfig({ ...DEFAULT_HERO_CMS, ...data.data });

@@ -31,80 +31,6 @@ interface CardItem {
   isMore?: boolean;
 }
 
-const DEFAULT_MARKETPLACE_CARDS: CardItem[] = [
-  {
-    id: 'schoolycore',
-    title: 'SchoolyCore',
-    subtitle: 'School ERP',
-    icon: <GraduationCap className="w-6 h-6 text-blue-600 dark:text-blue-400" />,
-    iconBg: 'bg-blue-100 dark:bg-blue-950/80 border-blue-200 dark:border-blue-800',
-    iconColor: 'text-blue-600',
-    features: [
-      'Student Management',
-      'Attendance',
-      'Fees Management',
-      'Exams & Reports'
-    ]
-  },
-  {
-    id: 'hms-health',
-    title: 'HMS',
-    subtitle: 'Hospital Management',
-    icon: <Cross className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
-    iconBg: 'bg-emerald-100 dark:bg-emerald-950/80 border-emerald-200 dark:border-emerald-800',
-    iconColor: 'text-emerald-600',
-    features: [
-      'OPD / IPD',
-      'Billing & Invoicing',
-      'Pharmacy',
-      'Reports & Analytics'
-    ]
-  },
-  {
-    id: 'dezoryn-hrms',
-    title: 'HRMS',
-    subtitle: 'Human Resource Management',
-    icon: <Users2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />,
-    iconBg: 'bg-purple-100 dark:bg-purple-950/80 border-purple-200 dark:border-purple-800',
-    iconColor: 'text-purple-600',
-    features: [
-      'Employee Management',
-      'Payroll',
-      'Leave & Attendance',
-      'Performance'
-    ]
-  },
-  {
-    id: 'inventory-pro',
-    title: 'InventoryPro',
-    subtitle: 'Inventory Management',
-    icon: <Boxes className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
-    iconBg: 'bg-amber-100 dark:bg-amber-950/80 border-amber-200 dark:border-amber-800',
-    iconColor: 'text-amber-600',
-    features: [
-      'Stock Management',
-      'Sales & Purchase',
-      'Warehouse',
-      'Reports'
-    ]
-  },
-  {
-    id: 'more',
-    title: 'More Products',
-    subtitle: 'And Many More...',
-    icon: <LayoutGrid className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />,
-    iconBg: 'bg-cyan-100 dark:bg-cyan-950/80 border-cyan-200 dark:border-cyan-800',
-    iconColor: 'text-cyan-600',
-    isMore: true,
-    features: [
-      'Transport Management',
-      'Library Management',
-      'POS & Billing',
-      'Custom Solutions'
-    ]
-  }
-];
-
 const renderProductIcon = (iconName?: string) => {
   switch (iconName) {
     case 'GraduationCap':
@@ -135,7 +61,8 @@ const renderProductIcon = (iconName?: string) => {
 
 export const MarketplaceSection: React.FC = React.memo(() => {
   const { navigateTo } = useNavigation();
-  const [cards, setCards] = useState<CardItem[]>(DEFAULT_MARKETPLACE_CARDS);
+  const [cards, setCards] = useState<CardItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const sectionRef = useRef<HTMLElement>(null);
   const bgRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLDivElement>(null);
@@ -149,10 +76,11 @@ export const MarketplaceSection: React.FC = React.memo(() => {
   }, [cards]);
 
   useEffect(() => {
+    setIsLoading(true);
     cachedApiFetch('/products')
       .then((res) => res.json())
       .then((resData) => {
-        if (resData.success && Array.isArray(resData.data) && resData.data.length > 0) {
+        if (resData.success && Array.isArray(resData.data)) {
           const enabledProducts = resData.data.filter((p: any) => p.isEnabled !== false);
           if (enabledProducts.length > 0) {
             const mapped: CardItem[] = enabledProducts.slice(0, 4).map((p: any, idx: number) => {
@@ -175,29 +103,36 @@ export const MarketplaceSection: React.FC = React.memo(() => {
               };
             });
 
-            // Append "More Products" card
+            // Append "Explore Catalog" card
             mapped.push({
               id: 'more',
-              title: 'More Products',
-              subtitle: 'And Many More...',
+              title: 'Explore Catalog',
+              subtitle: 'View All Software Modules',
               icon: <LayoutGrid className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />,
               iconBg: 'bg-cyan-100 dark:bg-cyan-950/80 border-cyan-200 dark:border-cyan-800',
               iconColor: 'text-cyan-600',
               isMore: true,
               features: [
-                'Transport Management',
-                'Library Management',
-                'POS & Billing',
-                'Custom Solutions'
+                'Enterprise ERP Modules',
+                'CRM & Sales Automation',
+                'Healthcare & Academic Suites',
+                'AI Copilots & Integrations'
               ]
             });
 
             setCards(mapped);
+          } else {
+            setCards([]);
           }
+        } else {
+          setCards([]);
         }
       })
       .catch(() => {
-        // Fallback to DEFAULT_MARKETPLACE_CARDS
+        setCards([]);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
@@ -366,138 +301,157 @@ export const MarketplaceSection: React.FC = React.memo(() => {
         </motion.div>
 
         {/* ── LAYER 3, 4, 5: Product Cards Grid with Ultra-Smooth Floating Panel Architecture ── */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.15 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5"
-        >
-          {cards.map((card, index) => (
-            <motion.div
-              key={card.id}
-              variants={{
-                hidden: {
-                  opacity: 0,
-                  y: 28,
-                  scale: 0.96,
-                },
-                visible: {
-                  opacity: 1,
-                  y: 0,
-                  scale: 1,
-                },
-              }}
-              transition={{
-                duration: 0.55,
-                delay: index * 0.07,
-                type: 'spring',
-                stiffness: 160,
-                damping: 22,
-                mass: 0.7,
-              }}
-              whileHover={{
-                y: -6,
-                scale: 1.02,
-                transition: { type: 'spring', stiffness: 300, damping: 20 },
-              }}
-              className="transform-gpu h-full"
+        {cards.length === 0 && !isLoading ? (
+          <div className="text-center py-12 px-6 rounded-3xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 backdrop-blur-xl max-w-xl mx-auto">
+            <Package className="w-10 h-10 text-blue-500 mx-auto mb-3" />
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1.5">
+              Marketplace Catalog
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-5 leading-relaxed font-normal">
+              Explore our full ecosystem of enterprise software solutions, CRM modules, and AI copilots.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigateTo('/marketplace')}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-md shadow-blue-500/25 transition cursor-pointer"
             >
-              <div
-                ref={(el) => {
-                  cardRefs.current[card.id] = el;
+              Open Marketplace Catalog
+            </button>
+          </div>
+        ) : (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.15 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5"
+          >
+            {cards.map((card, index) => (
+              <motion.div
+                key={card.id}
+                variants={{
+                  hidden: {
+                    opacity: 0,
+                    y: 28,
+                    scale: 0.96,
+                  },
+                  visible: {
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                  },
                 }}
-                style={{ willChange: 'transform', transformStyle: 'preserve-3d' }}
-                className="group relative h-full bg-white/90 dark:bg-slate-900/90 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-5 flex flex-col justify-between shadow-xs hover:shadow-[0_16px_40px_-10px_rgba(56,189,248,0.3),0_0_16px_rgba(56,189,248,0.25)] backdrop-blur-xl transition-shadow transition-colors duration-300 text-left overflow-hidden transform-gpu"
+                transition={{
+                  duration: 0.55,
+                  delay: index * 0.07,
+                  type: 'spring',
+                  stiffness: 160,
+                  damping: 22,
+                  mass: 0.7,
+                }}
+                whileHover={{
+                  y: -6,
+                  scale: 1.02,
+                  transition: { type: 'spring', stiffness: 300, damping: 20 },
+                }}
+                className="transform-gpu h-full"
               >
-                {/* Animated Gradient Border Overlay */}
-                <div className="absolute inset-0 rounded-2xl border-2 border-transparent group-hover:border-blue-500/60 dark:group-hover:border-cyan-400/60 transition-colors duration-300 pointer-events-none" />
+                <div
+                  ref={(el) => {
+                    cardRefs.current[card.id] = el;
+                  }}
+                  style={{ willChange: 'transform', transformStyle: 'preserve-3d' }}
+                  className="group relative h-full bg-white/90 dark:bg-slate-900/90 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-5 flex flex-col justify-between shadow-xs hover:shadow-[0_16px_40px_-10px_rgba(56,189,248,0.3),0_0_16px_rgba(56,189,248,0.25)] backdrop-blur-xl transition-shadow transition-colors duration-300 text-left overflow-hidden transform-gpu"
+                >
+                  {/* Animated Gradient Border Overlay */}
+                  <div className="absolute inset-0 rounded-2xl border-2 border-transparent group-hover:border-blue-500/60 dark:group-hover:border-cyan-400/60 transition-colors duration-300 pointer-events-none" />
 
-                {/* Diagonal Glass Reflection Shimmer Pass */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 dark:via-cyan-400/12 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none" />
+                  {/* Diagonal Glass Reflection Shimmer Pass */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 dark:via-cyan-400/12 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none" />
 
-                <div>
-                  {/* Header Icon + Title */}
-                  <div className="flex items-center gap-3 mb-4">
-                    {/* LAYER 4: Product Icon */}
-                    <div
-                      ref={(el) => {
-                        iconRefs.current[card.id] = el;
-                      }}
-                      style={{ willChange: 'transform' }}
-                      className="transform-gpu"
-                    >
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${card.iconBg} transition-all duration-300 ease-out group-hover:scale-105 group-hover:rotate-3 group-hover:shadow-[0_0_14px_rgba(56,189,248,0.4)]`}>
-                        {card.icon}
+                  <div>
+                    {/* Header Icon + Title */}
+                    <div className="flex items-center gap-3 mb-4">
+                      {/* LAYER 4: Product Icon */}
+                      <div
+                        ref={(el) => {
+                          iconRefs.current[card.id] = el;
+                        }}
+                        style={{ willChange: 'transform' }}
+                        className="transform-gpu"
+                      >
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${card.iconBg} transition-all duration-300 ease-out group-hover:scale-105 group-hover:rotate-3 group-hover:shadow-[0_0_14px_rgba(56,189,248,0.4)]`}>
+                          {card.icon}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col min-w-0">
+                        {/* Title */}
+                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white truncate font-['Plus_Jakarta_Sans'] transition-colors duration-200 group-hover:text-blue-600 dark:group-hover:text-cyan-300">
+                          {card.title}
+                        </h3>
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                          {card.subtitle}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex flex-col min-w-0">
-                      {/* Title */}
-                      <h3 className="text-base font-extrabold text-slate-900 dark:text-white truncate font-['Plus_Jakarta_Sans'] transition-colors duration-200 group-hover:text-blue-600 dark:group-hover:text-cyan-300">
-                        {card.title}
-                      </h3>
-                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
-                        {card.subtitle}
-                      </span>
-                    </div>
+                    {/* Bullets */}
+                    <ul className="space-y-2 mb-6 border-t border-slate-100 dark:border-slate-800/80 pt-4">
+                      {card.features.map((f, i) => (
+                        <li
+                          key={i}
+                          className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 transition-transform duration-200 group-hover:translate-x-1"
+                          style={{ transitionDelay: `${i * 30}ms` }}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 transition-shadow duration-200 group-hover:shadow-[0_0_8px_#38bdf8]" />
+                          <span className="truncate">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
-                  {/* Bullets */}
-                  <ul className="space-y-2 mb-6 border-t border-slate-100 dark:border-slate-800/80 pt-4">
-                    {card.features.map((f, i) => (
-                      <li
-                        key={i}
-                        className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 transition-transform duration-200 group-hover:translate-x-1"
-                        style={{ transitionDelay: `${i * 30}ms` }}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 transition-shadow duration-200 group-hover:shadow-[0_0_8px_#38bdf8]" />
-                        <span className="truncate">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* LAYER 5: Buttons Container */}
-                <div
-                  ref={(el) => {
-                    buttonRefs.current[card.id] = el;
-                  }}
-                  style={{ willChange: 'transform' }}
-                  className="transform-gpu"
-                >
-                  {card.isMore ? (
-                    <button
-                      onClick={() => navigateTo('/marketplace')}
-                      className="w-full py-2 px-3 rounded-lg border border-blue-600 text-blue-600 dark:text-blue-400 font-bold text-xs hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-colors duration-200 shadow-xs cursor-pointer flex items-center justify-center gap-1 group/btn"
-                    >
-                      <span>Explore All</span>
-                      <ArrowUpRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform duration-200" />
-                    </button>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* View Details button */}
+                  {/* LAYER 5: Buttons Container */}
+                  <div
+                    ref={(el) => {
+                      buttonRefs.current[card.id] = el;
+                    }}
+                    style={{ willChange: 'transform' }}
+                    className="transform-gpu"
+                  >
+                    {card.isMore ? (
                       <button
-                        onClick={() => navigateTo(`/product-detail?id=${card.id}`)}
-                        className="py-2 px-2.5 rounded-lg border border-blue-600 bg-transparent dark:bg-transparent text-blue-600 dark:text-blue-400 font-bold text-[11px] hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-colors duration-200 shadow-xs cursor-pointer"
+                        onClick={() => navigateTo('/marketplace')}
+                        className="w-full py-2 px-3 rounded-lg border border-blue-600 text-blue-600 dark:text-blue-400 font-bold text-xs hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-colors duration-200 shadow-xs cursor-pointer flex items-center justify-center gap-1 group/btn"
                       >
-                        View Details
+                        <span>Explore All</span>
+                        <ArrowUpRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform duration-200" />
                       </button>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* View Details button */}
+                        <button
+                          onClick={() => navigateTo(`/product-detail?id=${card.id}`)}
+                          className="py-2 px-2.5 rounded-lg border border-blue-600 bg-transparent dark:bg-transparent text-blue-600 dark:text-blue-400 font-bold text-[11px] hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-colors duration-200 shadow-xs cursor-pointer"
+                        >
+                          View Details
+                        </button>
 
-                      {/* Watch Demo button */}
-                      <button
-                        onClick={() => navigateTo('/book-demo')}
-                        className="py-2 px-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent dark:bg-transparent text-slate-700 dark:text-slate-300 font-semibold text-[11px] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
-                      >
-                        Watch Demo
-                      </button>
-                    </div>
-                  )}
+                        {/* Watch Demo button */}
+                        <button
+                          onClick={() => navigateTo('/book-demo')}
+                          className="py-2 px-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent dark:bg-transparent text-slate-700 dark:text-slate-300 font-semibold text-[11px] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200 cursor-pointer"
+                        >
+                          Watch Demo
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                 </div>
-
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
 
       </div>
     </section>

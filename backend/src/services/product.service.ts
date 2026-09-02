@@ -189,7 +189,14 @@ export class ProductService {
 
   static async getById(id: string) {
     try {
-      const product = await prisma.product.findUnique({ where: { id } });
+      const product = await prisma.product.findFirst({
+        where: {
+          OR: [
+            { id },
+            { slug: id },
+          ],
+        },
+      });
       return product;
     } catch (error) {
       console.error(`GET PRODUCT ${id} ERROR:`, error);

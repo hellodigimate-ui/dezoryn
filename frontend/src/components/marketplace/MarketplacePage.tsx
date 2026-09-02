@@ -29,7 +29,9 @@ export interface MarketplaceProduct {
   shortDesc: string;
   description?: string;
   image?: string;
+  thumbnail?: string;
   coverPhoto?: string;
+  gallery?: string[];
   icon: string | React.ReactNode;
   tag: string;
   tags: string[];

@@ -7,7 +7,6 @@ import {
   ExternalLink,
   ArrowRight,
   CheckCircle2,
-  Sparkles,
   Building2,
   Boxes,
   GraduationCap,
@@ -23,6 +22,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import type { MarketplaceProduct } from './MarketplacePage';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 interface MarketplaceProductCardProps {
   product: MarketplaceProduct;
@@ -56,7 +56,8 @@ const renderCategoryIcon = (iconName: string | React.ReactNode) => {
 
 // Clean preview graphic for product card with Lazy Loading
 const ProductScreenshotPreview: React.FC<{ product: MarketplaceProduct }> = ({ product }) => {
-  const imageUrl = product.image || product.coverPhoto;
+  const rawImage = product.thumbnail || product.image || product.coverPhoto;
+  const imageUrl = rawImage ? resolveMediaUrl(rawImage) : '';
   const [isLoaded, setIsLoaded] = useState(false);
 
   return (
@@ -72,6 +73,7 @@ const ProductScreenshotPreview: React.FC<{ product: MarketplaceProduct }> = ({ p
             loading="lazy"
             decoding="async"
             onLoad={() => setIsLoaded(true)}
+            onError={() => setIsLoaded(false)}
             className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${
               isLoaded ? 'opacity-100' : 'opacity-0'
             }`}
@@ -208,13 +210,11 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = Rea
       <div className="relative">
         <ProductScreenshotPreview product={product} />
 
-        {/* Floating AI Powered Badge */}
-        {product.aiPowered && (
-          <div className="absolute top-3.5 left-3.5 z-10 flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/85 backdrop-blur-md border border-cyan-400/50 text-cyan-300 font-extrabold text-[10px] shadow-lg shadow-cyan-500/20">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-            <span>AI Powered</span>
-          </div>
-        )}
+        {/* Floating Verified / Database Product Badge */}
+        <div className="absolute top-3.5 left-3.5 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-cyan-300 font-extrabold text-[10px] shadow-md tracking-wider uppercase">
+          <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+          <span>{product.badge || product.categoryLabel || 'VERIFIED'}</span>
+        </div>
 
         {/* Floating Top Right Action Buttons: Compare & Wishlist */}
         <div className="absolute top-3.5 right-3.5 z-10 flex items-center gap-2">
