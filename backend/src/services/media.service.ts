@@ -113,8 +113,8 @@ export class MediaService {
       finalUrl = `/uploads/${file.filename || file.originalname}`;
     }
 
-    // Clean up temporary local upload file on disk if created by Multer
-    if (file.path && fs.existsSync(file.path)) {
+    // Clean up temporary local upload file on disk ONLY when successfully uploaded to cloud S3
+    if (file.path && fs.existsSync(file.path) && finalUrl.startsWith('http') && !finalUrl.includes('/uploads/')) {
       try {
         fs.unlinkSync(file.path);
       } catch {

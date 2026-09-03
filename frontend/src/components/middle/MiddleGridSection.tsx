@@ -103,6 +103,7 @@ export const MiddleGridSection: React.FC = React.memo(() => {
   const [activeDemoIdx, setActiveDemoIdx] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [videoError, setVideoError] = useState<boolean>(false);
 
   // Spotlight mouse tracking state
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -117,6 +118,11 @@ export const MiddleGridSection: React.FC = React.memo(() => {
 
   const safeIdx = demos.length > 0 ? Math.min(activeDemoIdx, Math.max(0, demos.length - 1)) : 0;
   const activeDemo = demos[safeIdx] || DEFAULT_DEMOS[0];
+
+  // Reset video error state on demo change
+  useEffect(() => {
+    setVideoError(false);
+  }, [activeDemoIdx]);
 
   // Auto-changing demos every 7.0 seconds when not playing and not hovered
   useEffect(() => {
@@ -611,14 +617,39 @@ export const MiddleGridSection: React.FC = React.memo(() => {
                           exit={{ opacity: 0 }}
                           className="w-full h-full"
                         >
-                          <video
-                            key={activeDemo.id}
-                            src={getVideoUrl(activeDemo.videoUrl)}
-                            controls
-                            autoPlay
-                            preload="auto"
-                            className="w-full h-full object-cover"
-                          />
+                          {videoError ? (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-slate-950 text-center space-y-3">
+                              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+                                <Tv className="w-6 h-6" />
+                              </div>
+                              <div>
+                                <h5 className="text-sm font-bold text-white">Video Source Offline or Processing</h5>
+                                <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                                  The demo video is unavailable at the provided URL. You can reload or preview the interactive walkthrough.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVideoError(false);
+                                  setIsPlaying(false);
+                                }}
+                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-xs font-black cursor-pointer border-none"
+                              >
+                                Return to Demo
+                              </button>
+                            </div>
+                          ) : (
+                            <video
+                              key={activeDemo.id}
+                              src={getVideoUrl(activeDemo.videoUrl)}
+                              controls
+                              autoPlay
+                              preload="auto"
+                              onError={() => setVideoError(true)}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
                         </motion.div>
                       ) : (
                         <motion.div
