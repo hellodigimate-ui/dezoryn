@@ -17,7 +17,8 @@ import {
   IndianRupee,
   Store,
   HelpCircle,
-  MessageSquare
+  MessageSquare,
+  ExternalLink
 } from 'lucide-react';
 import { apiFetch } from '../../config/api.config';
 import { useNavigation } from '../../utils/NavigationContext';
@@ -39,6 +40,8 @@ export interface ProductDetailData {
   cloudNative: boolean;
   shortDesc: string;
   overviewText: string;
+  demoUrl?: string;
+  documentation?: string;
   impactMetrics: { label: string; value: string; desc: string }[];
   galleryScreenshots: { id: string; title: string; subtitle: string; tag: string; url?: string }[];
   videoTour?: { title: string; duration: string; thumbnail?: string; videoUrl?: string };
@@ -48,6 +51,14 @@ export interface ProductDetailData {
   faqs: { question: string; answer: string }[];
   customerReviews: { name: string; role: string; company: string; rating: number; date: string; title: string; review: string; verified: boolean }[];
   relatedProducts: { id: string; title: string; category: string; price: string; rating: number; shortDesc: string }[];
+}
+
+export function formatExternalUrl(url?: string): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
 }
 
 export function normalizeProductId(rawId?: string): string {
@@ -180,6 +191,8 @@ export function buildProductDetailFromDb(apiProd: any): ProductDetailData {
     cloudNative,
     shortDesc,
     overviewText,
+    demoUrl: apiProd.demoUrl ? String(apiProd.demoUrl).trim() : '',
+    documentation: apiProd.documentation ? String(apiProd.documentation).trim() : '',
     impactMetrics,
     galleryScreenshots,
     videoTour,
@@ -565,7 +578,9 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                             <span className="w-3 h-3 rounded-full bg-rose-500" />
                             <span className="w-3 h-3 rounded-full bg-amber-500" />
                             <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                            <span className="ml-2 text-xs font-mono text-slate-400">https://app.dezoryn.com/{product.id}/preview</span>
+                            <span className="ml-2 text-xs font-mono text-slate-400 truncate max-w-xs sm:max-w-md">
+                              {product.demoUrl || `https://app.dezoryn.com/${product.id}/preview`}
+                            </span>
                           </div>
 
                           {product.videoTour?.videoUrl && (
@@ -910,6 +925,17 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                     <span>View Pricing & Plans</span>
                     <ArrowRight className="w-4 h-4 text-blue-600" />
                   </button>
+                  {product.demoUrl && (
+                    <a
+                      href={formatExternalUrl(product.demoUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-7 py-4 rounded-full bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold text-xs shadow-xl transition cursor-pointer flex items-center gap-2 border-none no-underline"
+                    >
+                      <ExternalLink className="w-4 h-4 text-slate-950" />
+                      <span>Live Demo</span>
+                    </a>
+                  )}
                   <button
                     type="button"
                     onClick={() => navigateTo(`/book-demo?product=${encodeURIComponent(product.id)}`)}
@@ -967,6 +993,18 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                     <ArrowRight className="w-4 h-4" />
                   </button>
 
+                  {product.demoUrl && (
+                    <a
+                      href={formatExternalUrl(product.demoUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-xs shadow-lg shadow-cyan-500/25 transition cursor-pointer flex items-center justify-center gap-2 border-none no-underline"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Live Demo</span>
+                    </a>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => navigateTo(`/book-demo?product=${encodeURIComponent(product.id)}`)}
@@ -979,10 +1017,25 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
 
                 {/* Quick Spec List */}
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  <div className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>Instant Sandbox Access</span>
-                  </div>
+                  {product.demoUrl ? (
+                    <a
+                      href={formatExternalUrl(product.demoUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between group text-slate-600 dark:text-slate-300 hover:text-cyan-500 dark:hover:text-cyan-400 transition cursor-pointer no-underline"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span className="group-hover:underline underline-offset-2">Instant Sandbox Access</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-cyan-500 opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>Instant Sandbox Access</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                     <span>14-Day Risk-Free Trial</span>

@@ -79,13 +79,7 @@ const ProductScreenshotPreview: React.FC<{ product: MarketplaceProduct }> = ({ p
               isLoaded ? 'opacity-100' : 'opacity-0'
             }`}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
-          <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-[10px] text-white font-mono bg-slate-950/80 px-3 py-1 rounded-xl backdrop-blur-md border border-slate-700/60">
-            <span className="truncate max-w-[150px]">dezoryn.com/{product.id}</span>
-            <span className="text-cyan-300 font-extrabold uppercase px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/30">
-              {product.badge || 'LIVE'}
-            </span>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent pointer-events-none" />
         </div>
       ) : (
         <>

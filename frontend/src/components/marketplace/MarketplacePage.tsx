@@ -52,6 +52,8 @@ export interface MarketplaceProduct {
   whatsAppIntegration: boolean;
   languages: string[];
   countries: string[];
+  demoUrl?: string;
+  documentation?: string;
 }
 
 export const MarketplacePage: React.FC = () => {
@@ -351,7 +353,14 @@ export const MarketplacePage: React.FC = () => {
                 products={products}
                 isLoading={isLoading}
                 searchQuery={searchQuery}
-                onDemoClick={() => navigateTo('/book-demo')}
+                onDemoClick={(product) => {
+                  if (product?.demoUrl) {
+                    const targetUrl = product.demoUrl.startsWith('http') ? product.demoUrl : `https://${product.demoUrl}`;
+                    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+                  } else {
+                    navigateTo('/book-demo');
+                  }
+                }}
                 onViewDetailsClick={(product) => navigateTo(`/product-detail?id=${product.id}`)}
                 onResetAllFilters={resetAllFilters}
                 compareProductIds={compareProductIds}
