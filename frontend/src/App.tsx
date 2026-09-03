@@ -158,7 +158,7 @@ export const App: React.FC = () => {
         }
 
         const modeToApply = detail.effectiveMode || detail.activeMode || localStorage.getItem('user_theme_preference') || 'light';
-        const effective = applyGlobalTheme(modeToApply, cachedThemeDataRef.current, false);
+        const effective = applyGlobalTheme(modeToApply, cachedThemeDataRef.current, false, false);
         setTheme(effective);
       } else {
         fetchThemeConfig();

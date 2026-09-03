@@ -136,10 +136,13 @@ export const resolveEffectiveMode = (
 /**
  * Applies CSS variables and `.dark` class globally to <html> and <body>
  */
+let isBroadcastingTheme = false;
+
 export const applyGlobalTheme = (
   targetMode: 'light' | 'dark' | 'system',
   themeData?: ThemeSettingsData | null,
-  persistToStorage = true
+  persistToStorage = true,
+  broadcastEvent = true
 ): 'light' | 'dark' => {
   if (typeof document === 'undefined') return 'light';
 
@@ -241,16 +244,21 @@ export const applyGlobalTheme = (
     } catch (_e) {}
   }
 
-  // 5. Broadcast synchronized theme update event
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(
-      new CustomEvent('dezo-theme-updated', {
-        detail: {
-          effectiveMode,
-          themeData,
-        },
-      })
-    );
+  // 5. Broadcast synchronized theme update event (re-entrancy protected)
+  if (broadcastEvent && !isBroadcastingTheme && typeof window !== 'undefined') {
+    try {
+      isBroadcastingTheme = true;
+      window.dispatchEvent(
+        new CustomEvent('dezo-theme-updated', {
+          detail: {
+            effectiveMode,
+            themeData,
+          },
+        })
+      );
+    } finally {
+      isBroadcastingTheme = false;
+    }
   }
 
   return effectiveMode;

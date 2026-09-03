@@ -132,8 +132,10 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
   const processFileUpload = async (file: File) => {
     if (!file) return;
 
-    if (file.size > 25 * 1024 * 1024) {
-      showToast('error', 'File size exceeds 25MB limit.');
+    const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(file.name);
+    const maxBytes = isVideo ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      showToast('error', `File size exceeds ${isVideo ? '100MB' : '25MB'} limit.`);
       return;
     }
 
