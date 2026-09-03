@@ -362,8 +362,13 @@ export const AdminAboutCMS: React.FC<AdminAboutCMSProps> = ({ initialTab }) => {
     if (mediaTarget === 'homepage-media') {
       setFormData(prev => ({ ...prev, mediaUrl: url }));
     } else if (mediaTarget === 'leader-image' && activeLeaderId) {
-      const list = formData.aboutPage.leadership.map(l => l.id === activeLeaderId ? { ...l, image: url } : l);
-      updateAboutPage({ leadership: list });
+      setFormData(prev => ({
+        ...prev,
+        aboutPage: {
+          ...prev.aboutPage,
+          leadership: prev.aboutPage.leadership.map(l => l.id === activeLeaderId ? { ...l, image: url } : l),
+        },
+      }));
     }
     setIsMediaModalOpen(false);
     setMediaTarget(null);
@@ -371,16 +376,20 @@ export const AdminAboutCMS: React.FC<AdminAboutCMSProps> = ({ initialTab }) => {
   };
 
   const handleUploadMedia = async (file: File) => {
+    if (!file) return;
     setIsUploading(true);
     try {
       const body = new FormData();
       body.append('file', file);
       body.append('folder', 'AboutPage');
-      const res = await apiFetch(`${API_MEDIA}/upload`, { method: 'POST', body });
+      const res = await apiFetch(`${API_MEDIA}/media`, { method: 'POST', body });
       const data = await res.json();
-      if (data.success && data.data?.url) {
-        handleSelectMedia(data.data.url);
+      const uploadedUrl = data.url || data.data?.url;
+      if (res.ok && data.success && uploadedUrl) {
+        handleSelectMedia(uploadedUrl);
         showStatus('success', 'File uploaded successfully');
+      } else {
+        showStatus('error', data.message || 'Upload failed');
       }
     } catch {
       showStatus('error', 'Upload failed');

@@ -186,25 +186,6 @@ export const AdminWebsiteSettings: React.FC = () => {
     setTimeout(() => setMessage(null), 4500);
   };
 
-  const autoSaveSettings = async (updatedSettings: WebsiteSettings, fieldLabel: string) => {
-    try {
-      const res = await apiFetch(API, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedSettings),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSavedSettings(updatedSettings);
-        showMsg('success', `${fieldLabel} uploaded and saved successfully!`);
-        window.dispatchEvent(new CustomEvent('dezo_site_settings_updated', { detail: data.data || updatedSettings }));
-      } else {
-        showMsg('success', `${fieldLabel} uploaded! Click 'Save Settings' to apply.`);
-      }
-    } catch {
-      showMsg('success', `${fieldLabel} uploaded! Click 'Save Settings' to apply.`);
-    }
-  };
 
   const handleFileUpload = async (field: 'logoUrl' | 'faviconUrl', file: File) => {
     if (!file) return;
@@ -212,16 +193,16 @@ export const AdminWebsiteSettings: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await apiFetch('/uploads', {
+      formData.append('folder', 'SiteIdentity');
+      const res = await apiFetch('/uploads/media', {
         method: 'POST',
         body: formData,
       });
       const data = await res.json();
       const fileUrl = data.url || data.data?.url || data.data?.media?.url || data.data?.path;
       if (res.ok && data.success && fileUrl) {
-        const nextSettings = { ...settings, [field]: fileUrl };
-        setSettings(nextSettings);
-        await autoSaveSettings(nextSettings, field === 'logoUrl' ? 'Logo' : 'Favicon');
+        setSettings(prev => ({ ...prev, [field]: fileUrl }));
+        showMsg('success', `${field === 'logoUrl' ? 'Logo' : 'Favicon'} uploaded! Click 'Save Settings' to apply.`);
       } else {
         showMsg('error', data.message || 'Upload failed');
       }
@@ -233,10 +214,9 @@ export const AdminWebsiteSettings: React.FC = () => {
   };
 
   const handleMediaPickerSelect = async (field: 'logoUrl' | 'faviconUrl', url: string) => {
-    const nextSettings = { ...settings, [field]: url };
-    setSettings(nextSettings);
+    setSettings(prev => ({ ...prev, [field]: url }));
     setMediaPicker(p => ({ ...p, open: false }));
-    await autoSaveSettings(nextSettings, field === 'logoUrl' ? 'Logo' : 'Favicon');
+    showMsg('success', `${field === 'logoUrl' ? 'Logo' : 'Favicon'} selected! Click 'Save Settings' to apply.`);
   };
 
   const fetchSettings = useCallback(async () => {

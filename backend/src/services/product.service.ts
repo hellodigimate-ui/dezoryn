@@ -189,11 +189,14 @@ export class ProductService {
 
   static async getById(id: string) {
     try {
+      const cleanId = String(id).trim();
       const product = await prisma.product.findFirst({
         where: {
           OR: [
-            { id },
-            { slug: id },
+            { id: cleanId },
+            { slug: cleanId },
+            { slug: { mode: 'insensitive', equals: cleanId } },
+            { slug: { mode: 'insensitive', startsWith: cleanId } },
           ],
         },
       });

@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '../config/prisma.config';
 import { BadRequestError } from '../errors/app-error';
+import { S3Service } from '../services/s3.service';
 
 export class UploadController {
   public static async uploadFile(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -10,25 +13,62 @@ export class UploadController {
       }
 
       const file = req.file;
-      const fileUrl = `/uploads/${file.filename}`;
+      const folder = (req.body.folder as string) || 'products';
+
+      let fileBuffer = file.buffer;
+      if (!fileBuffer && file.path && fs.existsSync(file.path)) {
+        try {
+          fileBuffer = fs.readFileSync(file.path);
+        } catch {}
+      }
+
+      let finalUrl = `/uploads/${file.filename}`;
+      let storagePath = file.path || `/uploads/${file.filename}`;
+      let s3Key = file.filename;
+
+      try {
+        if (fileBuffer && fileBuffer.length > 0) {
+          const s3Result = await S3Service.uploadFile({
+            buffer: fileBuffer,
+            originalname: file.originalname || file.filename,
+            mimetype: file.mimetype,
+            folder,
+          });
+          finalUrl = s3Result.url;
+          storagePath = s3Result.key;
+          s3Key = s3Result.key;
+        }
+      } catch (s3Err: any) {
+        console.warn('[UploadController] S3 upload error, falling back to local path:', s3Err?.message || s3Err);
+      }
+
+      // Clean up local temp file on disk if created by Multer
+      if (file.path && fs.existsSync(file.path) && finalUrl.startsWith('http')) {
+        try {
+          fs.unlinkSync(file.path);
+        } catch {}
+      }
 
       const media = await prisma.media.create({
         data: {
-          filename: file.filename,
+          filename: path.basename(storagePath),
           originalName: file.originalname,
           mimeType: file.mimetype,
           size: file.size,
-          path: file.path,
-          url: fileUrl,
+          path: storagePath,
+          url: finalUrl,
+          folder,
+          cloudinaryId: s3Key,
           uploadedById: (req as any).user?.id || null,
         },
       });
 
       res.status(201).json({
         success: true,
-        url: fileUrl,
+        url: finalUrl,
         data: {
-          url: fileUrl,
+          url: finalUrl,
+          key: s3Key,
           media,
         },
       });

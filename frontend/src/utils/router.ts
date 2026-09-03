@@ -35,7 +35,7 @@ export const getRouteFromPath = (path: string): AppRoute => {
   if (cleanPath === '/admin/services') return '/admin/services';
   if (cleanPath.startsWith('/admin')) return '/admin/dashboard';
   if (cleanPath === '/products' || cleanPath === '/products/ecosystem' || cleanPath === '/ecosystem') return '/products';
-  if (cleanPath.startsWith('/product-detail') || cleanPath.startsWith('/product/detail')) return '/product-detail';
+  if (cleanPath.startsWith('/product-detail') || cleanPath.startsWith('/product/detail') || cleanPath.startsWith('/product_detail')) return '/product-detail';
   if (cleanPath.startsWith('/marketplace')) return '/marketplace';
   if (cleanPath.startsWith('/book-demo') || cleanPath.startsWith('/demo')) return '/book-demo';
   if (cleanPath.startsWith('/contact')) return '/contact-sales';

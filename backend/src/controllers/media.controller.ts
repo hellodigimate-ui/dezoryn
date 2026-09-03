@@ -20,7 +20,8 @@ export class MediaController {
 
       res.status(201).json({
         success: true,
-        message: 'File uploaded to Cloudinary successfully',
+        message: 'File uploaded to S3 successfully',
+        url: media.url,
         data: media,
       });
     } catch (error: any) {

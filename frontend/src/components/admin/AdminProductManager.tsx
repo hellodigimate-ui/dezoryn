@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package, Plus, Trash2, Edit3, Copy, Eye, EyeOff,
   Save, X, RefreshCw, CheckCircle2, Star,
   LayoutGrid, List, Search, ChevronDown,
   Zap, Bot, TrendingUp, ShieldCheck, Globe, Layers,
-  BarChart3, Lock, Database, Cpu, Wifi, Cloud, Sparkles, AlertTriangle
+  BarChart3, Lock, Database, Cpu, Wifi, Cloud, Sparkles, AlertTriangle, Upload
 } from 'lucide-react';
 import { openAdminAIAssistant } from './AdminLayout';
 
@@ -71,6 +71,8 @@ export const AdminProductManager: React.FC = () => {
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; product?: ProductData } | null>(null);
   const [form, setForm] = useState<Omit<ProductData, 'id' | 'createdAt'>>(EMPTY_PRODUCT);
   const [newFeature, setNewFeature] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const showMsg = (type: 'success' | 'error' | 'info', text: string) => {
     setMessage({ type, text });
@@ -568,11 +570,55 @@ export const AdminProductManager: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Image URL */}
+                {/* Image URL & Upload */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-extrabold text-slate-600 dark:text-slate-400">Image URL (optional)</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-extrabold text-slate-600 dark:text-slate-400">Image URL (optional)</label>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsUploadingImage(true);
+                        try {
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          formData.append('folder', 'products');
+                          const res = await apiFetch(`${API_URL}/uploads/media`, {
+                            method: 'POST',
+                            body: formData,
+                          });
+                          const data = await res.json();
+                          const url = data.url || data.data?.url;
+                          if (res.ok && data.success && url) {
+                            setForm(prev => ({ ...prev, image: url }));
+                            showMsg('success', `Image "${file.name}" uploaded successfully!`);
+                          } else {
+                            showMsg('error', data.message || 'Image upload failed');
+                          }
+                        } catch {
+                          showMsg('error', 'Image upload failed');
+                        } finally {
+                          setIsUploadingImage(false);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingImage}
+                      className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-100 transition cursor-pointer flex items-center gap-1"
+                    >
+                      {isUploadingImage ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                      <span>Upload Local Image</span>
+                    </button>
+                  </div>
                   <input type="text" value={form.image || ''} onChange={e => setForm(f => ({ ...f, image: e.target.value || null }))}
-                    placeholder="https://example.com/product-image.png"
+                    placeholder="https://example.com/product-image.png or click Upload Local Image above"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/40 outline-none" />
                 </div>
 

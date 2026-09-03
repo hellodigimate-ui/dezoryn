@@ -2,6 +2,7 @@ import { prisma } from '../config/prisma.config';
 import fs from 'fs';
 import path from 'path';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.config';
+import { S3Service } from './s3.service';
 
 function getFileBuffer(file: Express.Multer.File): Buffer {
   if (file.buffer && file.buffer.length > 0) return file.buffer;
@@ -69,41 +70,67 @@ export class MediaService {
 
   /**
    * UPLOAD MEDIA
-   * PostgreSQL is the only source of truth.
+   * Uploads file to AWS S3 and creates Media record in PostgreSQL.
    */
   static async upload(params: UploadMediaParams) {
     const { file, folder = 'General', uploadedById } = params;
     const resourceType = MediaService.determineResourceType(file.mimetype);
 
-    let cloudUrl = '';
-    let cloudinaryId = `dezoryn_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    let finalUrl = '';
+    let storagePath = `/uploads/${file.filename || file.originalname}`;
+    let objectKey = `dezoryn_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     try {
-      const result = await uploadToCloudinary(getFileBuffer(file), {
-        folder,
-        resource_type: resourceType,
-      });
-
-      if (result && result.secure_url) {
-        cloudUrl = result.secure_url;
-        cloudinaryId = result.public_id || cloudinaryId;
+      const buffer = getFileBuffer(file);
+      if (buffer.length > 0) {
+        const s3Result = await S3Service.uploadFile({
+          buffer,
+          originalname: file.originalname || file.filename,
+          mimetype: file.mimetype,
+          folder,
+        });
+        finalUrl = s3Result.url;
+        storagePath = s3Result.key;
+        objectKey = s3Result.key;
       }
-    } catch {
-      // ignore cloud upload error
+    } catch (s3Err: any) {
+      console.warn('[MediaService] S3 upload failed, checking fallback:', s3Err?.message || s3Err);
+      try {
+        const result = await uploadToCloudinary(getFileBuffer(file), {
+          folder,
+          resource_type: resourceType,
+        });
+        if (result && result.secure_url) {
+          finalUrl = result.secure_url;
+          objectKey = result.public_id || objectKey;
+        }
+      } catch {
+        // ignore cloud fallback error
+      }
     }
 
-    const localUrl = `/uploads/${file.filename || file.originalname}`;
-    const finalUrl = cloudUrl || localUrl;
+    if (!finalUrl) {
+      finalUrl = `/uploads/${file.filename || file.originalname}`;
+    }
+
+    // Clean up temporary local upload file on disk if created by Multer
+    if (file.path && fs.existsSync(file.path)) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch {
+        // ignore unlink error
+      }
+    }
 
     const mediaData = {
       filename: file.filename || file.originalname,
       originalName: file.originalname,
       mimeType: file.mimetype,
       size: file.size,
-      path: localUrl,
+      path: storagePath,
       url: finalUrl,
       folder: folder || 'General',
-      cloudinaryId,
+      cloudinaryId: objectKey,
       resourceType,
       uploadedById: uploadedById || null,
     };
@@ -123,30 +150,61 @@ export class MediaService {
     const existing = await MediaService.getById(id);
     if (!existing) throw new Error('Media asset not found');
 
-    if (existing.cloudinaryId) {
-      await deleteFromCloudinary(existing.cloudinaryId, existing.resourceType);
+    // Delete existing asset from S3 / Cloudinary
+    if (existing.path && !existing.path.startsWith('/uploads/')) {
+      await S3Service.deleteFile(existing.path);
+    } else if (existing.cloudinaryId) {
+      try {
+        await deleteFromCloudinary(existing.cloudinaryId, existing.resourceType);
+      } catch {
+        await S3Service.deleteFile(existing.cloudinaryId);
+      }
     }
 
     const resourceType = MediaService.determineResourceType(file.mimetype);
     const folder = existing.folder || 'General';
 
-    let cloudUrl = '';
-    let cloudinaryId = `dezoryn_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    let finalUrl = '';
+    let storagePath = `/uploads/${file.filename || file.originalname}`;
+    let objectKey = `dezoryn_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     try {
-      const result = await uploadToCloudinary(getFileBuffer(file), {
-        folder,
-        resource_type: resourceType,
-      });
-
-      if (result && result.secure_url) {
-        cloudUrl = result.secure_url;
-        cloudinaryId = result.public_id || cloudinaryId;
+      const buffer = getFileBuffer(file);
+      if (buffer.length > 0) {
+        const s3Result = await S3Service.uploadFile({
+          buffer,
+          originalname: file.originalname || file.filename,
+          mimetype: file.mimetype,
+          folder,
+        });
+        finalUrl = s3Result.url;
+        storagePath = s3Result.key;
+        objectKey = s3Result.key;
       }
-    } catch {}
+    } catch (s3Err: any) {
+      console.warn('[MediaService] S3 replace failed, checking fallback:', s3Err?.message || s3Err);
+      try {
+        const result = await uploadToCloudinary(getFileBuffer(file), {
+          folder,
+          resource_type: resourceType,
+        });
+        if (result && result.secure_url) {
+          finalUrl = result.secure_url;
+          objectKey = result.public_id || objectKey;
+        }
+      } catch {}
+    }
 
-    const localUrl = `/uploads/${file.filename || file.originalname}`;
-    const finalUrl = cloudUrl || localUrl;
+    if (!finalUrl) {
+      finalUrl = `/uploads/${file.filename || file.originalname}`;
+    }
+
+    // Clean up temporary local upload file on disk
+    if (file.path && fs.existsSync(file.path)) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch {}
+    }
 
     try {
       const updated = await prisma.media.update({
@@ -156,9 +214,9 @@ export class MediaService {
           originalName: file.originalname,
           mimeType: file.mimetype,
           size: file.size,
-          path: localUrl,
+          path: storagePath,
           url: finalUrl,
-          cloudinaryId,
+          cloudinaryId: objectKey,
           resourceType,
         },
       });
@@ -177,15 +235,18 @@ export class MediaService {
         return { success: true };
       }
 
-      if (existing.cloudinaryId) {
+      // Delete from S3
+      if (existing.path && !existing.path.startsWith('/uploads/')) {
+        await S3Service.deleteFile(existing.path);
+      } else if (existing.cloudinaryId) {
         try {
           await deleteFromCloudinary(existing.cloudinaryId, existing.resourceType);
-        } catch (cErr) {
-          console.warn('Notice deleting from Cloudinary:', cErr);
+        } catch {
+          await S3Service.deleteFile(existing.cloudinaryId);
         }
       }
 
-      if (existing.path) {
+      if (existing.path && existing.path.startsWith('/uploads/')) {
         const cleanPath = existing.path.replace(/^\/+/, '');
         const localPath = path.resolve(process.cwd(), cleanPath);
         if (fs.existsSync(localPath)) {

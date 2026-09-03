@@ -16,6 +16,10 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   MAX_FILE_SIZE_MB: z.string().transform((val) => parseInt(val, 10)).default('10'),
   UPLOAD_DIR: z.string().default('./uploads'),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_S3_BUCKET: z.string().default('dezo-software'),
+  AWS_REGION: z.string().default('ap-south-1'),
 });
 
 const _env = envSchema.safeParse(process.env);

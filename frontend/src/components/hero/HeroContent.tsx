@@ -314,7 +314,7 @@ export const HeroContent: React.FC = React.memo(() => {
           const getTagRoute = (tag: string) => {
             const lower = tag.toLowerCase();
             if (lower.includes('ai')) return '/product-detail?id=sales-ai-copilot';
-            if (lower.includes('erp')) return '/product-detail?id=schoolycore';
+            if (lower.includes('erp')) return '/product-detail?id=schoolycore-erp';
             if (lower.includes('react') || lower.includes('web')) return '/services#web-dev';
             if (lower.includes('postgres') || lower.includes('prisma') || lower.includes('sql')) return '/api-docs';
             if (lower.includes('jwt') || lower.includes('rbac') || lower.includes('auth')) return '/admin';

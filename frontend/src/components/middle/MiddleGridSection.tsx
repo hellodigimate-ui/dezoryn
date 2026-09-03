@@ -431,7 +431,7 @@ export const MiddleGridSection: React.FC = React.memo(() => {
                     preview: ['SchoolyCore ERP', 'Campus App'],
                     accent: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
                     border: 'hover:border-blue-500/40 hover:shadow-[0_8px_25px_-5px_rgba(59,130,246,0.3)]',
-                    route: '/product-detail?id=schoolycore'
+                    route: '/product-detail?id=schoolycore-erp'
                   },
                   {
                     name: 'Hospitality',

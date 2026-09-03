@@ -174,6 +174,14 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
   // Media Picker Modal State
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState<boolean>(false);
   const [mediaPickerTarget, setMediaPickerTarget] = useState<'thumbnail' | 'gallery' | 'document' | null>(null);
+  const mediaPickerTargetRef = useRef<'thumbnail' | 'gallery' | 'document' | null>(null);
+
+  // Helper to open media picker safely
+  const openMediaPicker = useCallback((target: 'thumbnail' | 'gallery' | 'document') => {
+    mediaPickerTargetRef.current = target;
+    setMediaPickerTarget(target);
+    setIsMediaPickerOpen(true);
+  }, []);
 
   // Filter lists configuration
   const [categoriesList, setCategoriesList] = useState<string[]>([
@@ -221,12 +229,16 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
     setIsUploadingThumbnail(true);
     try {
       const url = await uploadFileToBackend(file, 'Products');
-      setEditModalProduct((prev) => prev ? {
-        ...prev,
-        thumbnail: url,
-        image: url,
-      } : null);
-      showMsg('success', `Thumbnail "${file.name}" uploaded successfully!`);
+      if (url) {
+        setEditModalProduct((prev) => prev ? {
+          ...prev,
+          thumbnail: url,
+          image: url,
+        } : null);
+        showMsg('success', `Thumbnail "${file.name}" uploaded successfully!`);
+      } else {
+        showMsg('error', 'Upload failed: no image URL returned from server.');
+      }
     } catch (_err) {
       showMsg('error', 'Failed to upload thumbnail image.');
     } finally {
@@ -260,11 +272,15 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
     setIsUploadingDoc(true);
     try {
       const url = await uploadFileToBackend(file, 'Documents');
-      setEditModalProduct((prev) => prev ? {
-        ...prev,
-        documentation: url,
-      } : null);
-      showMsg('success', `Document "${file.name}" attached successfully!`);
+      if (url) {
+        setEditModalProduct((prev) => prev ? {
+          ...prev,
+          documentation: url,
+        } : null);
+        showMsg('success', `Document "${file.name}" attached successfully!`);
+      } else {
+        showMsg('error', 'Failed to upload document.');
+      }
     } catch (_err) {
       showMsg('error', 'Failed to upload document.');
     } finally {
@@ -273,18 +289,20 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
   }, [uploadFileToBackend, showMsg]);
 
   const handleMediaPickerSelect = useCallback((url: string) => {
-    if (mediaPickerTarget === 'thumbnail') {
+    const target = mediaPickerTargetRef.current || mediaPickerTarget;
+    if (target === 'thumbnail') {
       setEditModalProduct((prev) => prev ? { ...prev, thumbnail: url, image: url } : null);
       showMsg('success', 'Selected asset as thumbnail!');
-    } else if (mediaPickerTarget === 'gallery') {
+    } else if (target === 'gallery') {
       setEditModalProduct((prev) => prev ? { ...prev, gallery: [...(prev.gallery || []), url] } : null);
       showMsg('success', 'Asset added to gallery!');
-    } else if (mediaPickerTarget === 'document') {
+    } else if (target === 'document') {
       setEditModalProduct((prev) => prev ? { ...prev, documentation: url } : null);
       showMsg('success', 'Asset selected as documentation!');
     }
-    setIsMediaPickerOpen(false);
+    mediaPickerTargetRef.current = null;
     setMediaPickerTarget(null);
+    setIsMediaPickerOpen(false);
   }, [mediaPickerTarget, showMsg]);
 
   // Load Hero CMS Config directly from PostgreSQL database
@@ -2024,16 +2042,16 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Product Name</label>
                       <input
                         type="text"
-                        value={editModalProduct.name || editModalProduct.title}
+                        value={editModalProduct.name || editModalProduct.title || ''}
                         onChange={(e) => {
                           const val = e.target.value;
                           const generatedSlug = val.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                          setEditModalProduct({
-                            ...editModalProduct,
+                          setEditModalProduct((prev) => prev ? ({
+                            ...prev,
                             name: val,
                             title: val,
                             slug: generatedSlug
-                          });
+                          }) : null);
                         }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none focus:border-cyan-500"
                       />
@@ -2044,7 +2062,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <input
                         type="text"
                         value={editModalProduct.slug || ''}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, slug: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, slug: val }) : null);
+                        }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-cyan-600 dark:text-cyan-300 text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none focus:border-cyan-500"
                       />
                     </div>
@@ -2055,8 +2076,11 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Category</label>
                       <input
                         type="text"
-                        value={editModalProduct.categoryLabel}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, categoryLabel: e.target.value })}
+                        value={editModalProduct.categoryLabel || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, categoryLabel: val }) : null);
+                        }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                       />
                     </div>
@@ -2065,8 +2089,11 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Industry Vertical</label>
                       <input
                         type="text"
-                        value={editModalProduct.industry}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, industry: e.target.value })}
+                        value={editModalProduct.industry || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, industry: val }) : null);
+                        }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                       />
                     </div>
@@ -2076,7 +2103,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <input
                         type="number"
                         value={editModalProduct.sortOrder || 1}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, sortOrder: Number(e.target.value) })}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setEditModalProduct((prev) => prev ? ({ ...prev, sortOrder: val }) : null);
+                        }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                       />
                     </div>
@@ -2086,8 +2116,11 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                     <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Short Description</label>
                     <textarea
                       rows={2}
-                      value={editModalProduct.shortDesc}
-                      onChange={(e) => setEditModalProduct({ ...editModalProduct, shortDesc: e.target.value })}
+                      value={editModalProduct.shortDesc || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditModalProduct((prev) => prev ? ({ ...prev, shortDesc: val }) : null);
+                      }}
                       className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-normal px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                     />
                   </div>
@@ -2097,7 +2130,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                     <textarea
                       rows={4}
                       value={editModalProduct.description || ''}
-                      onChange={(e) => setEditModalProduct({ ...editModalProduct, description: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditModalProduct((prev) => prev ? ({ ...prev, description: val }) : null);
+                      }}
                       className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-normal px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                     />
                   </div>
@@ -2112,8 +2148,11 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Price Label (₹)</label>
                       <input
                         type="text"
-                        value={editModalProduct.price}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, price: e.target.value })}
+                        value={editModalProduct.price || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, price: val }) : null);
+                        }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                       />
                     </div>
@@ -2122,8 +2161,11 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Numeric Value (₹)</label>
                       <input
                         type="number"
-                        value={editModalProduct.priceValue || 49}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, priceValue: Number(e.target.value) })}
+                        value={editModalProduct.priceValue ?? 49}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setEditModalProduct((prev) => prev ? ({ ...prev, priceValue: val }) : null);
+                        }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-emerald-600 dark:text-emerald-400 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                       />
                     </div>
@@ -2133,8 +2175,11 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <input
                         type="number"
                         placeholder="10"
-                        value={editModalProduct.discount || 0}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, discount: Number(e.target.value) })}
+                        value={editModalProduct.discount ?? 0}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setEditModalProduct((prev) => prev ? ({ ...prev, discount: val }) : null);
+                        }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-amber-600 dark:text-amber-400 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                       />
                     </div>
@@ -2147,7 +2192,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                         type="text"
                         placeholder="https://demo.dezoryn.com"
                         value={editModalProduct.demoUrl || ''}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, demoUrl: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, demoUrl: val }) : null);
+                        }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-cyan-600 dark:text-cyan-300 text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                       />
                     </div>
@@ -2158,7 +2206,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                         type="text"
                         placeholder="https://docs.dezoryn.com"
                         value={editModalProduct.documentation || ''}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, documentation: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, documentation: val }) : null);
+                        }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-cyan-600 dark:text-cyan-300 text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                       />
                     </div>
@@ -2179,20 +2230,23 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <button
                         type="button"
                         onClick={() => {
-                          const currentTiers = editModalProduct.pricingTiers || [];
-                          setEditModalProduct({
-                            ...editModalProduct,
-                            pricingTiers: [
-                              ...currentTiers,
-                              {
-                                name: 'New Custom Tier',
-                                price: '₹99',
-                                period: '/month',
-                                popular: false,
-                                features: ['Core Module Access', 'Standard Cloud Hosting'],
-                                ctaText: 'Start Free Trial'
-                              }
-                            ]
+                          setEditModalProduct((prev) => {
+                            if (!prev) return null;
+                            const currentTiers = prev.pricingTiers || [];
+                            return {
+                              ...prev,
+                              pricingTiers: [
+                                ...currentTiers,
+                                {
+                                  name: 'New Custom Tier',
+                                  price: '₹99',
+                                  period: '/month',
+                                  popular: false,
+                                  features: ['Core Module Access', 'Standard Cloud Hosting'],
+                                  ctaText: 'Start Free Trial'
+                                }
+                              ]
+                            };
                           });
                         }}
                         className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs border border-emerald-500/30 transition cursor-pointer flex items-center gap-1.5 shadow-xs"
@@ -2218,11 +2272,15 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                                 placeholder="Tier Name (e.g. Starter CRM)"
                                 value={tier.name}
                                 onChange={(e) => {
-                                  const updated = [...(editModalProduct.pricingTiers || [])];
-                                  updated[tIdx] = { ...updated[tIdx], name: e.target.value };
-                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                  const val = e.target.value;
+                                  setEditModalProduct((prev) => {
+                                    if (!prev) return null;
+                                    const updated = [...(prev.pricingTiers || [])];
+                                    updated[tIdx] = { ...updated[tIdx], name: val };
+                                    return { ...prev, pricingTiers: updated };
+                                  });
                                 }}
-                                className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-extrabold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 flex-1 focus:outline-none"
+                                className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-extrabold px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 flex-1 focus:outline-none"
                               />
                             </div>
 
@@ -2231,9 +2289,13 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                                 type="checkbox"
                                 checked={!!tier.popular}
                                 onChange={(e) => {
-                                  const updated = [...(editModalProduct.pricingTiers || [])];
-                                  updated[tIdx] = { ...updated[tIdx], popular: e.target.checked };
-                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                  const checked = e.target.checked;
+                                  setEditModalProduct((prev) => {
+                                    if (!prev) return null;
+                                    const updated = [...(prev.pricingTiers || [])];
+                                    updated[tIdx] = { ...updated[tIdx], popular: checked };
+                                    return { ...prev, pricingTiers: updated };
+                                  });
                                 }}
                                 className="rounded text-blue-600"
                               />
@@ -2243,8 +2305,11 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                             <button
                               type="button"
                               onClick={() => {
-                                const updated = (editModalProduct.pricingTiers || []).filter((_, idx) => idx !== tIdx);
-                                setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                setEditModalProduct((prev) => {
+                                  if (!prev) return null;
+                                  const updated = (prev.pricingTiers || []).filter((_, idx) => idx !== tIdx);
+                                  return { ...prev, pricingTiers: updated };
+                                });
                               }}
                               className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10 transition cursor-pointer"
                               title="Delete Pricing Tier"
@@ -2261,9 +2326,13 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                                 placeholder="₹2,999 or ₹4,999"
                                 value={tier.price}
                                 onChange={(e) => {
-                                  const updated = [...(editModalProduct.pricingTiers || [])];
-                                  updated[tIdx] = { ...updated[tIdx], price: e.target.value };
-                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                  const val = e.target.value;
+                                  setEditModalProduct((prev) => {
+                                    if (!prev) return null;
+                                    const updated = [...(prev.pricingTiers || [])];
+                                    updated[tIdx] = { ...updated[tIdx], price: val };
+                                    return { ...prev, pricingTiers: updated };
+                                  });
                                 }}
                                 className="w-full bg-white dark:bg-slate-900 text-blue-600 dark:text-cyan-400 text-xs font-black px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-0.5 focus:outline-none"
                               />
@@ -2276,9 +2345,13 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                                 placeholder="/month or /year"
                                 value={tier.period}
                                 onChange={(e) => {
-                                  const updated = [...(editModalProduct.pricingTiers || [])];
-                                  updated[tIdx] = { ...updated[tIdx], period: e.target.value };
-                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                  const val = e.target.value;
+                                  setEditModalProduct((prev) => {
+                                    if (!prev) return null;
+                                    const updated = [...(prev.pricingTiers || [])];
+                                    updated[tIdx] = { ...updated[tIdx], period: val };
+                                    return { ...prev, pricingTiers: updated };
+                                  });
                                 }}
                                 className="w-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-0.5 focus:outline-none"
                               />
@@ -2291,9 +2364,13 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                                 placeholder="Start Free Trial"
                                 value={tier.ctaText || 'Start Free Trial'}
                                 onChange={(e) => {
-                                  const updated = [...(editModalProduct.pricingTiers || [])];
-                                  updated[tIdx] = { ...updated[tIdx], ctaText: e.target.value };
-                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                  const val = e.target.value;
+                                  setEditModalProduct((prev) => {
+                                    if (!prev) return null;
+                                    const updated = [...(prev.pricingTiers || [])];
+                                    updated[tIdx] = { ...updated[tIdx], ctaText: val };
+                                    return { ...prev, pricingTiers: updated };
+                                  });
                                 }}
                                 className="w-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-0.5 focus:outline-none"
                               />
@@ -2310,21 +2387,28 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                                     type="text"
                                     value={feat}
                                     onChange={(e) => {
-                                      const updated = [...(editModalProduct.pricingTiers || [])];
-                                      const feats = [...(updated[tIdx].features || [])];
-                                      feats[fIdx] = e.target.value;
-                                      updated[tIdx] = { ...updated[tIdx], features: feats };
-                                      setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                      const val = e.target.value;
+                                      setEditModalProduct((prev) => {
+                                        if (!prev) return null;
+                                        const updated = [...(prev.pricingTiers || [])];
+                                        const feats = [...(updated[tIdx].features || [])];
+                                        feats[fIdx] = val;
+                                        updated[tIdx] = { ...updated[tIdx], features: feats };
+                                        return { ...prev, pricingTiers: updated };
+                                      });
                                     }}
                                     className="flex-1 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none"
                                   />
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const updated = [...(editModalProduct.pricingTiers || [])];
-                                      const feats = (updated[tIdx].features || []).filter((_, i) => i !== fIdx);
-                                      updated[tIdx] = { ...updated[tIdx], features: feats };
-                                      setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                      setEditModalProduct((prev) => {
+                                        if (!prev) return null;
+                                        const updated = [...(prev.pricingTiers || [])];
+                                        const feats = (updated[tIdx].features || []).filter((_, i) => i !== fIdx);
+                                        updated[tIdx] = { ...updated[tIdx], features: feats };
+                                        return { ...prev, pricingTiers: updated };
+                                      });
                                     }}
                                     className="text-slate-400 hover:text-rose-500 cursor-pointer p-1"
                                   >
@@ -2335,10 +2419,13 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const updated = [...(editModalProduct.pricingTiers || [])];
-                                  const feats = [...(updated[tIdx].features || []), 'New feature requirement'];
-                                  updated[tIdx] = { ...updated[tIdx], features: feats };
-                                  setEditModalProduct({ ...editModalProduct, pricingTiers: updated });
+                                  setEditModalProduct((prev) => {
+                                    if (!prev) return null;
+                                    const updated = [...(prev.pricingTiers || [])];
+                                    const feats = [...(updated[tIdx].features || []), 'New feature requirement'];
+                                    updated[tIdx] = { ...updated[tIdx], features: feats };
+                                    return { ...prev, pricingTiers: updated };
+                                  });
                                 }}
                                 className="text-[10px] font-extrabold text-blue-600 dark:text-cyan-400 hover:underline cursor-pointer inline-flex items-center gap-1 mt-1"
                               >
@@ -2439,7 +2526,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setEditModalProduct({ ...editModalProduct, thumbnail: '', image: '' });
+                                  setEditModalProduct((prev) => prev ? ({ ...prev, thumbnail: '', image: '' }) : null);
                                   showMsg('info', 'Thumbnail cleared.');
                                 }}
                                 className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg cursor-pointer flex items-center gap-1.5 transition"
@@ -2461,10 +2548,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
-                                setMediaPickerTarget('thumbnail');
-                                setIsMediaPickerOpen(true);
-                              }}
+                              onClick={() => openMediaPicker('thumbnail')}
                               className="px-3.5 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-bold text-xs border border-blue-500/30 transition flex items-center gap-1.5 cursor-pointer"
                             >
                               <FolderOpen className="w-3.5 h-3.5" />
@@ -2497,10 +2581,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
-                                setMediaPickerTarget('thumbnail');
-                                setIsMediaPickerOpen(true);
-                              }}
+                              onClick={() => openMediaPicker('thumbnail')}
                               className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-300 dark:border-slate-700 transition cursor-pointer flex items-center gap-2"
                             >
                               <FolderOpen className="w-3.5 h-3.5" />
@@ -2517,7 +2598,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                         type="text"
                         placeholder="Or paste Cloudinary / Web CDN URL (https://res.cloudinary.com/...)"
                         value={editModalProduct.thumbnail || editModalProduct.image || ''}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, thumbnail: e.target.value, image: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, thumbnail: val, image: val }) : null);
+                        }}
                         className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-cyan-500"
                       />
                     </div>
@@ -2602,10 +2686,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
-                                setMediaPickerTarget('gallery');
-                                setIsMediaPickerOpen(true);
-                              }}
+                              onClick={() => openMediaPicker('gallery')}
                               className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-300 dark:border-slate-700 transition cursor-pointer flex items-center gap-2"
                             >
                               <FolderOpen className="w-3.5 h-3.5" />
@@ -2624,7 +2705,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                           <button
                             type="button"
                             onClick={() => {
-                              setEditModalProduct({ ...editModalProduct, gallery: [] });
+                              setEditModalProduct((prev) => prev ? ({ ...prev, gallery: [] }) : null);
                               showMsg('info', 'Gallery cleared.');
                             }}
                             className="text-rose-500 hover:underline cursor-pointer"
@@ -2656,16 +2737,16 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setEditModalProduct({
-                                    ...editModalProduct,
-                                    gallery: (editModalProduct.gallery || []).filter((_, i) => i !== idx)
-                                  });
+                                  setEditModalProduct((prev) => prev ? ({
+                                    ...prev,
+                                    gallery: (prev.gallery || []).filter((_, i) => i !== idx)
+                                  }) : null);
                                   showMsg('info', 'Gallery image removed.');
                                 }}
                                 className="absolute top-1 right-1 p-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white shadow-md cursor-pointer transition opacity-90 hover:opacity-100"
                                 title="Remove Image"
                               >
-                                <X className="w-3 h-3" />
+                                <X className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           ))}
@@ -2755,7 +2836,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                             <button
                               type="button"
                               onClick={() => {
-                                setEditModalProduct({ ...editModalProduct, documentation: '' });
+                                setEditModalProduct((prev) => prev ? ({ ...prev, documentation: '' }) : null);
                                 showMsg('info', 'Document unlinked.');
                               }}
                               className="p-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white cursor-pointer transition"
@@ -2789,10 +2870,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
-                                setMediaPickerTarget('document');
-                                setIsMediaPickerOpen(true);
-                              }}
+                              onClick={() => openMediaPicker('document')}
                               className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs border border-slate-300 dark:border-slate-700 transition cursor-pointer flex items-center gap-2"
                             >
                               <FolderOpen className="w-3.5 h-3.5" />
@@ -2808,7 +2886,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                         type="text"
                         placeholder="Or paste Documentation URL (https://docs.dezoryn.com/...)"
                         value={editModalProduct.documentation || ''}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, documentation: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, documentation: val }) : null);
+                        }}
                         className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
@@ -2824,7 +2905,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       type="text"
                       placeholder="https://www.youtube.com/embed/... or https://res.cloudinary.com/video.mp4"
                       value={editModalProduct.videoUrl || editModalProduct.video || ''}
-                      onChange={(e) => setEditModalProduct({ ...editModalProduct, videoUrl: e.target.value, video: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditModalProduct((prev) => prev ? ({ ...prev, videoUrl: val, video: val }) : null);
+                      }}
                       className="w-full bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-300 text-xs font-mono px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-blue-500"
                     />
 
@@ -2863,10 +2947,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                     <textarea
                       rows={3}
                       value={(editModalProduct.features || []).join(', ')}
-                      onChange={(e) => setEditModalProduct({
-                        ...editModalProduct,
-                        features: e.target.value.split(',').map((f) => f.trim()).filter(Boolean)
-                      })}
+                      onChange={(e) => {
+                        const feats = e.target.value.split(',').map((f) => f.trim()).filter(Boolean);
+                        setEditModalProduct((prev) => prev ? ({ ...prev, features: feats }) : null);
+                      }}
                       className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-normal px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                     />
                   </div>
@@ -2876,7 +2960,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                     <textarea
                       rows={3}
                       value={editModalProduct.specifications || ''}
-                      onChange={(e) => setEditModalProduct({ ...editModalProduct, specifications: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditModalProduct((prev) => prev ? ({ ...prev, specifications: val }) : null);
+                      }}
                       className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-normal px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                     />
                   </div>
@@ -2887,10 +2974,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       type="text"
                       placeholder="WhatsApp, Stripe, Salesforce, Slack"
                       value={(editModalProduct.integrations || []).join(', ')}
-                      onChange={(e) => setEditModalProduct({
-                        ...editModalProduct,
-                        integrations: e.target.value.split(',').map((i) => i.trim()).filter(Boolean)
-                      })}
+                      onChange={(e) => {
+                        const items = e.target.value.split(',').map((i) => i.trim()).filter(Boolean);
+                        setEditModalProduct((prev) => prev ? ({ ...prev, integrations: items }) : null);
+                      }}
                       className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                     />
                   </div>
@@ -2906,7 +2993,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <input
                         type="text"
                         value={editModalProduct.metaTitle || ''}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, metaTitle: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, metaTitle: val }) : null);
+                        }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                       />
                     </div>
@@ -2916,7 +3006,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <input
                         type="text"
                         value={editModalProduct.metaKeywords || ''}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, metaKeywords: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, metaKeywords: val }) : null);
+                        }}
                         className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                       />
                     </div>
@@ -2927,7 +3020,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                     <textarea
                       rows={2}
                       value={editModalProduct.metaDescription || ''}
-                      onChange={(e) => setEditModalProduct({ ...editModalProduct, metaDescription: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditModalProduct((prev) => prev ? ({ ...prev, metaDescription: val }) : null);
+                      }}
                       className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-normal px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 focus:outline-none"
                     />
                   </div>
@@ -2937,7 +3033,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <input
                         type="checkbox"
                         checked={editModalProduct.aiPowered}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, aiPowered: e.target.checked })}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, aiPowered: checked }) : null);
+                        }}
                         className="w-4 h-4 rounded text-blue-600 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800"
                       />
                       <span>⚡ AI Powered</span>
@@ -2947,11 +3046,14 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <input
                         type="checkbox"
                         checked={editModalProduct.isFeatured || editModalProduct.status === 'featured'}
-                        onChange={(e) => setEditModalProduct({
-                          ...editModalProduct,
-                          isFeatured: e.target.checked,
-                          status: e.target.checked ? 'featured' : 'active'
-                        })}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setEditModalProduct((prev) => prev ? ({
+                            ...prev,
+                            isFeatured: checked,
+                            status: checked ? 'featured' : 'active'
+                          }) : null);
+                        }}
                         className="w-4 h-4 rounded text-amber-500 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800"
                       />
                       <span>★ Featured</span>
@@ -2961,7 +3063,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <input
                         type="checkbox"
                         checked={editModalProduct.isPopular || false}
-                        onChange={(e) => setEditModalProduct({ ...editModalProduct, isPopular: e.target.checked })}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setEditModalProduct((prev) => prev ? ({ ...prev, isPopular: checked }) : null);
+                        }}
                         className="w-4 h-4 rounded text-purple-500 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800"
                       />
                       <span>🔥 Popular</span>
@@ -2971,10 +3076,13 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <input
                         type="checkbox"
                         checked={editModalProduct.status === 'active' || editModalProduct.status === 'featured'}
-                        onChange={(e) => setEditModalProduct({
-                          ...editModalProduct,
-                          status: e.target.checked ? 'active' : 'draft'
-                        })}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setEditModalProduct((prev) => prev ? ({
+                            ...prev,
+                            status: checked ? 'active' : 'draft'
+                          }) : null);
+                        }}
                         className="w-4 h-4 rounded text-emerald-500 bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800"
                       />
                       <span>Publish Live</span>
@@ -3027,6 +3135,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
       <MediaPickerModal
         isOpen={isMediaPickerOpen}
         onClose={() => {
+          mediaPickerTargetRef.current = null;
           setIsMediaPickerOpen(false);
           setMediaPickerTarget(null);
         }}

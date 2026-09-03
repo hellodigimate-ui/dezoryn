@@ -18,7 +18,8 @@ import {
   Store,
   HelpCircle,
   MessageSquare,
-  ExternalLink
+  ExternalLink,
+  LayoutGrid
 } from 'lucide-react';
 import { apiFetch } from '../../config/api.config';
 import { useNavigation } from '../../utils/NavigationContext';
@@ -63,7 +64,9 @@ export function formatExternalUrl(url?: string): string {
 
 export function normalizeProductId(rawId?: string): string {
   if (!rawId) return '';
-  return String(rawId).trim();
+  const trimmed = String(rawId).trim();
+  if (trimmed.toLowerCase() === 'schoolycore') return 'schoolycore-erp';
+  return trimmed;
 }
 
 export function formatTitleFromId(id: string): string {
@@ -90,7 +93,13 @@ export function buildProductDetailFromDb(apiProd: any): ProductDetailData {
   const overviewText = apiProd.description || apiProd.shortDesc || '';
 
   // Gallery screenshots from real database records only
-  const rawGallery = Array.isArray(apiProd.gallery) ? apiProd.gallery : [];
+  let rawGallery = Array.isArray(apiProd.gallery) ? apiProd.gallery.filter((g: any) => typeof g === 'string' && g.trim().length > 0) : [];
+  if (rawGallery.length === 0) {
+    const primaryImg = apiProd.thumbnail || apiProd.image || apiProd.coverPhoto;
+    if (primaryImg && typeof primaryImg === 'string' && primaryImg.trim().length > 0) {
+      rawGallery = [primaryImg.trim()];
+    }
+  }
   const galleryScreenshots = rawGallery.map((imgUrl: string, idx: number) => ({
     id: String(idx + 1),
     title: `${title} - Screenshot ${idx + 1}`,
@@ -344,6 +353,7 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
   const [activeScreenshotIdx, setActiveScreenshotIdx] = useState<number>(0);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState<boolean>(false);
   const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(0);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const scrollToPricing = () => {
     const el = document.getElementById('pricing');
@@ -544,75 +554,119 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                   
                   {/* Main Screenshot Stage */}
                   <div className="relative w-full h-[360px] sm:h-[440px] rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden mb-4 group">
-                    {product.galleryScreenshots[activeScreenshotIdx]?.url || product.videoTour?.thumbnail ? (
-                      <div className="relative w-full h-full">
-                        <img
-                          src={resolveMediaUrl(product.galleryScreenshots[activeScreenshotIdx]?.url || product.videoTour?.thumbnail || '')}
-                          alt={product.title}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
-                        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-                          {product.videoTour?.videoUrl && (
-                            <button
-                              type="button"
-                              onClick={() => setIsVideoModalOpen(true)}
-                              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-xs shadow-md flex items-center gap-1.5 hover:scale-105 transition cursor-pointer"
-                            >
-                              <Play className="w-3.5 h-3.5 fill-white" />
-                              <span>Watch Product Tour</span>
-                            </button>
-                          )}
-                        </div>
-                        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-white font-mono bg-slate-950/80 px-4 py-2 rounded-xl backdrop-blur-md border border-slate-800">
-                          <span className="font-extrabold text-cyan-300">{product.title}</span>
-                          <span className="text-[10px] uppercase tracking-wider text-slate-400">
-                            {product.galleryScreenshots[activeScreenshotIdx]?.tag || 'PREVIEW'}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-full h-full p-4 flex flex-col justify-between">
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                          <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-rose-500" />
-                            <span className="w-3 h-3 rounded-full bg-amber-500" />
-                            <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                            <span className="ml-2 text-xs font-mono text-slate-400 truncate max-w-xs sm:max-w-md">
-                              {product.demoUrl || `https://app.dezoryn.com/${product.id}/preview`}
-                            </span>
+                    {(() => {
+                      const currentShotUrl = product.galleryScreenshots[activeScreenshotIdx]?.url || product.videoTour?.thumbnail;
+                      const isBroken = currentShotUrl ? failedImages[currentShotUrl] : true;
+
+                      if (currentShotUrl && !isBroken) {
+                        return (
+                          <div className="relative w-full h-full">
+                            <img
+                              src={resolveMediaUrl(currentShotUrl)}
+                              alt={product.title}
+                              onError={() => setFailedImages((prev) => ({ ...prev, [currentShotUrl]: true }))}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent pointer-events-none" />
+                            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+                              {product.videoTour?.videoUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIsVideoModalOpen(true)}
+                                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-xs shadow-md flex items-center gap-1.5 hover:scale-105 transition cursor-pointer"
+                                >
+                                  <Play className="w-3.5 h-3.5 fill-white" />
+                                  <span>Watch Product Tour</span>
+                                </button>
+                              )}
+                            </div>
+                            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-white font-mono bg-slate-950/80 px-4 py-2 rounded-xl backdrop-blur-md border border-slate-800 pointer-events-none">
+                              <span className="font-extrabold text-cyan-300">{product.title}</span>
+                              <span className="text-[10px] uppercase tracking-wider text-slate-400">
+                                {product.galleryScreenshots[activeScreenshotIdx]?.tag || 'PREVIEW'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Elegant interactive SaaS mockup fallback when image is missing or failed to load
+                      return (
+                        <div className="w-full h-full p-6 flex flex-col justify-between relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
+                          {/* Ambient background glow */}
+                          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+                          <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                          {/* App Window Header */}
+                          <div className="flex items-center justify-between pb-3 border-b border-slate-800 relative z-10">
+                            <div className="flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-full bg-rose-500/80" />
+                              <span className="w-3 h-3 rounded-full bg-amber-500/80" />
+                              <span className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                              <span className="ml-2 text-xs font-mono text-cyan-400/90 font-bold flex items-center gap-1.5 truncate max-w-xs sm:max-w-md">
+                                <Zap className="w-3 h-3 text-cyan-400" />
+                                <span>{product.demoUrl || `https://app.dezoryn.com/${product.id}/cloud-suite`}</span>
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-bold border border-emerald-500/20 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                ONLINE
+                              </span>
+                              {product.videoTour?.videoUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIsVideoModalOpen(true)}
+                                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-xs shadow-md flex items-center gap-1.5 hover:scale-105 transition cursor-pointer"
+                                >
+                                  <Play className="w-3.5 h-3.5 fill-white" />
+                                  <span>Tour</span>
+                                </button>
+                              )}
+                            </div>
                           </div>
 
-                          {product.videoTour?.videoUrl && (
-                            <button
-                              type="button"
-                              onClick={() => setIsVideoModalOpen(true)}
-                              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-extrabold text-xs shadow-md flex items-center gap-1.5 hover:scale-105 transition cursor-pointer"
-                            >
-                              <Play className="w-3.5 h-3.5 fill-white" />
-                              <span>Watch Product Tour</span>
-                            </button>
-                          )}
-                        </div>
+                          {/* Center Dashboard Showcase Preview */}
+                          <div className="my-auto text-center p-6 bg-slate-900/80 rounded-2xl border border-slate-800 max-w-xl mx-auto backdrop-blur-md shadow-2xl relative z-10 space-y-3">
+                            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mx-auto text-cyan-400 shadow-lg shadow-cyan-500/10">
+                              <LayoutGrid className="w-6 h-6" />
+                            </div>
+                            <span className="inline-block px-3 py-1 rounded-full bg-cyan-500/15 text-cyan-300 font-extrabold text-[10px] uppercase tracking-wider border border-cyan-400/30">
+                              {product.categoryLabel || product.category || 'ENTERPRISE SUITE'}
+                            </span>
+                            <h3 className="text-2xl font-black text-white tracking-tight">
+                              {product.title}
+                            </h3>
+                            <p className="text-xs text-slate-400 leading-relaxed font-normal max-w-md mx-auto line-clamp-2">
+                              {product.shortDesc || product.subtitle || 'Centralized operational environment with real-time analytics, modular workflows, and cloud-native architecture.'}
+                            </p>
+                            {product.demoUrl && (
+                              <div className="pt-1">
+                                <a
+                                  href={formatExternalUrl(product.demoUrl)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 hover:underline"
+                                >
+                                  <span>Launch Live Demo Sandbox</span>
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              </div>
+                            )}
+                          </div>
 
-                        <div className="my-auto text-center p-6 bg-slate-900/90 rounded-2xl border border-slate-800/90 max-w-xl mx-auto backdrop-blur-md shadow-2xl">
-                          <span className="px-2.5 py-1 rounded bg-blue-500/20 text-cyan-300 font-extrabold text-[10px] uppercase border border-cyan-400/30">
-                            {product.galleryScreenshots[activeScreenshotIdx]?.tag || 'VIEW'}
-                          </span>
-                          <h3 className="text-xl font-black text-white mt-2 mb-1">
-                            {product.galleryScreenshots[activeScreenshotIdx]?.title || product.title}
-                          </h3>
-                          <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                            {product.galleryScreenshots[activeScreenshotIdx]?.subtitle || product.shortDesc}
-                          </p>
+                          {/* Footer Status Bar */}
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono pt-3 border-t border-slate-900 relative z-10">
+                            <span className="flex items-center gap-1.5 text-slate-400">
+                              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>Dezoryn High-Availability Cluster</span>
+                            </span>
+                            <span className="text-slate-400">Interactive Preview Mode</span>
+                          </div>
                         </div>
-
-                        <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
-                          <span>Live Production Cluster</span>
-                          <span>Interface Preview</span>
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
 
                   {/* Gallery Thumbnails Selector */}
@@ -620,6 +674,7 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {product.galleryScreenshots.map((shot, idx) => {
                         const isActive = idx === activeScreenshotIdx;
+                        const isShotBroken = shot.url ? failedImages[shot.url] : true;
                         return (
                           <button
                             key={shot.id}
@@ -631,13 +686,18 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                                 : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
                             }`}
                           >
-                            {shot.url && (
+                            {shot.url && !isShotBroken ? (
                               <div className="w-full h-14 rounded-xl overflow-hidden mb-1.5 bg-slate-950">
                                 <img
                                   src={resolveMediaUrl(shot.url)}
                                   alt={shot.title}
+                                  onError={() => setFailedImages((prev) => ({ ...prev, [shot.url]: true }))}
                                   className="w-full h-full object-cover"
                                 />
+                              </div>
+                            ) : (
+                              <div className="w-full h-14 rounded-xl mb-1.5 bg-gradient-to-br from-blue-900/40 to-cyan-900/40 border border-slate-800 flex items-center justify-center text-cyan-400">
+                                <LayoutGrid className="w-4 h-4" />
                               </div>
                             )}
                             <div className="text-[10px] font-black text-blue-600 dark:text-cyan-400 uppercase tracking-wider mb-1">

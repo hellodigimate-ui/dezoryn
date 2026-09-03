@@ -72,7 +72,7 @@ const PCB_MODULES: PCBModule[] = [
     mainPath: 'M 60 35 L 60 18 L 82 18 L 82 13',
     secondaryPath: 'M 60 18 L 94 18 L 94 32 L 98 32',
     statusText: 'Campus OS • Synced',
-    route: '/product-detail?id=schoolycore',
+    route: '/product-detail?id=schoolycore-erp',
   },
   {
     id: 'hospital-management',
