@@ -355,6 +355,12 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
   const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(0);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
+  const markImageFailed = (url?: string | null) => {
+    if (url && typeof url === 'string') {
+      setFailedImages((prev) => ({ ...prev, [url]: true }));
+    }
+  };
+
   const scrollToPricing = () => {
     const el = document.getElementById('pricing');
     if (el) {
@@ -564,7 +570,7 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                             <img
                               src={resolveMediaUrl(currentShotUrl)}
                               alt={product.title}
-                              onError={() => setFailedImages((prev) => ({ ...prev, [currentShotUrl]: true }))}
+                              onError={() => markImageFailed(currentShotUrl)}
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent pointer-events-none" />
@@ -691,7 +697,7 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                                 <img
                                   src={resolveMediaUrl(shot.url)}
                                   alt={shot.title}
-                                  onError={() => setFailedImages((prev) => ({ ...prev, [shot.url]: true }))}
+                                  onError={() => markImageFailed(shot.url)}
                                   className="w-full h-full object-cover"
                                 />
                               </div>
