@@ -143,7 +143,11 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
       initial={{ y: -40, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed top-0 inset-x-0 z-[100] py-2.5 px-4 sm:px-6 lg:px-8 pointer-events-none"
+      style={{
+        transform: 'translate3d(0, 0, 0)',
+        WebkitTransform: 'translate3d(0, 0, 0)',
+      }}
+      className="fixed top-0 inset-x-0 z-[100] pt-[calc(0.625rem+env(safe-area-inset-top,0px))] pb-2.5 px-4 sm:px-6 lg:px-8 pointer-events-none"
     >
       <div className="max-w-[1440px] mx-auto bg-white/70 dark:bg-slate-950/70 backdrop-blur-2xl backdrop-saturate-180 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xl shadow-slate-900/5 dark:shadow-slate-950/60 px-6 lg:px-10 py-3 flex items-center justify-between pointer-events-auto transition-all duration-300 ring-1 ring-black/5 dark:ring-white/10">
 

@@ -392,34 +392,54 @@ export const App: React.FC = () => {
               <HeroSection />
 
               {/* 3. Statistics Section */}
-              <StatsBanner />
+              <div className="cv-auto">
+                <StatsBanner />
+              </div>
 
               {/* 4. About Section */}
-              <AboutSection />
+              <div className="cv-auto">
+                <AboutSection />
+              </div>
 
               {/* 5. Enterprise Marketplace & Products Ecosystem */}
-              <MarketplaceSection />
+              <div className="cv-auto">
+                <MarketplaceSection />
+              </div>
 
               {/* 5b. Custom Technology Services Section */}
-              <ServicesSection />
+              <div className="cv-auto">
+                <ServicesSection />
+              </div>
 
               {/* 6, 7, 8. Industries We Serve + Demo Center + Get Free Demo Form */}
-              <MiddleGridSection />
+              <div className="cv-auto">
+                <MiddleGridSection />
+              </div>
 
               {/* 9, 10, 11. Why Choose Dezoryn Technologies + Client Success Stories + Our Trusted Clients */}
-              <TrustAndWhySection />
+              <div className="cv-auto">
+                <TrustAndWhySection />
+              </div>
 
               {/* 11b. Verified Customer Testimonials & Reviews */}
-              <TestimonialsSection />
+              <div className="cv-auto">
+                <TestimonialsSection />
+              </div>
 
               {/* 12. Bottom Feature Strip */}
-              <BottomFeatureStrip />
+              <div className="cv-auto">
+                <BottomFeatureStrip />
+              </div>
 
               {/* 13. Dynamic FAQ Accordion Section */}
-              <FAQSection />
+              <div className="cv-auto">
+                <FAQSection />
+              </div>
 
               {/* 14. Final CTA Banner */}
-              <FinalCTABanner />
+              <div className="cv-auto">
+                <FinalCTABanner />
+              </div>
 
             </motion.main>
           )}

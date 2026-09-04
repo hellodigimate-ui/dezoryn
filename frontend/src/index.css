@@ -60,19 +60,31 @@ html.dark,
   --link-color: #38bdf8;
 }
 
-html,
-body,
+html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overscroll-behavior-y: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  overscroll-behavior-y: none;
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 #root {
   margin: 0;
   padding: 0;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
-body {
-  font-family: var(--font-family);
+  overflow-x: clip;
 }
 
 /* ── Hardware-Accelerated 60fps Smooth Theme Transitions ── */
@@ -298,4 +310,38 @@ canvas {
 
 .will-change-transform {
   will-change: transform;
+}
+
+/* ── Content Visibility Optimization: Prevents GPU layer exhaustion during fast scroll ── */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 750px;
+}
+
+/* ── Mobile iOS Safari & Chrome GPU Optimization: Prevents White Screen Checkerboarding ── */
+@media (max-width: 768px) {
+  /* Scale down heavy 24px+ backdrop filters to lightweight 8px on mobile */
+  .backdrop-blur-2xl,
+  .backdrop-blur-xl {
+    -webkit-backdrop-filter: blur(8px) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+
+  .backdrop-blur-md {
+    -webkit-backdrop-filter: blur(6px) !important;
+    backdrop-filter: blur(6px) !important;
+  }
+
+  /* Scale down giant 120px Gaussian blur filters on mobile */
+  .blur-3xl,
+  .blur-2xl {
+    filter: blur(14px) !important;
+    -webkit-filter: blur(14px) !important;
+  }
+
+  .blur-\[120px\],
+  .blur-\[90px\] {
+    filter: blur(20px) !important;
+    -webkit-filter: blur(20px) !important;
+  }
 }

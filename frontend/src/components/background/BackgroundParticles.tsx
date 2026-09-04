@@ -20,14 +20,27 @@ export const BackgroundParticles: React.FC = React.memo(() => {
       height = canvas.height = Math.min(window.innerHeight, 1080);
     };
 
+    let isScrollingFast = false;
+    let scrollDebounce: ReturnType<typeof setTimeout> | null = null;
+
+    const handleScroll = () => {
+      isScrollingFast = true;
+      if (scrollDebounce) clearTimeout(scrollDebounce);
+      scrollDebounce = setTimeout(() => {
+        isScrollingFast = false;
+      }, 120);
+    };
+
     window.addEventListener('resize', handleResize, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     // Optimized Particle Array (16 lightweight items for mobile/desktop harmony)
-    const particleCount = typeof window !== 'undefined' && window.innerWidth < 768 ? 12 : 20;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const particleCount = isMobile ? 10 : 20;
     const particles = Array.from({ length: particleCount }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      radius: Math.random() * 1.6 + 0.6,
+      radius: Math.random() * 1.5 + 0.5,
       alpha: Math.random() * 0.3 + 0.1,
       speedX: (Math.random() - 0.5) * 0.2,
       speedY: (Math.random() - 0.5) * 0.2,
@@ -35,7 +48,8 @@ export const BackgroundParticles: React.FC = React.memo(() => {
     }));
 
     const render = () => {
-      if (document.hidden) {
+      // Yield 100% GPU to tile compositor when rapidly scrolling on mobile
+      if (document.hidden || (isScrollingFast && isMobile)) {
         animationFrameId = requestAnimationFrame(render);
         return;
       }
@@ -70,7 +84,9 @@ export const BackgroundParticles: React.FC = React.memo(() => {
 
     return () => {
       clearTimeout(startTimer);
+      if (scrollDebounce) clearTimeout(scrollDebounce);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
