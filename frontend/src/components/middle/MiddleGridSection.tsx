@@ -645,6 +645,8 @@ export const MiddleGridSection: React.FC = React.memo(() => {
                               src={getVideoUrl(activeDemo.videoUrl)}
                               controls
                               autoPlay
+                              muted
+                              playsInline
                               preload="auto"
                               onError={() => setVideoError(true)}
                               className="w-full h-full object-cover"

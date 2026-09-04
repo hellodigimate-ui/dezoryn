@@ -68,6 +68,7 @@ body,
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -92,12 +93,20 @@ body {
 .admin-scope h4,
 .admin-scope h5,
 .admin-scope h6,
-body:not(:has(.admin-scope)),
 :not(.admin-scope) section,
 :not(.admin-scope) footer {
   transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
               color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Isolated :has() selector for modern browsers without breaking older WebKit */
+@supports (selector(:has(*))) {
+  body:not(:has(.admin-scope)) {
+    transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }
 
 /* Exclude inputs, SVG elements, media, canvas & active spinners to prevent layout reflow lag */

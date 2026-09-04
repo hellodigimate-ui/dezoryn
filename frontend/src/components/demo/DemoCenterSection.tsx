@@ -216,6 +216,8 @@ export const DemoCenterSection: React.FC = () => {
                       src={getVideoUrl(activeDemo.videoUrl)}
                       controls
                       autoPlay
+                      muted
+                      playsInline
                       preload="auto"
                       className="w-full h-full object-cover"
                     />

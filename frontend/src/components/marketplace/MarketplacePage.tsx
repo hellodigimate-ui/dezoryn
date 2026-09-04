@@ -90,7 +90,7 @@ export const MarketplacePage: React.FC = () => {
   }, [products, compareProductIds]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
     const urlParams = new URLSearchParams(window.location.search);
     const categoryParam = urlParams.get('category');
     const searchParam = urlParams.get('search');

@@ -504,6 +504,14 @@ export const HeroEarth3D: React.FC = React.memo(() => {
         animId = requestAnimationFrame(loop);
         return;
       }
+
+      // On mobile / coarse pointer devices without mouse motion, skip heavy continuous DOM mutations
+      const isTouch = typeof window !== 'undefined' && (window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 640);
+      if (isTouch && targetMouse.current.x === 0 && targetMouse.current.y === 0 && !isProcessorHoveredRef.current) {
+        animId = requestAnimationFrame(loop);
+        return;
+      }
+
       currentMouse.current.x = lerp(currentMouse.current.x, targetMouse.current.x, 0.035);
       currentMouse.current.y = lerp(currentMouse.current.y, targetMouse.current.y, 0.035);
 
@@ -583,7 +591,10 @@ export const HeroEarth3D: React.FC = React.memo(() => {
       onMouseLeave={handleMouseLeave}
       style={{
         perspective: '1200px',
+        WebkitPerspective: '1200px',
         willChange: 'transform',
+        WebkitBackfaceVisibility: 'hidden',
+        backfaceVisibility: 'hidden',
       }}
       className="w-full h-[420px] sm:h-[520px] lg:h-[600px] relative overflow-hidden bg-gradient-to-br from-slate-50 via-sky-50/50 to-indigo-50/60 dark:from-[#020612] dark:via-[#050d24] dark:to-[#020612] rounded-[24px] border border-slate-200/90 dark:border-blue-950/80 shadow-2xl shadow-blue-900/5 dark:shadow-cyan-950/40 select-none font-sans flex items-center justify-center cursor-default transition-colors duration-500"
     >
@@ -617,6 +628,9 @@ export const HeroEarth3D: React.FC = React.memo(() => {
         className="w-full h-full relative flex items-center justify-center"
         style={{
           transformStyle: 'preserve-3d',
+          WebkitTransformStyle: 'preserve-3d',
+          WebkitBackfaceVisibility: 'hidden',
+          backfaceVisibility: 'hidden',
           willChange: 'transform',
         }}
       >
@@ -632,6 +646,14 @@ export const HeroEarth3D: React.FC = React.memo(() => {
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            {/* PCB Glow Filter */}
+            <filter id="pcbGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="1.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
@@ -697,14 +719,17 @@ export const HeroEarth3D: React.FC = React.memo(() => {
           })}
         </svg>
 
-        {/* ── CENTERPIECE: FUTURISTIC 3D AI CORE (200px × 200px) ⭐⭐⭐⭐⭐ ── */}
+        {/* ── CENTERPIECE: FUTURISTIC 3D AI CORE (Responsive Size) ⭐⭐⭐⭐⭐ ── */}
         <div
           ref={processorRef}
           style={{
             willChange: 'transform',
             transformStyle: 'preserve-3d',
+            WebkitTransformStyle: 'preserve-3d',
+            WebkitBackfaceVisibility: 'hidden',
+            backfaceVisibility: 'hidden',
           }}
-          className="absolute top-1/2 left-1/2 w-[200px] h-[200px] z-30 pointer-events-auto"
+          className="absolute top-1/2 left-1/2 w-[165px] h-[165px] sm:w-[200px] sm:h-[200px] z-30 pointer-events-auto -translate-x-1/2 -translate-y-1/2"
           onMouseEnter={() => setIsProcessorHovered(true)}
           onMouseLeave={() => setIsProcessorHovered(false)}
         >
@@ -827,7 +852,7 @@ export const HeroEarth3D: React.FC = React.memo(() => {
           </motion.div>
         </div>
 
-        {/* ── FIXED BUSINESS MODULE CARDS (PREMIUM FLOATING HOLOGRAPHIC GLASS CARDS) ── */}
+        {/* ── FIXED BUSINESS MODULE CARDS (DESKTOP & TABLET: FLOATING HOLOGRAPHIC GLASS CARDS) ── */}
         <div className="absolute inset-0 z-20 pointer-events-none">
           {PCB_MODULES.map((mod) => {
             const isHovered = hoveredModuleId === mod.id;
@@ -842,7 +867,7 @@ export const HeroEarth3D: React.FC = React.memo(() => {
                 style={{
                   willChange: 'transform',
                 }}
-                className={`absolute pointer-events-auto ${mod.positionClasses}`}
+                className={`absolute pointer-events-auto ${mod.positionClasses} hidden sm:block`}
               >
                 {/* Active Hover Status Tooltip */}
                 <AnimatePresence>
@@ -953,6 +978,23 @@ export const HeroEarth3D: React.FC = React.memo(() => {
               </div>
             );
           })}
+        </div>
+
+        {/* ── MOBILE INTERACTIVE MODULE PILL STRIP (sm:hidden to prevent overlap) ── */}
+        <div className="sm:hidden absolute bottom-2.5 inset-x-2.5 z-40 flex items-center gap-2 overflow-x-auto py-1 px-1 no-scrollbar pointer-events-auto">
+          {PCB_MODULES.map((mod) => (
+            <button
+              key={`mob-${mod.id}`}
+              type="button"
+              onClick={() => navigateTo(mod.route as any)}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 dark:bg-slate-950/95 border border-cyan-500/40 text-left backdrop-blur-md shadow-md active:scale-95 transition-transform"
+            >
+              <div className={`w-5 h-5 rounded-md ${mod.iconBg} flex items-center justify-center text-white scale-90`}>
+                {mod.icon}
+              </div>
+              <span className="text-[11px] font-bold text-white whitespace-nowrap">{mod.title}</span>
+            </button>
+          ))}
         </div>
 
       </div>

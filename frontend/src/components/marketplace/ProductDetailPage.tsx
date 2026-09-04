@@ -373,7 +373,7 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
   };
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
 
     if (!activeId) {
       setIsNotFound(true);

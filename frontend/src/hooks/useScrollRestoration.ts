@@ -89,26 +89,35 @@ export function useScrollRestoration(
     const newIdx = getHistoryIndex();
 
     if (prevRouteRef.current !== currentRoute) {
-      // Save scroll for the page we are leaving
-      const oldKey = getEntryKey(prevRouteRef.current, prevIdxRef.current);
-      sessionStorage.setItem(oldKey, String(Math.round(window.scrollY)));
+      // Save scroll for the page we are leaving safely
+      try {
+        const oldKey = getEntryKey(prevRouteRef.current, prevIdxRef.current);
+        sessionStorage.setItem(oldKey, String(Math.round(window.scrollY)));
+      } catch {
+        // Ignore Storage SecurityError / QuotaExceededError in iOS Safari Private Browsing
+      }
 
       if (isPopRef.current) {
         // Restore scroll for the page we are returning to
-        const restoreKey = getEntryKey(currentRoute, newIdx);
-        const saved = sessionStorage.getItem(restoreKey);
+        let saved: string | null = null;
+        try {
+          const restoreKey = getEntryKey(currentRoute, newIdx);
+          saved = sessionStorage.getItem(restoreKey);
+        } catch {
+          saved = null;
+        }
 
         if (saved !== null) {
           const targetY = parseInt(saved, 10);
           // Use rAF + small timeout to wait for React to paint the restored page
           requestAnimationFrame(() => {
             setTimeout(() => {
-              window.scrollTo({ top: targetY, behavior: 'instant' });
+              window.scrollTo({ top: targetY, behavior: 'auto' });
             }, 80);
           });
         } else {
           // No saved position for this entry - go to top
-          window.scrollTo({ top: 0, behavior: 'instant' });
+          window.scrollTo({ top: 0, behavior: 'auto' });
         }
       }
       // For normal forward navigation, router.ts already calls scrollTo(top)
@@ -122,8 +131,12 @@ export function useScrollRestoration(
   // Save scroll when the user is about to leave the page entirely
   useEffect(() => {
     const handleBeforeUnload = () => {
-      const key = getEntryKey(prevRouteRef.current, prevIdxRef.current);
-      sessionStorage.setItem(key, String(Math.round(window.scrollY)));
+      try {
+        const key = getEntryKey(prevRouteRef.current, prevIdxRef.current);
+        sessionStorage.setItem(key, String(Math.round(window.scrollY)));
+      } catch {
+        // Ignore iOS Private Browsing storage exceptions
+      }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
