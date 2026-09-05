@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import {
   GraduationCap,
@@ -6,17 +6,24 @@ import {
   Users,
   Boxes,
   LayoutDashboard,
+  Layers,
   Cpu,
   CheckCircle,
 } from 'lucide-react';
 import { useNavigation } from '../../utils/NavigationContext';
 
 // ─────────────────────────────────────────────────────────────
-// 1. EXACT FIXED BUSINESS MODULES (Physical PCB Mounts)
+// 1. EXACT FIXED BUSINESS MODULES DATA & 660px × 500px STAGE COORDINATES
+// Stage Dimension: 660px width × 500px height (Prominent, High-Impact Scale)
+// Center (AI Core): (X: 330px, Y: 250px)
+// Left Column: X = 16px (W: 195px, H: 64px) -> right edge = 211px
+// Right Column: X = 449px (W: 195px, H: 64px) -> left edge = 449px
+// AI Core: X = 245px, Y = 165px (W: 170px, H: 170px) -> left edge = 245px, right edge = 415px
+// Gaps: 34px between Left Cards and AI Core; 34px between AI Core and Right Cards!
 // ─────────────────────────────────────────────────────────────
 interface PCBModule {
   id: string;
-  slot: 'top-left' | 'top-right' | 'middle-left' | 'middle-right' | 'bottom-left' | 'bottom-right';
+  slot: 'top-left' | 'middle-left' | 'bottom-left' | 'top-right' | 'middle-right' | 'bottom-right';
   title: string;
   subtitle: string;
   icon: React.ReactNode;
@@ -24,401 +31,207 @@ interface PCBModule {
   borderColor: string;
   accentColor: string;
   glowRgb: string;
-  positionClasses: string;
-  parallaxMultiplier: number;
-  floatDelay: number;
-  floatDuration: number;
-  mainPath: string;
-  secondaryPath: string;
   statusText: string;
-  /** Route to navigate to when the user clicks this module card */
   route: string;
+  // Stage Pixel Positions
+  cardX: number;
+  cardY: number;
+  // Orthogonal PCB Connector Path
+  tracePath: string;
+  dockViaX: number;
+  dockViaY: number;
+  chipPinY: number;
 }
 
 const PCB_MODULES: PCBModule[] = [
+  // ── LEFT SIDE (3 Symmetrical Modules) ──
   {
     id: 'crm-platform',
     slot: 'top-left',
     title: 'CRM Platform',
-    subtitle: 'Predictive Sales Engine',
+    subtitle: 'Predictive Sales AI',
     icon: <LayoutDashboard className="w-4 h-4 text-white" />,
     iconBg: 'bg-gradient-to-tr from-sky-500 to-blue-600 shadow-md shadow-sky-500/20',
     borderColor: 'rgba(56, 189, 248, 0.6)',
     accentColor: '#38bdf8',
     glowRgb: '56, 189, 248',
-    positionClasses: 'top-[7%] left-[4%]',
-    parallaxMultiplier: 0.8,
-    floatDelay: 0.0,
-    floatDuration: 2.8,
-    mainPath: 'M 40 35 L 40 18 L 18 18 L 18 13',
-    secondaryPath: 'M 40 18 L 6 18 L 6 32 L 2 32',
-    statusText: 'AI Engine • Active 99.9%',
+    statusText: 'Sales AI • Active 99.9%',
     route: '/product-detail?id=sales-ai-copilot',
+    cardX: 16,
+    cardY: 48,
+    // AI Core Pin (245, 210) -> Elbow (228, 210) -> Elbow (228, 80) -> Card Dock (211, 80)
+    tracePath: 'M 245 210 L 228 210 L 228 80 L 211 80',
+    dockViaX: 211,
+    dockViaY: 80,
+    chipPinY: 210,
   },
+  {
+    id: 'enterprise-erp',
+    slot: 'middle-left',
+    title: 'Enterprise ERP',
+    subtitle: 'Cloud Operations',
+    icon: <Layers className="w-4 h-4 text-white" />,
+    iconBg: 'bg-gradient-to-tr from-indigo-500 to-cyan-500 shadow-md shadow-indigo-500/20',
+    borderColor: 'rgba(99, 102, 241, 0.6)',
+    accentColor: '#818cf8',
+    glowRgb: '129, 140, 248',
+    statusText: 'Core ERP • Synced',
+    route: '/products',
+    cardX: 16,
+    cardY: 218,
+    // AI Core Pin (245, 250) -> Card Dock (211, 250)
+    tracePath: 'M 245 250 L 211 250',
+    dockViaX: 211,
+    dockViaY: 250,
+    chipPinY: 250,
+  },
+  {
+    id: 'hrms',
+    slot: 'bottom-left',
+    title: 'HRMS Pulse',
+    subtitle: 'People & Payroll',
+    icon: <Users className="w-4 h-4 text-white" />,
+    iconBg: 'bg-gradient-to-tr from-emerald-500 to-teal-600 shadow-md shadow-emerald-500/20',
+    borderColor: 'rgba(16, 185, 129, 0.6)',
+    accentColor: '#10b981',
+    glowRgb: '16, 185, 129',
+    statusText: 'HR Suite • 0ms Latency',
+    route: '/product-detail?id=dezoryn-hrms',
+    cardX: 16,
+    cardY: 388,
+    // AI Core Pin (245, 290) -> Elbow (228, 290) -> Elbow (228, 420) -> Card Dock (211, 420)
+    tracePath: 'M 245 290 L 228 290 L 228 420 L 211 420',
+    dockViaX: 211,
+    dockViaY: 420,
+    chipPinY: 290,
+  },
+
+  // ── RIGHT SIDE (3 Symmetrical Modules) ──
   {
     id: 'school-erp',
     slot: 'top-right',
-    title: 'School ERP',
+    title: 'SchoolyCore ERP',
     subtitle: 'Campus Intelligence',
     icon: <GraduationCap className="w-4 h-4 text-white" />,
     iconBg: 'bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-md shadow-blue-500/20',
     borderColor: 'rgba(59, 130, 246, 0.6)',
     accentColor: '#3b82f6',
     glowRgb: '59, 130, 246',
-    positionClasses: 'top-[7%] right-[4%]',
-    parallaxMultiplier: 1.1,
-    floatDelay: 0.4,
-    floatDuration: 3.2,
-    mainPath: 'M 60 35 L 60 18 L 82 18 L 82 13',
-    secondaryPath: 'M 60 18 L 94 18 L 94 32 L 98 32',
-    statusText: 'Campus OS • Synced',
+    statusText: 'Campus OS • Live',
     route: '/product-detail?id=schoolycore-erp',
+    cardX: 449,
+    cardY: 48,
+    // AI Core Pin (415, 210) -> Elbow (432, 210) -> Elbow (432, 80) -> Card Dock (449, 80)
+    tracePath: 'M 415 210 L 432 210 L 432 80 L 449 80',
+    dockViaX: 449,
+    dockViaY: 80,
+    chipPinY: 210,
   },
   {
     id: 'hospital-management',
     slot: 'middle-right',
-    title: 'Hospital Management',
-    subtitle: 'Healthcare OS',
+    title: 'Dezo Care HMS',
+    subtitle: 'Hospital & Health OS',
     icon: <Cross className="w-4 h-4 text-white" />,
     iconBg: 'bg-gradient-to-tr from-purple-600 to-fuchsia-500 shadow-md shadow-purple-500/20',
     borderColor: 'rgba(168, 85, 247, 0.6)',
     accentColor: '#a855f7',
     glowRgb: '168, 85, 247',
-    positionClasses: 'top-[44%] right-[2%]',
-    parallaxMultiplier: 1.0,
-    floatDelay: 1.0,
-    floatDuration: 3.4,
-    mainPath: 'M 65 50 L 84 50',
-    secondaryPath: 'M 75 50 L 75 36 L 96 36',
-    statusText: 'Healthcare • 0ms Latency',
+    statusText: 'Health OS • High Availability',
     route: '/product-detail?id=hms-health',
-  },
-  {
-    id: 'hrms',
-    slot: 'bottom-left',
-    title: 'HRMS',
-    subtitle: 'Human Resource Suite',
-    icon: <Users className="w-4 h-4 text-white" />,
-    iconBg: 'bg-gradient-to-tr from-emerald-500 to-teal-600 shadow-md shadow-emerald-500/20',
-    borderColor: 'rgba(16, 185, 129, 0.6)',
-    accentColor: '#10b981',
-    glowRgb: '16, 185, 129',
-    positionClasses: 'bottom-[9%] left-[4%]',
-    parallaxMultiplier: 1.2,
-    floatDelay: 1.4,
-    floatDuration: 3.0,
-    mainPath: 'M 40 65 L 40 82 L 18 82 L 18 88',
-    secondaryPath: 'M 40 82 L 6 82 L 6 68 L 2 68',
-    statusText: 'HR Suite • Secure',
-    route: '/product-detail?id=hrms-payroll',
+    cardX: 449,
+    cardY: 218,
+    // AI Core Pin (415, 250) -> Card Dock (449, 250)
+    tracePath: 'M 415 250 L 449 250',
+    dockViaX: 449,
+    dockViaY: 250,
+    chipPinY: 250,
   },
   {
     id: 'inventory-management',
     slot: 'bottom-right',
-    title: 'Inventory Management',
-    subtitle: 'Stock & Supply Chain',
+    title: 'Inventory Matrix',
+    subtitle: 'Supply Chain & Stock',
     icon: <Boxes className="w-4 h-4 text-white" />,
     iconBg: 'bg-gradient-to-tr from-amber-500 to-orange-500 shadow-md shadow-amber-500/20',
     borderColor: 'rgba(245, 158, 11, 0.6)',
     accentColor: '#f59e0b',
     glowRgb: '245, 158, 11',
-    positionClasses: 'bottom-[9%] right-[4%]',
-    parallaxMultiplier: 0.75,
-    floatDelay: 1.8,
-    floatDuration: 3.5,
-    mainPath: 'M 60 65 L 60 82 L 82 82 L 82 88',
-    secondaryPath: 'M 60 82 L 94 82 L 94 68 L 98 68',
-    statusText: 'Stock Engine • Live',
+    statusText: 'Supply Chain • Realtime',
     route: '/product-detail?id=inventory-pro',
+    cardX: 449,
+    cardY: 388,
+    // AI Core Pin (415, 290) -> Elbow (432, 290) -> Elbow (432, 420) -> Card Dock (449, 420)
+    tracePath: 'M 415 290 L 432 290 L 432 420 L 449 420',
+    dockViaX: 449,
+    dockViaY: 420,
+    chipPinY: 290,
   },
 ];
 
 // ─────────────────────────────────────────────────────────────
-// 2. REFINED SUBTLE PCB HARDWARE BACKGROUND TRACES & LEDS
+// 2. STAGE BACKGROUND SUITE (Ambient Glow, Grid & Blinking LEDs)
 // ─────────────────────────────────────────────────────────────
-const SprawlingMotherboardTraces: React.FC = () => {
+const StageAmbientBackground: React.FC<{ isProcessorHovered: boolean }> = React.memo(({ isProcessorHovered }) => {
   const leds = useMemo(() => {
     return [
-      { cx: '12%', cy: '25%', color: '#38bdf8', delay: '0s' },
-      { cx: '88%', cy: '25%', color: '#3b82f6', delay: '0.4s' },
-      { cx: '32%', cy: '65%', color: '#ec4899', delay: '0.8s' },
-      { cx: '68%', cy: '65%', color: '#a855f7', delay: '1.2s' },
-      { cx: '50%', cy: '10%', color: '#10b981', delay: '1.6s' },
-      { cx: '50%', cy: '90%', color: '#f59e0b', delay: '2.0s' },
+      { cx: 70, cy: 160, color: '#38bdf8', delay: '0s' },
+      { cx: 590, cy: 160, color: '#3b82f6', delay: '0.4s' },
+      { cx: 100, cy: 340, color: '#10b981', delay: '0.8s' },
+      { cx: 560, cy: 340, color: '#a855f7', delay: '1.2s' },
+      { cx: 330, cy: 30, color: '#00f0ff', delay: '1.6s' },
+      { cx: 330, cy: 470, color: '#f59e0b', delay: '2.0s' },
     ];
   }, []);
 
   return (
-    <g className="opacity-45 dark:opacity-25 stroke-emerald-600/50 dark:stroke-cyan-400/30" strokeWidth="0.5" fill="none">
-      <path d="M 2 5 L 98 5 M 2 8 L 98 8" />
-      <path d="M 2 92 L 98 92 M 2 95 L 98 95" />
-      <path d="M 4 2 L 4 98 M 96 2 L 96 98" />
-      <path d="M 12 25 L 32 25 L 32 35 M 68 25 L 88 25 L 88 35" />
-      <path d="M 12 75 L 32 75 L 32 65 M 68 75 L 88 75 L 88 65" />
+    <div className="absolute inset-0 pointer-events-none overflow-hidden select-none">
+      {/* 1. Subtle Radial Glow behind Center AI Core (Brightens on hover) */}
+      <div
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] rounded-full blur-3xl pointer-events-none transition-all duration-500 ${
+          isProcessorHovered
+            ? 'bg-gradient-to-tr from-cyan-500/25 via-purple-600/20 to-blue-600/25 opacity-100'
+            : 'bg-gradient-to-tr from-cyan-500/15 via-purple-600/12 to-blue-600/15 opacity-80'
+        }`}
+      />
 
-      {/* Tiny Blinking Hardware LEDs */}
-      {leds.map((led, idx) => (
-        <circle
-          key={idx}
-          cx={led.cx}
-          cy={led.cy}
-          r="0.8"
-          fill={led.color}
-          className="animate-pulse"
-          style={{ animationDelay: led.delay, animationDuration: '2s' }}
-        />
-      ))}
-    </g>
-  );
-};
+      {/* 2. Micro Grid Pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#00f0ff08_1px,transparent_1px),linear-gradient(to_bottom,#00f0ff08_1px,transparent_1px)] bg-[size:24px_24px] opacity-70" />
 
-// ─────────────────────────────────────────────────────────────
-// 3. SEQUENTIAL CLOCKWISE PROCESSOR PINS COMPONENT
-// ─────────────────────────────────────────────────────────────
-const ProcessorPins: React.FC<{ isHovered: boolean }> = React.memo(({ isHovered }) => {
-  const pinsPerSide = 8;
+      {/* 3. Subtle Holographic Scan Bar */}
+      <motion.div
+        animate={{ y: [-40, 540] }}
+        transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
+        className="w-full h-[40px] bg-gradient-to-b from-transparent via-cyan-400/8 to-transparent pointer-events-none"
+      />
 
-  return (
-    <div className="absolute -inset-3.5 pointer-events-none z-10 overflow-visible">
-      {/* Top Side Pins */}
-      <div className="absolute top-0 left-5 right-5 h-3 flex justify-between px-1">
-        {Array.from({ length: pinsPerSide }).map((_, i) => {
-          const pinIndex = i;
-          return (
-            <div
-              key={i}
-              className={`w-1.5 h-3 rounded-sm transition-all duration-300 ${isHovered
-                ? 'animate-pin-sequential-pulse bg-cyan-400 shadow-[0_0_8px_#00f0ff]'
-                : 'bg-gradient-to-b from-cyan-400/80 via-slate-400 to-slate-800'
-                }`}
-              style={{
-                animationDelay: isHovered ? `${(pinIndex / 32) * 1.5}s` : '0s',
-              }}
-            />
-          );
-        })}
-      </div>
+      {/* 4. Decorative Background Traces & Blinking LEDs */}
+      <svg viewBox="0 0 660 500" className="absolute inset-0 w-full h-full pointer-events-none">
+        <g stroke="rgba(0, 240, 255, 0.15)" strokeWidth="0.8" fill="none">
+          <path d="M 16 145 L 80 145 L 100 165" />
+          <path d="M 644 145 L 580 145 L 560 165" />
+          <path d="M 16 355 L 80 355 L 100 335" />
+          <path d="M 644 355 L 580 355 L 560 335" />
+        </g>
 
-      {/* Right Side Pins */}
-      <div className="absolute top-5 bottom-5 right-0 w-3 flex flex-col justify-between py-1">
-        {Array.from({ length: pinsPerSide }).map((_, i) => {
-          const pinIndex = 8 + i;
-          return (
-            <div
-              key={i}
-              className={`h-1.5 w-3 rounded-sm transition-all duration-300 ${isHovered
-                ? 'animate-pin-sequential-pulse bg-cyan-400 shadow-[0_0_8px_#00f0ff]'
-                : 'bg-gradient-to-r from-slate-800 via-slate-400 to-cyan-400/80'
-                }`}
-              style={{
-                animationDelay: isHovered ? `${(pinIndex / 32) * 1.5}s` : '0s',
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* Bottom Side Pins */}
-      <div className="absolute bottom-0 left-5 right-5 h-3 flex justify-between px-1">
-        {Array.from({ length: pinsPerSide }).map((_, i) => {
-          const pinIndex = 23 - i;
-          return (
-            <div
-              key={i}
-              className={`w-1.5 h-3 rounded-sm transition-all duration-300 ${isHovered
-                ? 'animate-pin-sequential-pulse bg-cyan-400 shadow-[0_0_8px_#00f0ff]'
-                : 'bg-gradient-to-t from-cyan-400/80 via-slate-400 to-slate-800'
-                }`}
-              style={{
-                animationDelay: isHovered ? `${(pinIndex / 32) * 1.5}s` : '0s',
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* Left Side Pins */}
-      <div className="absolute top-5 bottom-5 left-0 w-3 flex flex-col justify-between py-1">
-        {Array.from({ length: pinsPerSide }).map((_, i) => {
-          const pinIndex = 31 - i;
-          return (
-            <div
-              key={i}
-              className={`h-1.5 w-3.5 rounded-sm transition-all duration-300 ${isHovered
-                ? 'animate-pin-sequential-pulse bg-cyan-400 shadow-[0_0_8px_#00f0ff]'
-                : 'bg-gradient-to-r from-cyan-400/80 via-slate-400 to-slate-800'
-                }`}
-              style={{
-                animationDelay: isHovered ? `${(pinIndex / 32) * 1.5}s` : '0s',
-              }}
-            />
-          );
-        })}
-      </div>
+        {leds.map((led, idx) => (
+          <circle
+            key={idx}
+            cx={led.cx}
+            cy={led.cy}
+            r="1.8"
+            fill={led.color}
+            className="animate-pulse"
+            style={{ animationDelay: led.delay, animationDuration: '2.4s' }}
+          />
+        ))}
+      </svg>
     </div>
   );
 });
 
 // ─────────────────────────────────────────────────────────────
-// 5. DYNAMIC ULTRA-SUBTLE BACKGROUND (7-LAYER ATMOSPHERIC SUITE)
-// ─────────────────────────────────────────────────────────────
-const DynamicReactorBackground: React.FC<{ isProcessorHovered: boolean }> = React.memo(({ isProcessorHovered }) => {
-  // Tiny Twinkling Stars Matrix
-  const stars = useMemo(() => {
-    return Array.from({ length: 18 }, (_, i) => ({
-      id: i,
-      left: `${(i * 19 + 7) % 92}%`,
-      top: `${(i * 23 + 11) % 88}%`,
-      size: i % 3 === 0 ? '2px' : '1px',
-      dur: 2.5 + (i % 5) * 0.8,
-      delay: i * 0.35,
-    }));
-  }, []);
-
-  // Floating Micro Energy Particles
-  const particles = useMemo(() => {
-    return Array.from({ length: 14 }, (_, i) => ({
-      id: i,
-      left: `${(i * 17 + 5) % 90}%`,
-      top: `${(i * 29 + 13) % 85}%`,
-      size: i % 2 === 0 ? 3 : 2,
-      dur: 6 + (i % 4) * 2.0,
-      delay: i * 0.45,
-    }));
-  }, []);
-
-  // Grid Junction Glowing Dots
-  const glowingDots = useMemo(() => {
-    return [
-      { top: '15%', left: '20%', color: '#00f0ff', delay: '0s' },
-      { top: '15%', left: '80%', color: '#c084fc', delay: '0.6s' },
-      { top: '50%', left: '10%', color: '#38bdf8', delay: '1.2s' },
-      { top: '50%', left: '90%', color: '#a855f7', delay: '1.8s' },
-      { top: '85%', left: '25%', color: '#10b981', delay: '2.4s' },
-      { top: '85%', left: '75%', color: '#f59e0b', delay: '3.0s' },
-    ];
-  }, []);
-
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
-      {/* 1. Aurora Gradient Sweep (Subtle 6% Opacity) */}
-      <motion.div
-        animate={{
-          backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-          opacity: isProcessorHovered ? [0.08, 0.14, 0.08] : [0.04, 0.07, 0.04],
-        }}
-        transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
-        style={{ backgroundSize: '200% 200%' }}
-        className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 via-purple-600/15 to-blue-600/20 blur-3xl pointer-events-none"
-      />
-
-      {/* 2. Moving Light Fog Layer (Subtle Ambient Motion) */}
-      <motion.div
-        animate={{
-          x: [-20, 20, -20],
-          y: [-15, 15, -15],
-          scale: [1, 1.1, 1],
-          opacity: [0.03, 0.06, 0.03],
-        }}
-        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(56,189,248,0.3),transparent_70%)] blur-2xl pointer-events-none"
-      />
-
-      {/* 3. Animated Grid Layer */}
-      <motion.div
-        animate={{
-          backgroundPosition: ['0px 0px', '40px 40px'],
-        }}
-        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-        className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f612_1px,transparent_1px),linear-gradient(to_bottom,#3b82f612_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#00f0ff08_1px,transparent_1px),linear-gradient(to_bottom,#00f0ff08_1px,transparent_1px)] bg-[size:24px_24px] opacity-70 pointer-events-none"
-      />
-
-      {/* 4. Holographic Scan Lines (Top to Bottom Sweep) */}
-      <motion.div
-        animate={{
-          y: ['-100%', '200%'],
-        }}
-        transition={{
-          duration: 9.0,
-          repeat: Infinity,
-          ease: 'linear',
-        }}
-        className="w-full h-[50px] bg-gradient-to-b from-transparent via-cyan-400/10 dark:via-cyan-400/08 to-transparent blur-sm pointer-events-none"
-      />
-
-      {/* 5. Tiny Twinkling Stars */}
-      {stars.map((star) => (
-        <motion.div
-          key={star.id}
-          animate={{
-            opacity: [0.1, 0.6, 0.1],
-            scale: [0.8, 1.3, 0.8],
-          }}
-          transition={{
-            duration: star.dur,
-            delay: star.delay,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          style={{
-            left: star.left,
-            top: star.top,
-            width: star.size,
-            height: star.size,
-          }}
-          className="absolute rounded-full bg-white dark:bg-cyan-200 shadow-[0_0_4px_#00f0ff] pointer-events-none"
-        />
-      ))}
-
-      {/* 6. Floating Energy Particles */}
-      {particles.map((p) => (
-        <motion.div
-          key={p.id}
-          animate={{
-            y: [0, -18, 0],
-            opacity: isProcessorHovered ? [0.15, 0.45, 0.15] : [0.06, 0.2, 0.06],
-            scale: isProcessorHovered ? [1, 1.3, 1] : [1, 1, 1],
-          }}
-          transition={{
-            duration: p.dur,
-            delay: p.delay,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          style={{
-            left: p.left,
-            top: p.top,
-            width: `${p.size}px`,
-            height: `${p.size}px`,
-          }}
-          className={`absolute rounded-full pointer-events-none transition-colors duration-700 ${isProcessorHovered ? 'bg-cyan-300 shadow-[0_0_8px_#00f0ff]' : 'bg-cyan-400/40 blur-[0.4px]'
-            }`}
-        />
-      ))}
-
-      {/* 7. Glowing Junction Dots */}
-      {glowingDots.map((dot, idx) => (
-        <div
-          key={idx}
-          style={{ top: dot.top, left: dot.left }}
-          className="absolute pointer-events-none"
-        >
-          <span
-            className="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-40"
-            style={{ backgroundColor: dot.color, animationDuration: '3s', animationDelay: dot.delay }}
-          />
-          <span
-            className="relative inline-flex rounded-full h-1 w-1 opacity-70 shadow-[0_0_6px_currentColor]"
-            style={{ backgroundColor: dot.color, color: dot.color }}
-          />
-        </div>
-      ))}
-    </div>
-  );
-});
-
-// ─────────────────────────────────────────────────────────────
-// 6. MAIN ENTERPRISE AI MOTHERBOARD VISUALIZATION
+// 3. MAIN ENTERPRISE AI ARCHITECTURE VISUALIZATION STAGE
 // ─────────────────────────────────────────────────────────────
 export const HeroEarth3D: React.FC = React.memo(() => {
   const { navigateTo } = useNavigation();
@@ -430,573 +243,390 @@ export const HeroEarth3D: React.FC = React.memo(() => {
     isInViewRef.current = isInView;
   }, [isInView]);
 
-  const parallaxLayerRef = useRef<HTMLDivElement>(null);
-  const processorRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<{ [id: string]: HTMLDivElement | null }>({});
+  // Dynamic proportional scale factor (Target: 660px width for prominent visual size)
+  const [scale, setScale] = useState(1);
 
-  // LERP Mouse Values
-  const targetMouse = useRef({ x: 0, y: 0 });
-  const currentMouse = useRef({ x: 0, y: 0 });
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateScale = () => {
+      if (!containerRef.current) return;
+      const width = containerRef.current.clientWidth;
+      const availableWidth = Math.max(300, width - 4);
+      const computedScale = Math.min(1.10, availableWidth / 660);
+      setScale(computedScale);
+    };
 
-  // Processor 3D Tilt Values (±1° max rotation toward cursor)
-  const procRotX = useRef(0);
-  const procRotY = useRef(0);
+    updateScale();
+    const ro = new ResizeObserver(updateScale);
+    ro.observe(containerRef.current);
+    window.addEventListener('resize', updateScale, { passive: true });
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateScale);
+    };
+  }, []);
 
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   const [hoveredModuleId, setHoveredModuleId] = useState<string | null>(null);
   const [isProcessorHovered, setIsProcessorHovered] = useState(false);
-  const isProcessorHoveredRef = useRef(false);
-  const [cardPulseActive, setCardPulseActive] = useState(false);
+
+  // Auto-pulse idle highlight every 4 seconds
   const cycleIndex = useRef(0);
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-
-  useEffect(() => {
-    const checkDark = () => {
-      setIsDarkTheme(
-        document.documentElement.classList.contains('dark') ||
-        document.body.classList.contains('dark') ||
-        Boolean(document.querySelector('.dark'))
-      );
-    };
-    checkDark();
-    const observer = new MutationObserver(checkDark);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    if (document.body) observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  // Keep ref in sync with state for zero-rerender rAF loop
-  useEffect(() => {
-    isProcessorHoveredRef.current = isProcessorHovered;
-  }, [isProcessorHovered]);
-
-  // Periodic Card Wave Reaction every 2 seconds while hovering processor
-  useEffect(() => {
-    if (!isProcessorHovered) {
-      setCardPulseActive(false);
-      return;
-    }
-
-    setCardPulseActive(true);
-    const initialOffTimer = setTimeout(() => setCardPulseActive(false), 350);
-
-    const interval = setInterval(() => {
-      setCardPulseActive(true);
-      setTimeout(() => setCardPulseActive(false), 350);
-    }, 2000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(initialOffTimer);
-    };
-  }, [isProcessorHovered]);
-
-  // ZERO RE-RENDER LERP LOOP (Direct DOM Mutation in rAF for 60 FPS)
-  useEffect(() => {
-    let animId: number;
-
-    const lerp = (start: number, end: number, factor: number) => {
-      return start + (end - start) * factor;
-    };
-
-    const loop = () => {
-      if (!isInViewRef.current || document.hidden) {
-        animId = requestAnimationFrame(loop);
-        return;
-      }
-
-      // On mobile / coarse pointer devices without mouse motion, skip heavy continuous DOM mutations
-      const isTouch = typeof window !== 'undefined' && (window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 640);
-      if (isTouch && targetMouse.current.x === 0 && targetMouse.current.y === 0 && !isProcessorHoveredRef.current) {
-        animId = requestAnimationFrame(loop);
-        return;
-      }
-
-      currentMouse.current.x = lerp(currentMouse.current.x, targetMouse.current.x, 0.035);
-      currentMouse.current.y = lerp(currentMouse.current.y, targetMouse.current.y, 0.035);
-
-      const mx = currentMouse.current.x;
-      const my = currentMouse.current.y;
-
-      // 1. Container 3D Tilt (Max 4px shift)
-      if (parallaxLayerRef.current) {
-        parallaxLayerRef.current.style.transform = `rotateX(${-my * 6}deg) rotateY(${mx * 6}deg) translate3d(${mx * 4}px, ${my * 4}px, 0)`;
-      }
-
-      // 2. AI Processor Depth + Precise Mouse Follow Tilt (±1° max rotation)
-      const isHovered = isProcessorHoveredRef.current;
-      const targetRotX = isHovered ? Math.max(-1, Math.min(1, -my * 2.5)) : 0;
-      const targetRotY = isHovered ? Math.max(-1, Math.min(1, mx * 2.5)) : 0;
-      procRotX.current = lerp(procRotX.current, targetRotX, 0.08);
-      procRotY.current = lerp(procRotY.current, targetRotY, 0.08);
-
-      if (processorRef.current) {
-        processorRef.current.style.transform = `translate3d(-50%, -50%, 0) translate3d(${mx * 8}px, ${my * 8}px, 15px) rotateX(${procRotX.current}deg) rotateY(${procRotY.current}deg)`;
-      }
-
-      // 3. Card Parallax (Max 10px shift)
-      PCB_MODULES.forEach((mod) => {
-        const el = cardRefs.current[mod.id];
-        if (el) {
-          const cardX = mx * 10 * mod.parallaxMultiplier;
-          const cardY = my * 10 * mod.parallaxMultiplier;
-          el.style.transform = `translate3d(${cardX}px, ${cardY}px, 0)`;
-        }
-      });
-
-      animId = requestAnimationFrame(loop);
-    };
-
-    animId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animId);
-  }, []);
-
-  // Idle Auto-Pulse Highlight Every 3.5s
   useEffect(() => {
     const timer = setInterval(() => {
-      if (!hoveredModuleId && !isProcessorHovered) {
+      if (!hoveredModuleId && !isProcessorHovered && isInViewRef.current) {
         cycleIndex.current = (cycleIndex.current + 1) % PCB_MODULES.length;
         const nextId = PCB_MODULES[cycleIndex.current].id;
         setActiveModuleId(nextId);
 
         setTimeout(() => {
           setActiveModuleId((curr) => (curr === nextId ? null : curr));
-        }, 2000);
+        }, 2200);
       }
-    }, 3500);
+    }, 4200);
 
     return () => clearInterval(timer);
   }, [hoveredModuleId, isProcessorHovered]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    targetMouse.current.x = (e.clientX - rect.left) / rect.width - 0.5;
-    targetMouse.current.y = (e.clientY - rect.top) / rect.height - 0.5;
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    targetMouse.current.x = 0;
-    targetMouse.current.y = 0;
-    setHoveredModuleId(null);
-    setIsProcessorHovered(false);
-  }, []);
 
   const currentHighlightedId = hoveredModuleId || activeModuleId;
 
   return (
     <div
       ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
       style={{
-        perspective: '1200px',
-        WebkitPerspective: '1200px',
-        willChange: 'transform',
-        WebkitBackfaceVisibility: 'hidden',
-        backfaceVisibility: 'hidden',
+        height: Math.round(500 * scale),
       }}
-      className="w-full h-[420px] sm:h-[520px] lg:h-[600px] relative overflow-hidden bg-gradient-to-br from-slate-50 via-sky-50/50 to-indigo-50/60 dark:from-[#020612] dark:via-[#050d24] dark:to-[#020612] rounded-[24px] border border-slate-200/90 dark:border-blue-950/80 shadow-2xl shadow-blue-900/5 dark:shadow-cyan-950/40 select-none font-sans flex items-center justify-center cursor-default transition-colors duration-500"
+      className="w-full relative flex items-center justify-center select-none font-sans overflow-hidden transition-[height] duration-200"
     >
-      {/* ── Keyframe Animations for Clockwise Pin Wave ── */}
+      {/* ── Keyframe Animations for Hardware Pin Wave & PCB Pulse ── */}
       <style>{`
-        @keyframes pinSequentialPulse {
-          0%, 100% {
-            background-color: rgba(37, 99, 235, 0.3);
-            box-shadow: none;
-            opacity: 0.5;
+        @keyframes pcbFlow {
+          0% {
+            stroke-dashoffset: 48;
           }
-          15%, 35% {
-            background-color: #2563eb;
-            box-shadow: 0 0 10px #2563eb, 0 0 4px #60a5fa;
-            opacity: 1;
-          }
-          50% {
-            background-color: rgba(37, 99, 235, 0.3);
-            box-shadow: none;
-            opacity: 0.5;
+          100% {
+            stroke-dashoffset: 0;
           }
         }
-        .animate-pin-sequential-pulse {
-          animation: pinSequentialPulse 1.5s linear infinite;
+        .animate-pcb-flow {
+          stroke-dasharray: 8 16;
+          animation: pcbFlow 2.0s linear infinite;
+        }
+        .animate-pcb-flow-fast {
+          stroke-dasharray: 10 14;
+          animation: pcbFlow 0.8s linear infinite;
         }
       `}</style>
 
-      {/* ── 3D PARALLAX CONTAINER LAYER (Direct Ref Mutation) ── */}
+      {/* ── 660px × 500px PROPORTIONALLY SCALED STAGE (PROMINENT IMPACT) ── */}
       <div
-        ref={parallaxLayerRef}
-        className="w-full h-full relative flex items-center justify-center"
         style={{
-          transformStyle: 'preserve-3d',
-          WebkitTransformStyle: 'preserve-3d',
-          WebkitBackfaceVisibility: 'hidden',
-          backfaceVisibility: 'hidden',
-          willChange: 'transform',
+          width: 660,
+          height: 500,
+          transform: `scale(${scale})`,
+          transformOrigin: 'center center',
         }}
+        className="relative shrink-0 rounded-[26px] overflow-hidden bg-gradient-to-br from-[#0a122c]/95 via-[#060d24]/98 to-[#020512] border border-blue-500/30 dark:border-cyan-500/30 shadow-2xl shadow-cyan-950/40"
       >
-        {/* ── 7-LAYER DYNAMIC ATMOSPHERIC BACKGROUND ── */}
-        <DynamicReactorBackground isProcessorHovered={isProcessorHovered} />
+        {/* ── 1. AMBIENT BACKGROUND LAYER ── */}
+        <StageAmbientBackground isProcessorHovered={isProcessorHovered} />
 
-        {/* ── LUMINOUS ENERGY REACTOR BEAMS & PLASMA LIGHT PARTICLES LAYER ── */}
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none z-10">
-          <defs>
-            {/* Luminous Energy Beam Laser Glow Filter */}
-            <filter id="beamLaserGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="2" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            {/* PCB Glow Filter */}
-            <filter id="pcbGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="1.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          <SprawlingMotherboardTraces />
-
-          {/* ── PERMANENT NEON SVG PCB TRACES WITH MOVING ENERGY PACKETS ── */}
+        {/* ── 2. SVG HIGH-PRECISION PCB CIRCUIT BUS TRACES ── */}
+        <svg
+          viewBox="0 0 660 500"
+          className="absolute inset-0 w-full h-full pointer-events-none z-10"
+        >
           {PCB_MODULES.map((mod) => {
             const isHighlighted = isProcessorHovered || currentHighlightedId === mod.id;
-            const baseTraceColor = isDarkTheme ? '#00f0ff' : '#2563eb';
+            const traceColor = isHighlighted ? mod.accentColor : '#0284c7';
 
             return (
-              <g key={mod.id}>
-                {/* 1. Permanent Main Circuit Path */}
+              <g key={`trace-${mod.id}`}>
+                {/* Static Bus Path */}
                 <path
-                  d={mod.mainPath}
+                  d={mod.tracePath}
                   fill="none"
-                  stroke={isHighlighted ? mod.accentColor : baseTraceColor}
-                  strokeWidth={isProcessorHovered ? '1.8' : isHighlighted ? '1.4' : '0.8'}
-                  strokeOpacity={isHighlighted ? '1' : '0.75'}
-                  className="transition-colors duration-500"
+                  stroke={traceColor}
+                  strokeWidth={isHighlighted ? 2.0 : 1.2}
+                  strokeOpacity={isHighlighted ? 1 : 0.45}
+                  className="transition-all duration-300"
                   style={{
-                    filter: isProcessorHovered
-                      ? `drop-shadow(0 0 8px ${baseTraceColor})`
-                      : isHighlighted
-                        ? `drop-shadow(0 0 5px ${mod.accentColor})`
-                        : `drop-shadow(0 0 2px ${baseTraceColor})`,
+                    filter: isHighlighted ? `drop-shadow(0 0 5px ${mod.accentColor})` : undefined,
                   }}
                 />
 
-                {/* 2. Secondary Branch Circuit Path */}
+                {/* Animated Light Data Packet (GPU CSS Dash Flow) */}
                 <path
-                  d={mod.secondaryPath}
+                  d={mod.tracePath}
                   fill="none"
-                  stroke={isHighlighted ? mod.accentColor : baseTraceColor}
-                  strokeWidth="0.5"
-                  strokeOpacity={isHighlighted ? '0.85' : '0.45'}
-                  className="transition-colors duration-500"
+                  stroke={isHighlighted ? '#ffffff' : mod.accentColor}
+                  strokeWidth={isHighlighted ? 2.6 : 1.8}
+                  strokeOpacity={isHighlighted ? 1 : 0.85}
+                  className={isHighlighted ? 'animate-pcb-flow-fast' : 'animate-pcb-flow'}
+                  style={{
+                    filter: `drop-shadow(0 0 4px ${mod.accentColor})`,
+                    willChange: 'stroke-dashoffset',
+                  }}
                 />
 
-                {/* 3. Moving Data Packets (Accelerates & Brightens Outward on Processor Hover) */}
-                <path
-                  d={mod.mainPath}
-                  fill="none"
-                  stroke={isProcessorHovered ? '#ffffff' : isHighlighted ? mod.accentColor : baseTraceColor}
-                  strokeWidth={isProcessorHovered ? '2.2' : '1.2'}
-                  strokeDasharray={isProcessorHovered ? '4 12' : '2 7'}
-                  filter="url(#pcbGlow)"
-                  className="opacity-95"
-                  style={{ willChange: 'stroke-dashoffset' }}
-                >
-                  <animate
-                    attributeName="stroke-dashoffset"
-                    from="18"
-                    to="0"
-                    dur={isProcessorHovered ? '0.5s' : isHighlighted ? '0.8s' : '2.2s'}
-                    repeatCount="indefinite"
-                  />
-                </path>
+                {/* Card Docking Contact Via */}
+                <circle
+                  cx={mod.dockViaX}
+                  cy={mod.dockViaY}
+                  r={isHighlighted ? 3.5 : 2.5}
+                  fill={traceColor}
+                  className="transition-all duration-300"
+                  style={{
+                    filter: isHighlighted ? `drop-shadow(0 0 6px ${mod.accentColor})` : undefined,
+                  }}
+                />
+
+                {/* AI Core Processor Pin Terminal Via */}
+                <circle
+                  cx={mod.slot.includes('left') ? 245 : 415}
+                  cy={mod.chipPinY}
+                  r={isHighlighted ? 3.2 : 2.2}
+                  fill={isHighlighted ? '#00f0ff' : '#38bdf8'}
+                  style={{
+                    filter: isHighlighted ? 'drop-shadow(0 0 6px #00f0ff)' : undefined,
+                  }}
+                />
               </g>
             );
           })}
         </svg>
 
-        {/* ── CENTERPIECE: FUTURISTIC 3D AI CORE (Responsive Size) ⭐⭐⭐⭐⭐ ── */}
+        {/* ── 3. CENTERPIECE: DEAD-CENTER 3D AI CORE (X: 245, Y: 165, W: 170, H: 170) ── */}
         <div
-          ref={processorRef}
           style={{
-            willChange: 'transform',
-            transformStyle: 'preserve-3d',
-            WebkitTransformStyle: 'preserve-3d',
-            WebkitBackfaceVisibility: 'hidden',
-            backfaceVisibility: 'hidden',
+            position: 'absolute',
+            left: 245,
+            top: 165,
+            width: 170,
+            height: 170,
           }}
-          className="absolute top-1/2 left-1/2 w-[165px] h-[165px] sm:w-[200px] sm:h-[200px] z-30 pointer-events-auto -translate-x-1/2 -translate-y-1/2"
+          className="z-30 pointer-events-auto flex items-center justify-center cursor-pointer"
           onMouseEnter={() => setIsProcessorHovered(true)}
           onMouseLeave={() => setIsProcessorHovered(false)}
         >
-          {/* Subtle 3px Floating Levitation & Breathing Animation */}
+          {/* Outer Rotating Dual Holographic Neon Rings */}
+          <div className="absolute -inset-4 pointer-events-none rounded-full overflow-visible z-0 flex items-center justify-center">
+            {/* Outer Cyan Ring (Clockwise) */}
+            <div
+              className={`absolute inset-0 rounded-full border border-dashed border-cyan-400/50 ${
+                isProcessorHovered ? 'animate-[spin_12s_linear_infinite] border-cyan-300' : 'animate-[spin_28s_linear_infinite]'
+              }`}
+              style={{ filter: 'drop-shadow(0 0 4px rgba(0, 240, 255, 0.4))' }}
+            />
+
+            {/* Inner Purple Ring (Counter-Clockwise) */}
+            <div
+              className={`absolute inset-2.5 rounded-full border border-dashed border-purple-500/50 ${
+                isProcessorHovered ? 'animate-[spin_10s_linear_infinite_reverse] border-purple-400' : 'animate-[spin_22s_linear_infinite_reverse]'
+              }`}
+              style={{ filter: 'drop-shadow(0 0 4px rgba(168, 85, 247, 0.4))' }}
+            />
+
+            {/* Pulsing Aura Wave */}
+            <motion.div
+              animate={{
+                scale: isProcessorHovered ? [1, 1.12, 1] : [1, 1.06, 1],
+                opacity: isProcessorHovered ? [0.2, 0.45, 0.2] : [0.1, 0.25, 0.1],
+              }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute inset-1 rounded-full bg-gradient-to-tr from-cyan-500/15 via-purple-500/15 to-blue-500/15 blur-md pointer-events-none"
+            />
+          </div>
+
+          {/* Left Metallic Terminal Pins (Aligned precisely to 210, 250, 290) */}
+          <div className="absolute -left-3 inset-y-0 flex flex-col justify-around py-8 pointer-events-none z-10">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={`pin-l-${i}`}
+                className={`w-3 h-1.5 rounded-l transition-all duration-300 ${
+                  isProcessorHovered ? 'bg-cyan-300 shadow-[0_0_8px_#00f0ff]' : 'bg-cyan-500/70'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Right Metallic Terminal Pins (Aligned precisely to 210, 250, 290) */}
+          <div className="absolute -right-3 inset-y-0 flex flex-col justify-around py-8 pointer-events-none z-10">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={`pin-r-${i}`}
+                className={`w-3 h-1.5 rounded-r transition-all duration-300 ${
+                  isProcessorHovered ? 'bg-cyan-300 shadow-[0_0_8px_#00f0ff]' : 'bg-cyan-500/70'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Glassmorphic Outer Core Frame with Dual Neon Cyan + Purple Glow */}
           <motion.div
             animate={{
-              y: [0, -3, 0],
-              scale: [1, 1.01, 1],
+              scale: isProcessorHovered ? 1.04 : 1,
             }}
-            transition={{
-              duration: 5.0,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            className="w-full h-full relative"
-            style={{ willChange: 'transform' }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            className={`w-full h-full rounded-[30px] p-2.5 bg-gradient-to-br from-[#0e1b3e]/95 via-[#08132c]/95 to-[#030616]/98 border-2 relative overflow-hidden backdrop-blur-md transform-gpu flex items-center justify-center transition-all duration-400 ease-out shadow-2xl ${
+              isProcessorHovered
+                ? 'border-cyan-400 shadow-[0_0_40px_rgba(0,240,255,0.45),0_0_20px_rgba(168,85,247,0.35)]'
+                : 'border-cyan-400/60 shadow-[0_8px_25px_rgba(0,240,255,0.2),0_0_15px_rgba(168,85,247,0.15)]'
+            }`}
           >
-            {/* 32 Metallic Pins with Clockwise Sequential Lighting */}
-            <ProcessorPins isHovered={isProcessorHovered} />
+            {/* Dynamic Slow Light Sheen Reflection */}
+            <motion.div
+              animate={{ x: ['-150%', '250%'] }}
+              transition={{ repeat: Infinity, duration: 8.0, ease: 'easeInOut', repeatDelay: 3.0 }}
+              className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-cyan-300/15 to-transparent skew-x-12 pointer-events-none z-20"
+            />
 
-            {/* Outer Rotating Dual Holographic Rings (Calm Slow Motion) */}
-            <div className="absolute -inset-4 pointer-events-none rounded-full overflow-visible z-0">
-              {/* Outer Cyan Ring (Clockwise) */}
-              <div
-                className={`absolute inset-0 rounded-full border border-dashed border-cyan-400/50 dark:border-cyan-400/60 ${isProcessorHovered ? 'animate-[spin_18s_linear_infinite] border-cyan-400' : 'animate-[spin_36s_linear_infinite]'
-                  }`}
-                style={{ filter: 'drop-shadow(0 0 4px rgba(0, 240, 255, 0.3))' }}
-              />
+            {/* Inner Quantum Circuit Matrix Casing */}
+            <div className="w-full h-full rounded-[22px] bg-gradient-to-br from-slate-900 via-blue-950/90 to-purple-950 dark:from-[#061029] dark:via-[#040a1c] dark:to-[#02040b] border border-cyan-500/40 flex flex-col items-center justify-center relative overflow-hidden p-2">
+              {/* Corner Quantum Brackets */}
+              <div className="absolute top-2 left-2 w-2 h-2 border-t-2 border-l-2 border-cyan-400/80 drop-shadow-[0_0_4px_#00f0ff]" />
+              <div className="absolute top-2 right-2 w-2 h-2 border-t-2 border-r-2 border-purple-400/80 drop-shadow-[0_0_4px_#a855f7]" />
+              <div className="absolute bottom-2 left-2 w-2 h-2 border-b-2 border-l-2 border-purple-400/80 drop-shadow-[0_0_4px_#a855f7]" />
+              <div className="absolute bottom-2 right-2 w-2 h-2 border-b-2 border-r-2 border-cyan-400/80 drop-shadow-[0_0_4px_#00f0ff]" />
 
-              {/* Inner Purple Ring (Counter-Clockwise) */}
-              <div
-                className={`absolute inset-2 rounded-full border border-dashed border-purple-500/50 dark:border-purple-400/60 ${isProcessorHovered ? 'animate-[spin_14s_linear_infinite_reverse] border-purple-400' : 'animate-[spin_28s_linear_infinite_reverse]'
-                  }`}
-                style={{ filter: 'drop-shadow(0 0 4px rgba(168, 85, 247, 0.3))' }}
-              />
+              {/* Sub-surface Micro Grid */}
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,#00f0ff12_1px,transparent_1px),linear-gradient(to_bottom,#00f0ff12_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none opacity-50" />
 
-              {/* Subtle Pulsing Energy Aura Wave */}
+              {/* Center 3D AI Core Orb Container */}
               <motion.div
                 animate={{
-                  scale: isProcessorHovered ? [1, 1.12, 1] : [1, 1.06, 1],
-                  opacity: isProcessorHovered ? [0.2, 0.45, 0.2] : [0.1, 0.25, 0.1],
+                  rotate: isProcessorHovered ? 360 : 0,
+                  scale: isProcessorHovered ? 1.05 : 1,
                 }}
                 transition={{
-                  duration: 4.5,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
+                  rotate: isProcessorHovered
+                    ? { duration: 12, repeat: Infinity, ease: 'linear' }
+                    : { duration: 0.6, ease: 'easeOut' },
+                  scale: { type: 'spring', stiffness: 300, damping: 24 },
                 }}
-                className="absolute inset-1 rounded-full bg-gradient-to-tr from-cyan-500/15 via-purple-500/15 to-blue-500/15 blur-md pointer-events-none"
-              />
-            </div>
-
-            {/* Glassmorphism Outer Core Frame with Dual Neon Cyan + Purple Glow */}
-            <div
-              className={`w-full h-full rounded-[34px] p-3 bg-gradient-to-br from-white/95 via-slate-100/90 to-purple-50/80 dark:from-[#0d1b3e]/90 dark:via-[#08122a]/95 dark:to-[#030715]/98 border-2 relative overflow-hidden backdrop-blur-md transform-gpu flex items-center justify-center cursor-pointer group transition-all duration-500 ease-out ${isProcessorHovered
-                  ? 'border-cyan-400 dark:border-cyan-400 shadow-[0_0_45px_rgba(0,240,255,0.5),0_0_22px_rgba(168,85,247,0.4),inset_0_0_18px_rgba(0,240,255,0.3)]'
-                  : 'border-cyan-400/60 dark:border-cyan-400/50 shadow-[0_8px_30px_rgba(0,240,255,0.2),0_0_18px_rgba(168,85,247,0.15),inset_0_0_12px_rgba(0,240,255,0.12)]'
+                className={`w-13 h-13 rounded-full bg-gradient-to-tr from-cyan-500/20 via-blue-600/20 to-purple-600/30 border border-cyan-400/70 flex items-center justify-center relative transition-all duration-500 ${
+                  isProcessorHovered
+                    ? 'shadow-[0_0_24px_#00f0ff,0_0_14px_#a855f7]'
+                    : 'shadow-[0_0_15px_rgba(0,240,255,0.5)]'
                 }`}
-            >
-              {/* Dynamic Slow Animated Light Sheen Reflection */}
-              <motion.div
-                animate={{
-                  x: ['-150%', '250%'],
-                }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 8.0,
-                  ease: 'easeInOut',
-                  repeatDelay: 3.0,
-                }}
-                className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/20 dark:via-cyan-300/15 to-transparent skew-x-12 pointer-events-none z-20"
-              />
+              >
+                <Cpu className="w-7 h-7 text-cyan-300 drop-shadow-[0_0_6px_#00f0ff]" />
+              </motion.div>
 
-              {/* Inner Quantum Circuit Matrix Casing */}
-              <div className="w-full h-full rounded-[26px] bg-gradient-to-br from-slate-900 via-blue-950/90 to-purple-950 dark:from-[#061029] dark:via-[#040a1c] dark:to-[#02040b] border border-cyan-500/40 dark:border-cyan-400/30 flex flex-col items-center justify-center relative overflow-hidden group-hover:scale-[1.015] transition-transform duration-500 ease-out shadow-2xl">
-
-                {/* Glowing Futuristic Corner Quantum Brackets */}
-                <div className="absolute top-2.5 left-2.5 w-2.5 h-2.5 border-t-2 border-l-2 border-cyan-400/80 drop-shadow-[0_0_4px_#00f0ff]" />
-                <div className="absolute top-2.5 right-2.5 w-2.5 h-2.5 border-t-2 border-r-2 border-purple-400/80 drop-shadow-[0_0_4px_#a855f7]" />
-                <div className="absolute bottom-2.5 left-2.5 w-2.5 h-2.5 border-b-2 border-l-2 border-purple-400/80 drop-shadow-[0_0_4px_#a855f7]" />
-                <div className="absolute bottom-2.5 right-2.5 w-2.5 h-2.5 border-b-2 border-r-2 border-cyan-400/80 drop-shadow-[0_0_4px_#00f0ff]" />
-
-                {/* Sub-surface Glowing Micro Grid Pattern */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#00f0ff12_1px,transparent_1px),linear-gradient(to_bottom,#00f0ff12_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none opacity-50" />
-
-                {/* Center 3D AI Core Orb Container */}
-                <motion.div
-                  animate={{
-                    rotate: isProcessorHovered ? 360 : 0,
-                    scale: isProcessorHovered ? 1.05 : 1,
-                  }}
-                  transition={{
-                    rotate: isProcessorHovered
-                      ? { duration: 12, repeat: Infinity, ease: 'linear' }
-                      : { duration: 0.6, ease: 'easeOut' },
-                    scale: { type: 'spring', stiffness: 300, damping: 24 },
-                  }}
-                  className={`w-15 h-15 rounded-full bg-gradient-to-tr from-cyan-500/20 via-blue-600/20 to-purple-600/30 border border-cyan-400/70 dark:border-cyan-400/60 flex items-center justify-center relative transition-all duration-500 ${isProcessorHovered
-                      ? 'shadow-[0_0_28px_#00f0ff,0_0_16px_#a855f7,inset_0_0_12px_#00f0ff]'
-                      : 'shadow-[0_0_18px_rgba(0,240,255,0.6),0_0_10px_rgba(168,85,247,0.3)]'
-                    }`}
-                >
-                  {/* Central Glowing Processor Icon */}
-                  <Cpu className="w-8 h-8 text-cyan-300 dark:text-cyan-300 drop-shadow-[0_0_8px_#00f0ff]" />
-
-                  {/* Pulsing Core Halo Ring */}
-                  <span className="absolute inset-0 rounded-full border border-cyan-400/30 animate-ping opacity-25 pointer-events-none" style={{ animationDuration: '3s' }} />
-                </motion.div>
-
-                {/* AI CORE Label */}
-                <div className="text-center mt-1.5 z-10">
-                  <span className="text-xl font-black tracking-widest text-white block drop-shadow-[0_0_10px_#00f0ff]">
-                    AI CORE
-                  </span>
-                  <span className="text-[8px] font-extrabold text-cyan-300 dark:text-cyan-400 tracking-widest uppercase block mt-0.5 opacity-90 drop-shadow-[0_0_3px_#00f0ff]">
-                    ENTERPRISE NEURAL ENGINE
-                  </span>
-                </div>
+              {/* AI CORE Label */}
+              <div className="text-center mt-1 z-10">
+                <span className="text-base font-black tracking-widest text-white block drop-shadow-[0_0_8px_#00f0ff]">
+                  AI CORE
+                </span>
+                <span className="text-[7.5px] font-extrabold text-cyan-300 tracking-widest uppercase block mt-0.5 opacity-95">
+                  ENTERPRISE NEURAL ENGINE
+                </span>
               </div>
             </div>
           </motion.div>
         </div>
 
-        {/* ── FIXED BUSINESS MODULE CARDS (DESKTOP & TABLET: FLOATING HOLOGRAPHIC GLASS CARDS) ── */}
-        <div className="absolute inset-0 z-20 pointer-events-none">
-          {PCB_MODULES.map((mod) => {
-            const isHovered = hoveredModuleId === mod.id;
-            const isHighlighted = isProcessorHovered || currentHighlightedId === mod.id;
+        {/* ── 4. FIXED BUSINESS MODULE CARDS (EXACT RELATIVE PIXEL POSITIONING) ── */}
+        {PCB_MODULES.map((mod) => {
+          const isHovered = hoveredModuleId === mod.id;
+          const isHighlighted = isProcessorHovered || currentHighlightedId === mod.id;
 
-            return (
-              <div
-                key={mod.id}
-                ref={(el) => {
-                  cardRefs.current[mod.id] = el;
-                }}
-                style={{
-                  willChange: 'transform',
-                }}
-                className={`absolute pointer-events-auto ${mod.positionClasses} hidden sm:block`}
-              >
-                {/* Active Hover Status Tooltip */}
-                <AnimatePresence>
-                  {isHovered && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 6, scale: 0.92 }}
-                      animate={{ opacity: 1, y: -26, scale: 1 }}
-                      exit={{ opacity: 0, y: 4, scale: 0.92 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute left-1/2 -translate-x-1/2 top-0 px-2.5 py-1 rounded-xl bg-slate-950/95 dark:bg-slate-950/95 border border-cyan-400/80 text-[10px] font-extrabold text-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.4)] whitespace-nowrap flex items-center gap-1.5 pointer-events-none z-40"
-                    >
-                      <CheckCircle className="w-3 h-3 text-cyan-400 drop-shadow-[0_0_6px_#00f0ff]" />
-                      <span className="tracking-wide uppercase">{mod.statusText}</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Floating Holographic Glass Card Container */}
-                <motion.div
-                  animate={{
-                    y: isHovered ? -10 : [0, -8, 0],
-                    scale: isHovered ? 1.06 : 1,
-                  }}
-                  transition={{
-                    y: isHovered
-                      ? { type: 'spring', stiffness: 400, damping: 22, mass: 0.7 }
-                      : { duration: mod.floatDuration, repeat: Infinity, ease: 'easeInOut', delay: mod.floatDelay },
-                    scale: { type: 'spring', stiffness: 400, damping: 22, mass: 0.7 },
-                  }}
-                  onMouseEnter={() => {
-                    setHoveredModuleId(mod.id);
-                    setActiveModuleId(mod.id);
-                  }}
-                  onMouseLeave={() => setHoveredModuleId(null)}
-                  onClick={() => navigateTo(mod.route as any)}
-                  className="w-[190px] sm:w-[205px] h-[68px] px-3.5 py-2.5 rounded-2xl bg-gradient-to-br from-white/95 via-slate-50/90 to-blue-50/80 dark:from-[#0a1638]/90 dark:via-[#06102a]/95 dark:to-[#030718]/98 border backdrop-blur-md backdrop-saturate-150 transform-gpu flex items-center gap-3 cursor-pointer transition-all duration-300 relative overflow-hidden group"
-                  style={{
-                    borderColor: isHovered
-                      ? '#00f0ff'
-                      : isProcessorHovered && cardPulseActive
-                        ? 'rgba(0, 240, 255, 0.9)'
-                        : isHighlighted
-                          ? mod.accentColor
-                          : 'rgba(56, 189, 248, 0.35)',
-                    boxShadow: isHovered
-                      ? `0 0 35px rgba(${mod.glowRgb}, 0.75), 0 0 15px rgba(0, 240, 255, 0.5), inset 0 0 12px rgba(${mod.glowRgb}, 0.25)`
-                      : isProcessorHovered && cardPulseActive
-                        ? '0 0 28px rgba(0, 240, 255, 0.6), inset 0 0 10px rgba(0, 240, 255, 0.3)'
-                        : isHighlighted
-                          ? `0 0 22px rgba(${mod.glowRgb}, 0.4)`
-                          : `0 8px 24px -6px rgba(0, 0, 0, 0.15), 0 0 15px rgba(${mod.glowRgb}, 0.15)`,
-                    willChange: 'transform, border-color, box-shadow',
-                  }}
-                >
-                  {/* Holographic Dynamic Light Sheen Sweep on Hover */}
-                  {isHovered && (
-                    <motion.div
-                      initial={{ x: '-120%' }}
-                      animate={{ x: '220%' }}
-                      transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 0.8 }}
-                      className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-cyan-300/25 to-transparent skew-x-12 pointer-events-none"
-                    />
-                  )}
-
-                  {/* Micro Corner Holographic Brackets */}
-                  <div className="absolute top-1.5 left-1.5 w-1.5 h-1.5 border-t border-l border-cyan-400/80 pointer-events-none" />
-                  <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 border-t border-r border-cyan-400/80 pointer-events-none" />
-                  <div className="absolute bottom-1.5 left-1.5 w-1.5 h-1.5 border-b border-l border-cyan-400/80 pointer-events-none" />
-                  <div className="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 border-b border-r border-cyan-400/80 pointer-events-none" />
-
-                  {/* Product Icon Badge */}
-                  <div
-                    className={`w-9 h-9 rounded-xl ${mod.iconBg} flex items-center justify-center shrink-0 transition-transform duration-300 ease-out group-hover:scale-110 shadow-md`}
-                    style={{
-                      boxShadow: isHovered ? `0 0 15px ${mod.accentColor}` : undefined,
-                    }}
-                  >
-                    {mod.icon}
-                  </div>
-
-                  {/* Title & Subtitle */}
-                  <div className="flex flex-col text-left min-w-0 flex-1 z-10">
-                    <span className="text-[13px] font-black text-slate-900 dark:text-white leading-tight truncate tracking-tight group-hover:text-cyan-400 transition-colors">
-                      {mod.title}
-                    </span>
-                    <span
-                      className="text-[10px] font-bold mt-0.5 truncate tracking-wide"
-                      style={{ color: mod.accentColor }}
-                    >
-                      {mod.subtitle}
-                    </span>
-                  </div>
-
-                  {/* Tiny Status Pulse Indicator */}
-                  <div className="shrink-0 pl-0.5 z-10">
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span
-                        className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-80"
-                        style={{ backgroundColor: mod.accentColor }}
-                      />
-                      <span
-                        className="relative inline-flex rounded-full h-2.5 w-2.5 shadow-[0_0_8px_currentColor]"
-                        style={{ backgroundColor: mod.accentColor, color: mod.accentColor }}
-                      />
-                    </span>
-                  </div>
-                </motion.div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── MOBILE INTERACTIVE MODULE PILL STRIP (sm:hidden to prevent overlap) ── */}
-        <div className="sm:hidden absolute bottom-2.5 inset-x-2.5 z-40 flex items-center gap-2 overflow-x-auto py-1 px-1 no-scrollbar pointer-events-auto">
-          {PCB_MODULES.map((mod) => (
-            <button
-              key={`mob-${mod.id}`}
-              type="button"
-              onClick={() => navigateTo(mod.route as any)}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 dark:bg-slate-950/95 border border-cyan-500/40 text-left backdrop-blur-md shadow-md active:scale-95 transition-transform"
+          return (
+            <div
+              key={mod.id}
+              style={{
+                position: 'absolute',
+                left: mod.cardX,
+                top: mod.cardY,
+                width: 195,
+                height: 64,
+              }}
+              className="z-20 pointer-events-auto"
             >
-              <div className={`w-5 h-5 rounded-md ${mod.iconBg} flex items-center justify-center text-white scale-90`}>
-                {mod.icon}
-              </div>
-              <span className="text-[11px] font-bold text-white whitespace-nowrap">{mod.title}</span>
-            </button>
-          ))}
-        </div>
+              {/* Active Hover Status Tooltip */}
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.92 }}
+                    animate={{ opacity: 1, y: -26, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.92 }}
+                    transition={{ duration: 0.18 }}
+                    className="absolute left-1/2 -translate-x-1/2 top-0 px-2.5 py-1 rounded-xl bg-slate-950/95 border border-cyan-400/80 text-[10px] font-extrabold text-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.4)] whitespace-nowrap flex items-center gap-1.5 pointer-events-none z-40"
+                  >
+                    <CheckCircle className="w-3 h-3 text-cyan-400 drop-shadow-[0_0_6px_#00f0ff]" />
+                    <span className="tracking-wide uppercase">{mod.statusText}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
+              {/* Floating Holographic Glass Card Container */}
+              <motion.div
+                whileHover={{ scale: 1.04, y: -2 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                onMouseEnter={() => {
+                  setHoveredModuleId(mod.id);
+                  setActiveModuleId(mod.id);
+                }}
+                onMouseLeave={() => setHoveredModuleId(null)}
+                onClick={() => navigateTo(mod.route as any)}
+                className="w-full h-full px-3 py-2 rounded-2xl bg-gradient-to-br from-[#0c1838]/95 via-[#07112a]/95 to-[#020616]/98 border backdrop-blur-md transform-gpu flex items-center gap-2.5 cursor-pointer transition-all duration-300 relative overflow-hidden group shadow-lg"
+                style={{
+                  borderColor: isHovered
+                    ? '#00f0ff'
+                    : isHighlighted
+                    ? mod.accentColor
+                    : 'rgba(56, 189, 248, 0.3)',
+                  boxShadow: isHovered
+                    ? `0 0 28px rgba(${mod.glowRgb}, 0.7), 0 0 12px rgba(0, 240, 255, 0.4)`
+                    : isHighlighted
+                    ? `0 0 18px rgba(${mod.glowRgb}, 0.35)`
+                    : '0 4px 16px rgba(0, 0, 0, 0.35)',
+                }}
+              >
+                {/* Micro Corner Brackets */}
+                <div className="absolute top-1.5 left-1.5 w-1.5 h-1.5 border-t border-l border-cyan-400/80 pointer-events-none" />
+                <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 border-t border-r border-cyan-400/80 pointer-events-none" />
+                <div className="absolute bottom-1.5 left-1.5 w-1.5 h-1.5 border-b border-l border-cyan-400/80 pointer-events-none" />
+                <div className="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 border-b border-r border-cyan-400/80 pointer-events-none" />
+
+                {/* Product Icon Badge */}
+                <div
+                  className={`w-8.5 h-8.5 rounded-xl ${mod.iconBg} flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-105 shadow-md`}
+                >
+                  {mod.icon}
+                </div>
+
+                {/* Title & Subtitle without Clipping */}
+                <div className="flex flex-col text-left min-w-0 flex-1 z-10">
+                  <span className="text-[13px] font-black text-white leading-tight truncate tracking-tight group-hover:text-cyan-400 transition-colors">
+                    {mod.title}
+                  </span>
+                  <span
+                    className="text-[10px] font-bold mt-0.5 truncate tracking-wide"
+                    style={{ color: mod.accentColor }}
+                  >
+                    {mod.subtitle}
+                  </span>
+                </div>
+
+                {/* Status Ping Dot */}
+                <div className="shrink-0 pl-0.5 z-10">
+                  <span className="relative flex h-2 w-2">
+                    <span
+                      className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-80"
+                      style={{ backgroundColor: mod.accentColor }}
+                    />
+                    <span
+                      className="relative inline-flex rounded-full h-2 w-2 shadow-[0_0_6px_currentColor]"
+                      style={{ backgroundColor: mod.accentColor, color: mod.accentColor }}
+                    />
+                  </span>
+                </div>
+              </motion.div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

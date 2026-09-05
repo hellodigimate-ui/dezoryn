@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import {
   GraduationCap,
   Cross,
@@ -137,10 +137,17 @@ export const MarketplaceSection: React.FC = React.memo(() => {
   }, []);
 
   // Responsive Mouse LERP Coordinates (-0.5 to 0.5)
+  const isInView = useInView(sectionRef, { amount: 0.05 });
+  const isInViewRef = useRef(isInView);
+
+  useEffect(() => {
+    isInViewRef.current = isInView;
+  }, [isInView]);
+
   const targetMouse = useRef({ x: 0, y: 0 });
   const currentMouse = useRef({ x: 0, y: 0 });
 
-  // 60 FPS ZERO RE-RENDER HIGH-PERFORMANCE LERP PARALLAX LOOP
+  // 60 FPS ZERO RE-RENDER HIGH-PERFORMANCE LERP PARALLAX LOOP (Pauses when off-screen or idle)
   useEffect(() => {
     let animId: number;
 
@@ -148,61 +155,72 @@ export const MarketplaceSection: React.FC = React.memo(() => {
       return start + (end - start) * factor;
     };
 
+    let isIdle = false;
+
     const loop = () => {
-      if (document.hidden) {
+      // Immediately yield CPU when section is off-screen or tab is hidden
+      if (!isInViewRef.current || document.hidden) {
         animId = requestAnimationFrame(loop);
         return;
       }
 
-      currentMouse.current.x = lerp(currentMouse.current.x, targetMouse.current.x, 0.055);
-      currentMouse.current.y = lerp(currentMouse.current.y, targetMouse.current.y, 0.055);
+      const dx = Math.abs(currentMouse.current.x - targetMouse.current.x);
+      const dy = Math.abs(currentMouse.current.y - targetMouse.current.y);
 
-      const mx = currentMouse.current.x;
-      const my = currentMouse.current.y;
+      if (dx > 0.001 || dy > 0.001) {
+        isIdle = false;
+        currentMouse.current.x = lerp(currentMouse.current.x, targetMouse.current.x, 0.055);
+        currentMouse.current.y = lerp(currentMouse.current.y, targetMouse.current.y, 0.055);
 
-      // Layer 1: Background Grid & Glow (Move 3px opposite)
-      if (bgRef.current) {
-        bgRef.current.style.transform = `translate3d(${-mx * 6}px, ${-my * 6}px, 0)`;
+        const mx = currentMouse.current.x;
+        const my = currentMouse.current.y;
+
+        // Layer 1: Background Grid & Glow (Move 3px opposite)
+        if (bgRef.current) {
+          bgRef.current.style.transform = `translate3d(${-mx * 6}px, ${-my * 6}px, 0)`;
+        }
+
+        // Layer 2: Section Heading (Move 5px)
+        if (headingRef.current) {
+          headingRef.current.style.transform = `translate3d(${mx * 6}px, ${my * 6}px, 0)`;
+        }
+
+        // Layer 3, 4, 5: Cards, Icons, Buttons
+        cardsRef.current.forEach((card, index) => {
+          const colIndex = index % 5;
+          const cardCenterX = (colIndex - 2) * 0.25;
+          const dist = Math.abs(mx - cardCenterX);
+          const proximity = Math.max(0.8, 1.2 - dist);
+
+          // Layer 3: Card 3D Parallax Tilt
+          const cardEl = cardRefs.current[card.id];
+          if (cardEl) {
+            const cardX = mx * 8 * proximity;
+            const cardY = my * 8 * proximity;
+            const rotX = Math.max(-3, Math.min(3, -my * 3 * proximity));
+            const rotY = Math.max(-4, Math.min(4, mx * 4 * proximity));
+            cardEl.style.transform = `translate3d(${cardX}px, ${cardY}px, 0) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+          }
+
+          // Layer 4: Icon Depth (Move 10px)
+          const iconEl = iconRefs.current[card.id];
+          if (iconEl) {
+            const iconX = mx * 10 * proximity;
+            const iconY = my * 10 * proximity;
+            iconEl.style.transform = `translate3d(${iconX}px, ${iconY}px, 0)`;
+          }
+
+          // Layer 5: Buttons Depth (Move 5px)
+          const btnEl = buttonRefs.current[card.id];
+          if (btnEl) {
+            const btnX = mx * 5;
+            const btnY = my * 5;
+            btnEl.style.transform = `translate3d(${btnX}px, ${btnY}px, 0)`;
+          }
+        });
+      } else if (!isIdle) {
+        isIdle = true;
       }
-
-      // Layer 2: Section Heading (Move 5px)
-      if (headingRef.current) {
-        headingRef.current.style.transform = `translate3d(${mx * 6}px, ${my * 6}px, 0)`;
-      }
-
-      // Layer 3, 4, 5: Cards, Icons, Buttons
-      cardsRef.current.forEach((card, index) => {
-        const colIndex = index % 5;
-        const cardCenterX = (colIndex - 2) * 0.25;
-        const dist = Math.abs(mx - cardCenterX);
-        const proximity = Math.max(0.8, 1.2 - dist);
-
-        // Layer 3: Card 3D Parallax Tilt
-        const cardEl = cardRefs.current[card.id];
-        if (cardEl) {
-          const cardX = mx * 8 * proximity;
-          const cardY = my * 8 * proximity;
-          const rotX = Math.max(-3, Math.min(3, -my * 3 * proximity));
-          const rotY = Math.max(-4, Math.min(4, mx * 4 * proximity));
-          cardEl.style.transform = `translate3d(${cardX}px, ${cardY}px, 0) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-        }
-
-        // Layer 4: Icon Depth (Move 10px)
-        const iconEl = iconRefs.current[card.id];
-        if (iconEl) {
-          const iconX = mx * 10 * proximity;
-          const iconY = my * 10 * proximity;
-          iconEl.style.transform = `translate3d(${iconX}px, ${iconY}px, 0)`;
-        }
-
-        // Layer 5: Buttons Depth (Move 5px)
-        const btnEl = buttonRefs.current[card.id];
-        if (btnEl) {
-          const btnX = mx * 5;
-          const btnY = my * 5;
-          btnEl.style.transform = `translate3d(${btnX}px, ${btnY}px, 0)`;
-        }
-      });
 
       animId = requestAnimationFrame(loop);
     };

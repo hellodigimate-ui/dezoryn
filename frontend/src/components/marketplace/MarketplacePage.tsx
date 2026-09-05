@@ -56,12 +56,41 @@ export interface MarketplaceProduct {
   documentation?: string;
 }
 
+export const mapIndustryParamToLabel = (param: string): string => {
+  const norm = param.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+  if (norm.includes('education') || norm.includes('academic') || norm.includes('school')) return 'Education & Academics';
+  if (norm.includes('health') || norm.includes('medical') || norm.includes('hospital')) return 'Healthcare & Telemedicine';
+  if (norm.includes('hospitality') || norm.includes('travel') || norm.includes('hotel')) return 'Hospitality & Tourism';
+  if (norm.includes('realestate') || norm.includes('property')) return 'Real Estate & Property';
+  if (norm.includes('retail') || norm.includes('commerce') || norm.includes('shop')) return 'E-Commerce & Retail';
+  if (norm.includes('manufacturing') || norm.includes('industrial') || norm.includes('factory')) return 'Manufacturing & Industrial';
+  if (norm.includes('logistic') || norm.includes('supply') || norm.includes('warehouse') || norm.includes('fleet')) return 'Supply Chain & Logistics';
+  if (norm.includes('government') || norm.includes('gov') || norm.includes('public')) return 'Public Sector & GovTech';
+  if (norm.includes('hr') || norm.includes('people') || norm.includes('payroll')) return 'HR & People Operations';
+  if (norm.includes('finance') || norm.includes('accounting')) return 'Finance & Accounting';
+  if (norm.includes('crm') || norm.includes('customer')) return 'Customer Relationship Management';
+  if (norm.includes('cyber') || norm.includes('security')) return 'Cybersecurity & Governance';
+  return param;
+};
+
 export const MarketplacePage: React.FC = () => {
   const { navigateTo } = useNavigation();
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [localSearchInput, setLocalSearchInput] = useState<string>('');
-  const [sidebarFilters, setSidebarFilters] = useState<MarketplaceFilterState>(INITIAL_FILTER_STATE);
+  const [sidebarFilters, setSidebarFilters] = useState<MarketplaceFilterState>(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const indParam = urlParams.get('industry') || urlParams.get('industries');
+      if (indParam) {
+        return {
+          ...INITIAL_FILTER_STATE,
+          industries: [mapIndustryParamToLabel(indParam)],
+        };
+      }
+    }
+    return INITIAL_FILTER_STATE;
+  });
   const [mobileFilterDrawerOpen, setMobileFilterDrawerOpen] = useState<boolean>(false);
 
   // Backend integration states
@@ -95,12 +124,21 @@ export const MarketplacePage: React.FC = () => {
     const categoryParam = urlParams.get('category');
     const searchParam = urlParams.get('search');
     const productParam = urlParams.get('product') || urlParams.get('id');
+    const industryParam = urlParams.get('industry') || urlParams.get('industries');
 
     if (categoryParam) setActiveCategory(categoryParam);
     if (searchParam) setSearchQuery(searchParam);
     else if (productParam) setSearchQuery(productParam.trim());
 
-    if (searchParam || productParam) {
+    if (industryParam) {
+      const mapped = mapIndustryParamToLabel(industryParam);
+      setSidebarFilters((prev) => {
+        if (prev.industries.length === 1 && prev.industries[0] === mapped) return prev;
+        return { ...prev, industries: [mapped] };
+      });
+    }
+
+    if (searchParam || productParam || industryParam) {
       setTimeout(() => {
         const catalogElem = document.getElementById('marketplace-catalog');
         if (catalogElem) {
@@ -109,6 +147,22 @@ export const MarketplacePage: React.FC = () => {
       }, 350);
     }
   }, []);
+
+  // Synchronize browser URL query parameter with active industry filter without page reloads
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (sidebarFilters.industries.length === 1) {
+      const ind = sidebarFilters.industries[0];
+      const slug = ind.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-').replace(/[^a-z0-9-]/g, '');
+      url.searchParams.set('industry', slug);
+      window.history.replaceState({}, '', url.pathname + url.search);
+    } else if (sidebarFilters.industries.length === 0 && (url.searchParams.has('industry') || url.searchParams.has('industries'))) {
+      url.searchParams.delete('industry');
+      url.searchParams.delete('industries');
+      window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+    }
+  }, [sidebarFilters.industries]);
 
   useEffect(() => {
     setLocalSearchInput(searchQuery);
@@ -192,11 +246,23 @@ export const MarketplacePage: React.FC = () => {
     setLocalSearchInput('');
   };
 
+  const removeIndustryFilter = (indToRemove: string) => {
+    setSidebarFilters((prev) => ({
+      ...prev,
+      industries: prev.industries.filter((i) => i !== indToRemove),
+    }));
+  };
+
   const resetAllFilters = () => {
     setSearchQuery('');
     setLocalSearchInput('');
     setActiveCategory('all');
     setSidebarFilters(INITIAL_FILTER_STATE);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.search = '';
+      window.history.replaceState({}, '', url.pathname);
+    }
   };
 
   return (
@@ -321,6 +387,22 @@ export const MarketplacePage: React.FC = () => {
                       </span>
                     )}
 
+                    {sidebarFilters.industries.map((ind) => (
+                      <span
+                        key={ind}
+                        className="px-2.5 py-1 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-400/30 text-cyan-600 dark:text-cyan-300 font-bold flex items-center gap-1"
+                      >
+                        Industry: {ind}
+                        <button
+                          type="button"
+                          onClick={() => removeIndustryFilter(ind)}
+                          className="hover:text-rose-500 cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+
                     {searchQuery && (
                       <span className="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-400/30 text-purple-600 dark:text-purple-300 font-bold flex items-center gap-1">
                         "{searchQuery}"
@@ -330,9 +412,9 @@ export const MarketplacePage: React.FC = () => {
                       </span>
                     )}
 
-                    {activeSidebarFilterCount > 0 && (
+                    {activeSidebarFilterCount > sidebarFilters.industries.length && (
                       <span className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-400/30 text-emerald-600 dark:text-emerald-300 font-bold">
-                        {activeSidebarFilterCount} Sidebar {activeSidebarFilterCount === 1 ? 'Filter' : 'Filters'} Active
+                        {activeSidebarFilterCount - sidebarFilters.industries.length} Additional Filters Active
                       </span>
                     )}
 
@@ -353,6 +435,7 @@ export const MarketplacePage: React.FC = () => {
                 products={products}
                 isLoading={isLoading}
                 searchQuery={searchQuery}
+                selectedIndustry={sidebarFilters.industries[0]}
                 onDemoClick={(product) => {
                   if (product?.demoUrl) {
                     const targetUrl = product.demoUrl.startsWith('http') ? product.demoUrl : `https://${product.demoUrl}`;

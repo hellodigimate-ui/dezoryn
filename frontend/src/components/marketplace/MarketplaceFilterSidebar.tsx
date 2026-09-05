@@ -35,6 +35,22 @@ export interface MarketplaceFilterState {
   countries: string[];
 }
 
+export const AVAILABLE_INDUSTRIES = [
+  'Education & Academics',
+  'Healthcare & Telemedicine',
+  'Hospitality & Tourism',
+  'Real Estate & Property',
+  'E-Commerce & Retail',
+  'Manufacturing & Industrial',
+  'Supply Chain & Logistics',
+  'Public Sector & GovTech',
+  'HR & People Operations',
+  'Finance & Accounting',
+  'Sales & Revenue Operations',
+  'Customer Relationship Management',
+  'Cybersecurity & Governance'
+];
+
 export const INITIAL_FILTER_STATE: MarketplaceFilterState = {
   industries: [],
   businessSizes: [],
@@ -321,19 +337,12 @@ export const MarketplaceFilterSidebar: React.FC<MarketplaceFilterSidebarProps> =
                 exit={{ height: 0, opacity: 0 }}
                 className="mt-2 space-y-1 overflow-hidden"
               >
-                {[
-                  'Education & Academics',
-                  'Healthcare & Telemedicine',
-                  'HR & People Operations',
-                  'Supply Chain & Logistics',
-                  'Sales & Revenue Operations',
-                  'Customer Relationship Management',
-                  'Finance & Accounting',
-                  'Manufacturing & Industrial',
-                  'Real Estate & Property',
-                  'Cybersecurity & Governance'
-                ].map((ind) => {
-                  const isChecked = filters.industries.includes(ind);
+                {AVAILABLE_INDUSTRIES.map((ind) => {
+                  const isChecked = filters.industries.some((item) => {
+                    const cleanItem = item.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const cleanInd = ind.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    return cleanItem === cleanInd || cleanItem.includes(cleanInd) || cleanInd.includes(cleanItem);
+                  });
                   return (
                     <label
                       key={ind}

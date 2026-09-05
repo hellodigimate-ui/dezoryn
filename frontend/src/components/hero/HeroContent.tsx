@@ -169,7 +169,7 @@ const EnterpriseCTAButton: React.FC<EnterpriseCTAButtonProps> = ({
           damping: 25,
           mass: 0.6,
         }}
-        className={`relative overflow-hidden w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 rounded-xl font-bold text-sm select-none cursor-pointer border ${styleConfig.button}`}
+        className={`relative overflow-hidden w-full sm:w-auto inline-flex items-center justify-center px-4.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm select-none cursor-pointer border ${styleConfig.button}`}
       >
         {/* CURSOR SPOTLIGHT LAYER */}
         <div
@@ -344,22 +344,22 @@ export const HeroContent: React.FC = React.memo(() => {
       </div>
 
       {/* Description Paragraph */}
-      <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8 max-w-lg font-normal">
+      <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed mb-5 max-w-lg font-normal">
         {heroData.description}
       </p>
 
       {/* CTA Buttons */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
-        className="flex flex-wrap items-center gap-3.5 w-full sm:w-auto mb-10"
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto mb-6"
       >
         {/* Primary CTA */}
         <EnterpriseCTAButton
           href={heroData.primaryBtnLink}
           variant="primary"
-          icon={<ArrowRight className="w-4 h-4" />}
+          icon={<ArrowRight className="w-3.5 h-3.5" />}
           onClick={(e) => {
             e.preventDefault();
             navigateTo(heroData.primaryBtnLink as any);
@@ -372,7 +372,7 @@ export const HeroContent: React.FC = React.memo(() => {
         <EnterpriseCTAButton
           href={heroData.secondaryBtnLink}
           variant="demo"
-          icon={<ArrowRight className="w-4 h-4" />}
+          icon={<ArrowRight className="w-3.5 h-3.5" />}
           showHoverArrow={true}
           onClick={(e) => {
             e.preventDefault();

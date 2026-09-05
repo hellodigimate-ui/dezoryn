@@ -180,6 +180,27 @@ export class ProductService {
         products = products.filter((p: any) => Boolean(p.whatsAppIntegration) === filter.whatsAppIntegration);
       }
 
+      if (filter?.industries && filter.industries.length > 0) {
+        products = products.filter((p: any) => {
+          const pIndustry = (p.industry || '').toLowerCase().trim();
+          const pCatLabel = (p.categoryLabel || '').toLowerCase().trim();
+          return filter.industries!.some((rawInd) => {
+            const ind = rawInd.toLowerCase().trim();
+            if (!ind) return false;
+            // 1. Direct substring match (e.g. "education" in "Education & Academics" or "Education")
+            if (pIndustry && (pIndustry.includes(ind) || ind.includes(pIndustry))) return true;
+            if (pCatLabel && (pCatLabel.includes(ind) || ind.includes(pCatLabel))) return true;
+            // 2. Slug / alphanumeric normalized match (e.g. "real-estate" vs "Real Estate & Property")
+            const cleanInd = ind.replace(/[^a-z0-9]/g, '');
+            const cleanPInd = pIndustry.replace(/[^a-z0-9]/g, '');
+            const cleanPCat = pCatLabel.replace(/[^a-z0-9]/g, '');
+            if (cleanInd && cleanPInd && (cleanPInd.includes(cleanInd) || cleanInd.includes(cleanPInd))) return true;
+            if (cleanInd && cleanPCat && (cleanPCat.includes(cleanInd) || cleanInd.includes(cleanPCat))) return true;
+            return false;
+          });
+        });
+      }
+
       return products;
     } catch (error) {
       console.error('GET PRODUCTS ERROR:', error);

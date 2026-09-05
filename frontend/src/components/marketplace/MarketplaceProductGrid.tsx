@@ -16,6 +16,7 @@ interface MarketplaceProductGridProps {
   products: MarketplaceProduct[];
   isLoading: boolean;
   searchQuery?: string;
+  selectedIndustry?: string;
   onDemoClick?: (product: MarketplaceProduct) => void;
   onViewDetailsClick?: (product: MarketplaceProduct) => void;
   onResetAllFilters?: () => void;
@@ -64,6 +65,7 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
   products,
   isLoading,
   searchQuery = '',
+  selectedIndustry,
   onDemoClick,
   onViewDetailsClick,
   onResetAllFilters,
@@ -184,24 +186,30 @@ export const MarketplaceProductGrid: React.FC<MarketplaceProductGridProps> = ({
               {searchQuery ? <Search className="w-8 h-8" /> : <Store className="w-8 h-8" />}
             </div>
             <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">
-              {searchQuery ? 'No matching software products found' : 'No products available in catalog'}
+              {searchQuery
+                ? 'No matching software products found'
+                : selectedIndustry
+                ? `No products available for ${selectedIndustry} yet`
+                : 'No products available in catalog'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
               {searchQuery ? (
                 <>We couldn't find any software matching <span className="font-bold text-slate-800 dark:text-slate-200">"{searchQuery}"</span>. Try adjusting your search query or resetting filters.</>
+              ) : selectedIndustry ? (
+                `We couldn't find any software products under ${selectedIndustry} in our catalog. Explore all products or select another industry vertical.`
               ) : (
                 'There are currently no software products published in the marketplace catalog. Please check back soon!'
               )}
             </p>
 
-            {searchQuery && onResetAllFilters && (
+            {(searchQuery || selectedIndustry) && onResetAllFilters && (
               <button
                 type="button"
                 onClick={onResetAllFilters}
                 className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-md shadow-blue-500/25 transition cursor-pointer inline-flex items-center gap-2"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset All Search Filters</span>
+                <span>{selectedIndustry ? 'Explore All Products' : 'Reset All Search Filters'}</span>
               </button>
             )}
           </motion.div>

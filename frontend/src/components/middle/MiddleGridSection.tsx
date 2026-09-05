@@ -104,6 +104,7 @@ export const MiddleGridSection: React.FC = React.memo(() => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [videoError, setVideoError] = useState<boolean>(false);
+  const [totalAppsCount, setTotalAppsCount] = useState<number | null>(null);
 
   // Spotlight mouse tracking state
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -159,11 +160,28 @@ export const MiddleGridSection: React.FC = React.memo(() => {
     };
 
     fetchDemos();
+
+    // Fetch dynamic product catalog count from PostgreSQL database
+    const fetchProductCount = async () => {
+      try {
+        const res = await apiFetch('/products');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          setTotalAppsCount(data.data.length);
+        }
+      } catch {
+        // network fallback
+      }
+    };
+    fetchProductCount();
+
     window.addEventListener('focus', fetchDemos);
     window.addEventListener('dezoryn-demos-updated', fetchDemos);
+    window.addEventListener('focus', fetchProductCount);
     return () => {
       window.removeEventListener('focus', fetchDemos);
       window.removeEventListener('dezoryn-demos-updated', fetchDemos);
+      window.removeEventListener('focus', fetchProductCount);
     };
   }, []);
 
@@ -424,87 +442,79 @@ export const MiddleGridSection: React.FC = React.memo(() => {
                   {
                     name: 'Healthcare',
                     icon: Cross,
-                    count: '12 Products',
-                    preview: ['Hospital ERP', 'EHR OPD Suite'],
+                    subtitle: 'Health & Medical Systems',
+                    slug: 'healthcare',
                     accent: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
                     border: 'hover:border-cyan-500/40 hover:shadow-[0_8px_25px_-5px_rgba(6,182,212,0.3)]',
-                    route: '/product-detail?id=hms-health'
                   },
                   {
                     name: 'Education',
                     icon: GraduationCap,
-                    count: '15 Products',
-                    preview: ['SchoolyCore ERP', 'Campus App'],
+                    subtitle: 'Education Technology',
+                    slug: 'education',
                     accent: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
                     border: 'hover:border-blue-500/40 hover:shadow-[0_8px_25px_-5px_rgba(59,130,246,0.3)]',
-                    route: '/product-detail?id=schoolycore-erp'
                   },
                   {
                     name: 'Hospitality',
                     icon: Hotel,
-                    count: '8 Solutions',
-                    preview: ['Hotel PMS', 'Restaurant POS'],
+                    subtitle: 'Hospitality & Tourism',
+                    slug: 'hospitality',
                     accent: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
                     border: 'hover:border-emerald-500/40 hover:shadow-[0_8px_25px_-5px_rgba(16,185,129,0.3)]',
-                    route: '/marketplace?category=industry&search=hospitality'
                   },
                   {
                     name: 'Real Estate',
                     icon: Building2,
-                    count: '10 Solutions',
-                    preview: ['Property CRM', 'Leasing Suite'],
+                    subtitle: 'Property & Real Estate',
+                    slug: 'real-estate',
                     accent: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
                     border: 'hover:border-purple-500/40 hover:shadow-[0_8px_25px_-5px_rgba(139,92,246,0.3)]',
-                    route: '/marketplace?category=industry&search=real%20estate'
                   },
                   {
                     name: 'Retail',
                     icon: ShoppingBag,
-                    count: '14 Products',
-                    preview: ['Omnichannel POS', 'Inventory Core'],
+                    subtitle: 'E-Commerce & Retail',
+                    slug: 'retail',
                     accent: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
                     border: 'hover:border-amber-500/40 hover:shadow-[0_8px_25px_-5px_rgba(245,158,11,0.3)]',
-                    route: '/product-detail?id=dezo-commerce-engine'
                   },
                   {
                     name: 'Manufacturing',
                     icon: Factory,
-                    count: '11 Solutions',
-                    preview: ['MRP Production', 'IoT Assembly'],
+                    subtitle: 'Industrial & Manufacturing',
+                    slug: 'manufacturing',
                     accent: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
                     border: 'hover:border-indigo-500/40 hover:shadow-[0_8px_25px_-5px_rgba(99,102,241,0.3)]',
-                    route: '/marketplace?category=industry&search=manufacturing'
                   },
                   {
                     name: 'Logistics',
                     icon: Truck,
-                    count: '9 Products',
-                    preview: ['WMS Warehouse', 'Fleet Dispatch'],
+                    subtitle: 'Supply Chain & Logistics',
+                    slug: 'logistics',
                     accent: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
                     border: 'hover:border-rose-500/40 hover:shadow-[0_8px_25px_-5px_rgba(244,63,94,0.3)]',
-                    route: '/product-detail?id=inventory-pro'
                   },
                   {
                     name: 'Government',
                     icon: Landmark,
-                    count: '7 Solutions',
-                    preview: ['Public Portal', 'Citizen Services'],
+                    subtitle: 'Public Sector & GovTech',
+                    slug: 'government',
                     accent: 'text-teal-400 bg-teal-500/10 border-teal-500/20',
                     border: 'hover:border-teal-500/40 hover:shadow-[0_8px_25px_-5px_rgba(20,184,166,0.3)]',
-                    route: '/marketplace?category=industry&search=government'
                   }
                 ].map((ind, idx) => {
                   const IconComp = ind.icon;
                   return (
                     <motion.div
                       key={idx}
-                      whileHover={{ scale: 1.02, y: -6 }}
-                      transition={{ duration: 0.3, ease: 'easeOut' }}
-                      onClick={() => navigateTo(ind.route)}
+                      whileHover={{ scale: 1.02, y: -4 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      onClick={() => navigateTo(`/marketplace?industry=${ind.slug}`)}
                       className={`p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/90 dark:border-slate-800 ${ind.border} hover:bg-blue-50/80 dark:hover:bg-gradient-to-b dark:hover:from-white/10 dark:hover:to-white/5 transition-all duration-300 cursor-pointer flex flex-col justify-between group/ind relative overflow-hidden backdrop-blur-md`}
                     >
                       {/* Floating Icon Header */}
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-2.5">
                         <motion.div
                           animate={{ y: [0, -3, 0] }}
                           transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut', delay: idx * 0.3 }}
@@ -512,22 +522,17 @@ export const MiddleGridSection: React.FC = React.memo(() => {
                         >
                           <IconComp className="w-3.5 h-3.5" />
                         </motion.div>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
-                          {ind.count}
-                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover/ind:text-blue-500 dark:group-hover/ind:text-cyan-400 group-hover/ind:translate-x-1 transition-all shrink-0" />
                       </div>
 
-                      {/* Title & Micro Hover Preview */}
+                      {/* Title & Micro Industry Vertical Subtitle */}
                       <div>
                         <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover/ind:text-blue-600 dark:group-hover/ind:text-blue-400 transition-colors">
                           {ind.name}
                         </h4>
-
-                        {/* Hover Preview Tooltip Bar */}
-                        <div className="mt-1 flex items-center justify-between text-[9px] font-semibold text-slate-400 group-hover/ind:text-slate-200 transition-colors">
-                          <span className="truncate">{ind.preview[0]}</span>
-                          <ChevronRight className="w-3 h-3 group-hover/ind:translate-x-0.5 transition-transform shrink-0" />
-                        </div>
+                        <p className="mt-0.5 text-[9px] font-semibold text-slate-400 group-hover/ind:text-slate-300 transition-colors truncate">
+                          {ind.subtitle}
+                        </p>
                       </div>
                     </motion.div>
                   );
@@ -538,7 +543,9 @@ export const MiddleGridSection: React.FC = React.memo(() => {
             {/* Bottom Actions */}
             <div className="pt-3.5 mt-4 border-t border-white/10 dark:border-white/5 flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400">
-                85+ Enterprise Apps
+                {totalAppsCount !== null
+                  ? `${totalAppsCount} Enterprise ${totalAppsCount === 1 ? 'App' : 'Apps'}`
+                  : 'Enterprise Solutions'}
               </span>
               <button
                 type="button"

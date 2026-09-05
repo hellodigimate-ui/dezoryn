@@ -105,16 +105,18 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
   }, []);
 
   const isNavItemActive = (item: NavItemData): boolean => {
-    if (item.route === '/') return currentRoute === '/' && !activeSection;
-    if (item.route === '/products') return currentRoute === '/products';
-    if (item.route === '/marketplace') return currentRoute === '/marketplace';
-    if (item.route === '/services') return currentRoute === '/services';
-    if (item.route === '/careers') return currentRoute === '/careers';
-    if (item.route === '/pricing') return currentRoute === '/pricing';
-    if (item.route === '/about') return currentRoute === '/about';
-    if (item.route === '/contact-sales') return currentRoute === '/contact-sales';
+    const cleanItemRoute = item.route.toLowerCase().split('?')[0].replace(/\/$/, '') || '/';
+    const cleanCurrent = currentRoute.toLowerCase().split('?')[0].replace(/\/$/, '') || '/';
+    if (cleanItemRoute === '/') return cleanCurrent === '/' && !activeSection;
+    if (cleanItemRoute === '/marketplace') return cleanCurrent === '/marketplace';
+    if (cleanItemRoute === '/products') return cleanCurrent === '/products';
+    if (cleanItemRoute === '/services') return cleanCurrent === '/services';
+    if (cleanItemRoute === '/careers') return cleanCurrent === '/careers';
+    if (cleanItemRoute === '/pricing') return cleanCurrent === '/pricing';
+    if (cleanItemRoute === '/about') return cleanCurrent === '/about';
+    if (cleanItemRoute === '/contact-sales') return cleanCurrent === '/contact-sales';
     if (item.route.startsWith('#')) return activeSection === item.route.replace('#', '');
-    return currentRoute === item.route;
+    return cleanCurrent === cleanItemRoute;
   };
 
   const handleNavClick = (e: React.MouseEvent, route: string) => {

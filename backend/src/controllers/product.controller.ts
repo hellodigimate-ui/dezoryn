@@ -34,7 +34,8 @@ export class ProductController {
       if (mobileApp !== undefined) filter.mobileApp = mobileApp === 'true';
       if (whatsAppIntegration !== undefined) filter.whatsAppIntegration = whatsAppIntegration === 'true';
 
-      if (industries) filter.industries = String(industries).split(',').filter(Boolean);
+      const rawIndustries = req.query.industry || req.query.industries;
+      if (rawIndustries) filter.industries = String(rawIndustries).split(',').map((s) => s.trim()).filter(Boolean);
       if (businessSizes) filter.businessSizes = String(businessSizes).split(',').filter(Boolean);
       if (deployments) filter.deployments = String(deployments).split(',').filter(Boolean);
       if (pricingTypes) filter.pricingTypes = String(pricingTypes).split(',').filter(Boolean);
