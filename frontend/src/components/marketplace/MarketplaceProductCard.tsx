@@ -57,24 +57,55 @@ const renderCategoryIcon = (iconName: string | React.ReactNode) => {
 
 // Clean preview graphic for product card with Lazy Loading
 const ProductScreenshotPreview: React.FC<{ product: MarketplaceProduct }> = ({ product }) => {
-  const rawImage = product.thumbnail || product.image || product.coverPhoto;
-  const imageUrl = rawImage ? resolveMediaUrl(rawImage) : '';
+  const candidateUrls = React.useMemo(() => {
+    const rawList = [product.coverPhoto, product.thumbnail, product.image].filter(Boolean) as string[];
+    // Prioritize cloud/CDN URLs (http/https) first
+    const sorted = [...rawList].sort((a, b) => {
+      const aIsHttp = a.startsWith('http://') || a.startsWith('https://');
+      const bIsHttp = b.startsWith('http://') || b.startsWith('https://');
+      if (aIsHttp && !bIsHttp) return -1;
+      if (!aIsHttp && bIsHttp) return 1;
+      return 0;
+    });
+    return Array.from(new Set(sorted.map(url => resolveMediaUrl(url))));
+  }, [product.thumbnail, product.image, product.coverPhoto]);
+
+  const [activeIdx, setActiveIdx] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Reset index if product changes
+  React.useEffect(() => {
+    setActiveIdx(0);
+    setIsLoaded(false);
+  }, [product.id, product.thumbnail, product.image, product.coverPhoto]);
+
+  const currentUrl = candidateUrls[activeIdx] || '';
+  const hasValidCandidate = Boolean(currentUrl) && activeIdx < candidateUrls.length;
+
+  const handleError = () => {
+    if (activeIdx < candidateUrls.length - 1) {
+      setActiveIdx(prev => prev + 1);
+      setIsLoaded(false);
+    } else {
+      setActiveIdx(candidateUrls.length);
+    }
+  };
 
   return (
     <div className="relative w-full h-44 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 overflow-hidden rounded-t-3xl border-b border-slate-800/80 group">
-      {imageUrl ? (
+      {hasValidCandidate ? (
         <div className="relative w-full h-full overflow-hidden bg-slate-950">
           {!isLoaded && (
             <div className="absolute inset-0 bg-slate-800 animate-pulse" />
           )}
           <img
-            src={imageUrl}
+            key={currentUrl}
+            src={currentUrl}
             alt={product.title}
             loading="lazy"
             decoding="async"
             onLoad={() => setIsLoaded(true)}
-            onError={() => setIsLoaded(false)}
+            onError={handleError}
             className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${
               isLoaded ? 'opacity-100' : 'opacity-0'
             }`}

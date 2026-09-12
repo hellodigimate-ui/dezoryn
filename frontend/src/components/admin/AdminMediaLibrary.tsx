@@ -39,6 +39,7 @@ export const AdminMediaLibrary: React.FC = () => {
   const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<MediaItem | null>(null);
   const [replaceItem, setReplaceItem] = useState<MediaItem | null>(null);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   // Upload modal state
   const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
@@ -139,8 +140,9 @@ export const AdminMediaLibrary: React.FC = () => {
     }
   };
 
-  const handleReplaceSubmit = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!replaceItem) return;
+  const handleReplaceSubmit = async (e: React.ChangeEvent<HTMLInputElement>, itemToReplace?: MediaItem) => {
+    const target = itemToReplace || replaceItem;
+    if (!target) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -149,14 +151,15 @@ export const AdminMediaLibrary: React.FC = () => {
     formData.append('file', file);
 
     try {
-      const res = await apiFetch(`${API_MEDIA}/${replaceItem.id}`, {
+      const res = await apiFetch(`${API_MEDIA}/${target.id}`, {
         method: 'PUT',
         body: formData,
       });
       const data = await res.json();
       if (data.success) {
-        showMsg('success', 'Asset replaced successfully');
+        showMsg('success', 'Asset replaced and uploaded to CDN successfully');
         setReplaceItem(null);
+        setFailedImages(prev => ({ ...prev, [target.id]: false }));
         notifyMediaUpdates();
         fetchMedia();
       } else {
@@ -418,13 +421,40 @@ export const AdminMediaLibrary: React.FC = () => {
                 onClick={() => setPreviewItem(item)}
                 className="w-full aspect-square rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 overflow-hidden relative cursor-pointer flex items-center justify-center group-hover:border-cyan-500/50 transition"
               >
-                {isImageItem(item) ? (
+                {isImageItem(item) && !failedImages[item.id] ? (
                   <img
                     src={getMediaUrl(item.url)}
                     alt={item.filename}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
+                    onError={() => setFailedImages(prev => ({ ...prev, [item.id]: true }))}
                   />
+                ) : isImageItem(item) ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-slate-900/90 group-hover:bg-slate-900 transition">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-1.5 shadow-sm">
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30">
+                      Missing on Disk
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-1 max-w-[120px] truncate font-medium">
+                      {item.originalName || item.filename}
+                    </span>
+                    <label
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-2.5 px-2.5 py-1 rounded-lg bg-cyan-600/25 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-500/40 text-[10px] font-black tracking-wide uppercase transition cursor-pointer flex items-center gap-1 shadow-sm"
+                      title="Upload and restore image file"
+                    >
+                      <Upload className="w-3 h-3" />
+                      <span>Upload File</span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => handleReplaceSubmit(e, item)}
+                      />
+                    </label>
+                  </div>
                 ) : isVideoItem(item) ? (
                   <video
                     src={getMediaUrl(item.url)}
@@ -503,10 +533,7 @@ export const AdminMediaLibrary: React.FC = () => {
                     <input
                       type="file"
                       className="hidden"
-                      onChange={e => {
-                        setReplaceItem(item);
-                        handleReplaceSubmit(e);
-                      }}
+                      onChange={e => handleReplaceSubmit(e, item)}
                     />
                   </label>
 
@@ -624,9 +651,39 @@ export const AdminMediaLibrary: React.FC = () => {
               </div>
 
               <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-                <div className="w-full h-80 rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center overflow-hidden">
-                  {isImageItem(previewItem) ? (
-                    <img src={getMediaUrl(previewItem.url)} alt={previewItem.filename} className="max-w-full max-h-full object-contain" />
+                <div className="w-full h-80 rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center overflow-hidden relative">
+                  {isImageItem(previewItem) && !failedImages[previewItem.id] ? (
+                    <img
+                      src={getMediaUrl(previewItem.url)}
+                      alt={previewItem.filename}
+                      className="max-w-full max-h-full object-contain"
+                      onError={() => setFailedImages(prev => ({ ...prev, [previewItem.id]: true }))}
+                    />
+                  ) : isImageItem(previewItem) ? (
+                    <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                        <AlertTriangle className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-black text-slate-900 dark:text-white">Physical File Not Found on Server</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mt-1 leading-relaxed">
+                          This asset is recorded in the PostgreSQL database at <code className="text-cyan-400 font-mono text-[11px] bg-cyan-950/40 px-1 py-0.5 rounded">{previewItem.url}</code>, but the file was not found on local disk.
+                        </p>
+                      </div>
+                      <label className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-black text-xs shadow-lg flex items-center gap-2 cursor-pointer transition">
+                        <Upload className="w-4 h-4" />
+                        <span>Upload & Fix This Asset</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={e => {
+                            handleReplaceSubmit(e, previewItem);
+                            setPreviewItem(null);
+                          }}
+                        />
+                      </label>
+                    </div>
                   ) : isVideoItem(previewItem) ? (
                     <video
                       key={previewItem.id}
@@ -690,8 +747,15 @@ export const AdminMediaLibrary: React.FC = () => {
 
               {/* Asset Preview Thumbnail */}
               <div className="w-24 h-24 rounded-2xl mx-auto bg-slate-100 dark:bg-slate-950 border-2 border-red-500/40 overflow-hidden flex items-center justify-center relative shadow-inner">
-                {isImageItem(deleteConfirm) ? (
-                  <img src={getMediaUrl(deleteConfirm.url)} alt={deleteConfirm.filename} className="w-full h-full object-cover" />
+                {isImageItem(deleteConfirm) && !failedImages[deleteConfirm.id] ? (
+                  <img
+                    src={getMediaUrl(deleteConfirm.url)}
+                    alt={deleteConfirm.filename}
+                    className="w-full h-full object-cover"
+                    onError={() => setFailedImages(prev => ({ ...prev, [deleteConfirm.id]: true }))}
+                  />
+                ) : isImageItem(deleteConfirm) ? (
+                  <ImageIcon className="w-10 h-10 text-amber-400" />
                 ) : isVideoItem(deleteConfirm) ? (
                   <VideoIcon className="w-10 h-10 text-purple-400" />
                 ) : (

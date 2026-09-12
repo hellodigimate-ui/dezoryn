@@ -30,7 +30,10 @@ import {
   Check,
   FileText,
   Film,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  ArrowRight
 } from 'lucide-react';
 import { DEFAULT_HERO_CMS, type MarketplaceHeroCMSConfig } from '../marketplace/MarketplaceHero';
 import { AdminMarketplaceAnalytics } from './AdminMarketplaceAnalytics';
@@ -182,6 +185,157 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
     setMediaPickerTarget(target);
     setIsMediaPickerOpen(true);
   }, []);
+
+  // ── MODULE TABS SLIDER CONTROLS ──
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState<boolean>(false);
+  const [canScrollRight, setCanScrollRight] = useState<boolean>(false);
+  const [scrollProgress, setScrollProgress] = useState<number>(0);
+  const [isTabsDragging, setIsTabsDragging] = useState<boolean>(false);
+  const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
+  const [tabsStartX, setTabsStartX] = useState<number>(0);
+  const [tabsScrollLeftStart, setTabsScrollLeftStart] = useState<number>(0);
+  const [tabsHasDragged, setTabsHasDragged] = useState<boolean>(false);
+
+  const checkTabScroll = useCallback(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setCanScrollLeft(el.scrollLeft > 10);
+    setCanScrollRight(maxScroll > 10 && el.scrollLeft < maxScroll - 10);
+    if (maxScroll > 0) {
+      setScrollProgress(Math.min(100, Math.max(0, (el.scrollLeft / maxScroll) * 100)));
+    } else {
+      setScrollProgress(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    const check = () => checkTabScroll();
+    const timer1 = setTimeout(check, 50);
+    const timer2 = setTimeout(check, 250);
+    const timer3 = setTimeout(check, 800);
+    const el = tabsContainerRef.current;
+    if (!el) return () => { clearTimeout(timer1); clearTimeout(timer2); clearTimeout(timer3); };
+
+    window.addEventListener('resize', check);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      window.removeEventListener('resize', check);
+    };
+  }, [checkTabScroll, products.length]);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (!tabsContainerRef.current) return;
+    const offset = direction === 'left' ? -320 : 320;
+    tabsContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    setTimeout(checkTabScroll, 320);
+  };
+
+  const handleTabsWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.deltaY !== 0 && tabsContainerRef.current) {
+      tabsContainerRef.current.scrollLeft += e.deltaY;
+      checkTabScroll();
+    }
+  };
+
+  // ── DRAG DIRECTLY ON TABS STRIP ──
+  const handleTabsPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    setIsTabsDragging(true);
+    setTabsHasDragged(false);
+    setTabsStartX(e.clientX);
+    setTabsScrollLeftStart(el.scrollLeft);
+  };
+
+  const handleTabsPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isTabsDragging || !tabsContainerRef.current) return;
+    const deltaX = e.clientX - tabsStartX;
+    if (Math.abs(deltaX) > 4) {
+      if (!tabsHasDragged) {
+        setTabsHasDragged(true);
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch (_err) {}
+      }
+      e.preventDefault();
+      tabsContainerRef.current.scrollLeft = tabsScrollLeftStart - deltaX * 1.5;
+      checkTabScroll();
+    }
+  };
+
+  const handleTabsPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isTabsDragging) {
+      setIsTabsDragging(false);
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch (_err) {}
+      setTimeout(() => setTabsHasDragged(false), 60);
+      checkTabScroll();
+    }
+  };
+
+  const handleTabClick = (modId: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    if (tabsHasDragged) {
+      return;
+    }
+    setActiveModule(modId);
+    e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    setTimeout(checkTabScroll, 350);
+  };
+
+  // ── DRAG & CLICK ON SLIDER TRACK / SCRUBBER BAR ──
+  const seekToTrackPosition = (clientX: number) => {
+    const el = tabsContainerRef.current;
+    const track = trackRef.current;
+    if (!el || !track) return;
+    const rect = track.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    if (maxScroll > 0) {
+      el.scrollLeft = ratio * maxScroll;
+      const progress = Math.min(100, Math.max(0, ratio * 100));
+      setScrollProgress(progress);
+      setCanScrollLeft(el.scrollLeft > 10);
+      setCanScrollRight(el.scrollLeft < maxScroll - 10);
+    }
+  };
+
+  const handleTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsScrubbing(true);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (_err) {}
+    seekToTrackPosition(e.clientX);
+  };
+
+  const handleTrackPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbing) return;
+    e.preventDefault();
+    seekToTrackPosition(e.clientX);
+  };
+
+  const handleTrackPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isScrubbing) {
+      setIsScrubbing(false);
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch (_err) {}
+      checkTabScroll();
+    }
+  };
 
   // Filter lists configuration
   const [categoriesList, setCategoriesList] = useState<string[]>([
@@ -683,34 +837,163 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
         </div>
       </div>
 
-      {/* ── MODULE TABS SELECTOR STRIP ── */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap pb-3 mb-6 sm:mb-8 border-b border-slate-200 dark:border-slate-800/80 -mx-4 px-4 sm:mx-0 sm:px-0">
-        {MODULES.map((mod) => {
-          const Icon = mod.icon;
-          const isActive = activeModule === mod.id;
-          return (
-            <button
-              key={mod.id}
-              type="button"
-              onClick={() => setActiveModule(mod.id)}
-              className={`px-3.5 sm:px-4 py-2.5 rounded-2xl text-xs font-black transition cursor-pointer flex items-center gap-2 shrink-0 border ${
-                isActive
-                  ? 'bg-blue-600/10 dark:bg-blue-600/20 text-blue-600 dark:text-cyan-300 border-blue-500/30 dark:border-cyan-400/50 shadow-xs'
-                  : 'bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
-              }`}
+      {/* ── MODULE TABS SELECTOR STRIP WITH INTERACTIVE SLIDER ── */}
+      <div className="relative mb-6 sm:mb-8">
+        {/* Left Scroll Button & Fade Gradient */}
+        <AnimatePresence>
+          {canScrollLeft && (
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              className="absolute left-0 top-0 bottom-6 z-20 flex items-center pr-8 bg-gradient-to-r from-slate-50 via-slate-50/95 to-transparent dark:from-slate-950 dark:via-slate-950/95 dark:to-transparent pointer-events-none"
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600 dark:text-cyan-400' : 'text-slate-400'}`} />
-              <span>{mod.label}</span>
-              {mod.badge && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                  mod.badgeColor || 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                }`}>
-                  {mod.badge}
-                </span>
-              )}
+              <button
+                type="button"
+                onClick={() => scrollTabs('left')}
+                className="pointer-events-auto w-8 h-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-cyan-400 hover:border-cyan-500/50 shadow-md flex items-center justify-center transition cursor-pointer active:scale-95"
+                title="Scroll left"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Right Scroll Button & Fade Gradient */}
+        <AnimatePresence>
+          {canScrollRight && (
+            <motion.div
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 8 }}
+              className="absolute right-0 top-0 bottom-6 z-20 flex items-center pl-8 bg-gradient-to-l from-slate-50 via-slate-50/95 to-transparent dark:from-slate-950 dark:via-slate-950/95 dark:to-transparent pointer-events-none"
+            >
+              <button
+                type="button"
+                onClick={() => scrollTabs('right')}
+                className="pointer-events-auto w-8 h-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-cyan-400 hover:border-cyan-500/50 shadow-md flex items-center justify-center transition cursor-pointer active:scale-95"
+                title="Scroll right"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Scrollable Tabs Track */}
+        <div
+          ref={tabsContainerRef}
+          onScroll={checkTabScroll}
+          onWheel={handleTabsWheel}
+          onPointerDown={handleTabsPointerDown}
+          onPointerMove={handleTabsPointerMove}
+          onPointerUp={handleTabsPointerUp}
+          onPointerCancel={handleTabsPointerUp}
+          style={{ scrollBehavior: isTabsDragging || isScrubbing ? 'auto' : 'smooth' }}
+          className={`flex items-center gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden whitespace-nowrap pb-2.5 border-b border-slate-200 dark:border-slate-800/80 -mx-4 px-4 sm:mx-0 sm:px-0 select-none ${
+            isTabsDragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+        >
+          {MODULES.map((mod) => {
+            const Icon = mod.icon;
+            const isActive = activeModule === mod.id;
+            return (
+              <button
+                key={mod.id}
+                type="button"
+                onClick={(e) => handleTabClick(mod.id, e)}
+                className={`px-3.5 sm:px-4 py-2.5 rounded-2xl text-xs font-black transition-all duration-200 cursor-pointer flex items-center gap-2 shrink-0 border relative ${
+                  isActive
+                    ? 'bg-blue-600/10 dark:bg-cyan-500/15 text-blue-600 dark:text-cyan-300 border-blue-500/40 dark:border-cyan-400/60 shadow-xs ring-1 ring-blue-500/20 dark:ring-cyan-400/20'
+                    : 'bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600 dark:text-cyan-400' : 'text-slate-400'}`} />
+                <span>{mod.label}</span>
+                {mod.badge && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                    mod.badgeColor || 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                  }`}>
+                    {mod.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── HIGH-END ULTRA-SLIM INTERACTIVE SLIDER SCRUBBER BAR ── */}
+        <div className="flex items-center justify-between mt-3 px-1">
+          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 select-none">
+            <span className="inline-block w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)] animate-pulse" />
+            <span className="tracking-wide uppercase text-[10px] text-slate-400 dark:text-slate-500 font-extrabold">{MODULES.length} Modules</span>
+          </div>
+
+          <div className="flex items-center gap-3 flex-1 max-w-sm sm:max-w-md mx-3 sm:mx-6">
+            <button
+              type="button"
+              onClick={() => scrollTabs('left')}
+              disabled={!canScrollLeft}
+              aria-label="Previous tabs"
+              className="p-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-cyan-400 hover:border-cyan-500/50 shadow-xs transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-          );
-        })}
+
+            {/* Micro Slider Track Container with generous click/drag hit box */}
+            <div
+              ref={trackRef}
+              onPointerDown={handleTrackPointerDown}
+              onPointerMove={handleTrackPointerMove}
+              onPointerUp={handleTrackPointerUp}
+              onPointerCancel={handleTrackPointerUp}
+              className="flex-1 py-3 cursor-pointer group flex items-center relative touch-none select-none"
+              title="Click or drag with mouse to slide modules"
+            >
+              {/* Visible Track Groove */}
+              <div className="w-full h-2 bg-slate-200 dark:bg-slate-800/90 rounded-full relative overflow-hidden border border-slate-300/40 dark:border-slate-700/60 shadow-inner group-hover:h-2.5 transition-all duration-150">
+                {/* Active Highlight Fill */}
+                <div
+                  className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-blue-600/30 via-cyan-500/35 to-blue-500/30 rounded-full transition-all duration-75"
+                  style={{ width: `${scrollProgress}%` }}
+                />
+
+                {/* Draggable Slider Pill Thumb */}
+                <div
+                  className={`absolute top-0 bottom-0 bg-gradient-to-r from-blue-600 via-cyan-400 to-indigo-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.6)] flex items-center justify-center transition-all ${
+                    isScrubbing ? 'brightness-125 scale-y-110 shadow-[0_0_16px_rgba(6,182,212,0.9)]' : 'group-hover:brightness-110'
+                  }`}
+                  style={{
+                    width: `${Math.max(20, Math.min(50, (tabsContainerRef.current ? (tabsContainerRef.current.clientWidth / tabsContainerRef.current.scrollWidth) * 100 : 30)))}%`,
+                    left: `${(scrollProgress / 100) * (100 - Math.max(20, Math.min(50, (tabsContainerRef.current ? (tabsContainerRef.current.clientWidth / tabsContainerRef.current.scrollWidth) * 100 : 30))))}%`
+                  }}
+                >
+                  <div className="flex items-center gap-0.5 opacity-80">
+                    <div className="w-0.5 h-1 bg-white rounded-full" />
+                    <div className="w-0.5 h-1 bg-white rounded-full" />
+                    <div className="w-0.5 h-1 bg-white rounded-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => scrollTabs('right')}
+              disabled={!canScrollRight}
+              aria-label="Next tabs"
+              className="p-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-cyan-400 hover:border-cyan-500/50 shadow-xs transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider select-none">
+            <span>Drag slider or click tabs</span>
+            <ArrowRight className="w-3 h-3 text-cyan-500" />
+          </div>
+        </div>
       </div>
 
       {/* ── MODULE 1: DASHBOARD ── */}
@@ -784,7 +1067,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
           </div>
 
           <div className="bg-white dark:bg-slate-900/80 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs dark:shadow-xl overflow-hidden transition-colors">
-            <div className="overflow-x-auto no-scrollbar">
+            <div className="overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <table className="w-full border-collapse text-left text-xs min-w-[700px]">
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 uppercase font-black tracking-wider text-[10px]">
@@ -2006,7 +2289,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-200 dark:border-slate-800 pb-2">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-b border-slate-200 dark:border-slate-800 pb-2">
                 {[
                   { id: 'basic', label: '1. Basic Info & Slugs', icon: Layers },
                   { id: 'pricing', label: '2. Pricing & Links', icon: IndianRupee },
