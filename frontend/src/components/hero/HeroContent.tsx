@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { ArrowRight, CheckCircle2, ShieldCheck, Zap, TrendingUp } from 'lucide-react';
 import { useNavigation } from '../../utils/NavigationContext';
-import { apiFetch } from '../../config/api.config';
+import { cachedApiFetch } from '../../config/api.config';
 
 
 const DEFAULT_HERO_DATA = {
@@ -234,7 +234,7 @@ export const HeroContent: React.FC = React.memo(() => {
   });
 
   const fetchHeroData = () => {
-    apiFetch('/hero', { cache: 'no-store' })
+    cachedApiFetch('/hero')
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.data) {

@@ -7,7 +7,7 @@ import {
 
 import { useNavigation } from '../../utils/NavigationContext';
 
-import { API_URL, apiFetch } from '../../config/api.config';
+import { API_URL, cachedApiFetch } from '../../config/api.config';
 
 const API = `${API_URL}/faqs`;
 
@@ -82,7 +82,7 @@ export const FAQSection: React.FC = () => {
   const fetchFaqs = async () => {
     setLoading(true);
     try {
-      const res = await apiFetch(API);
+      const res = await cachedApiFetch(API);
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
         const sorted = data.data.sort((a: FAQItem, b: FAQItem) => a.order - b.order);
@@ -100,8 +100,6 @@ export const FAQSection: React.FC = () => {
 
   useEffect(() => {
     fetchFaqs();
-    window.addEventListener('focus', fetchFaqs);
-    return () => window.removeEventListener('focus', fetchFaqs);
   }, []);
 
   const categories = ['All', ...Array.from(new Set(faqs.map(item => item.category)))];

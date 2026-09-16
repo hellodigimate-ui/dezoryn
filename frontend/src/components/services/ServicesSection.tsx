@@ -24,7 +24,7 @@ import {
   Lock
 } from 'lucide-react';
 import { useNavigation } from '../../utils/NavigationContext';
-import { apiFetch } from '../../config/api.config';
+import { cachedApiFetch } from '../../config/api.config';
 import type { ServiceCategory } from './ServicesPage';
 
 
@@ -179,7 +179,7 @@ export const ServicesSection: React.FC = () => {
   useEffect(() => {
     const fetchHomepageServices = async () => {
       try {
-        const res = await apiFetch('/services?enabled=true', { cache: 'no-store' });
+        const res = await cachedApiFetch('/services?enabled=true');
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {
           const mapped: ServiceCategory[] = data.data.slice(0, 4).map((item: any, idx: number) => ({

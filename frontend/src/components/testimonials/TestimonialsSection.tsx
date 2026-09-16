@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Quote, ChevronLeft, ChevronRight } from 'lucide-react';
 
-import { API_URL, apiFetch } from '../../config/api.config';
+import { API_URL, cachedApiFetch } from '../../config/api.config';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 const API = `${API_URL}/testimonials?enabled=true`;
@@ -44,7 +44,7 @@ export const TestimonialsSection: React.FC = () => {
   const [direction, setDirection] = useState(1);
 
   const fetchTestimonials = () => {
-    apiFetch(API)
+    cachedApiFetch(API)
       .then(r => r.json())
       .then(data => {
         if (data.success && Array.isArray(data.data)) {

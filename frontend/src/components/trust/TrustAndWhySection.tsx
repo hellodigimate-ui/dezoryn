@@ -22,7 +22,7 @@ import {
   User
 } from 'lucide-react';
 
-import { API_URL, apiFetch } from '../../config/api.config';
+import { API_URL, cachedApiFetch } from '../../config/api.config';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 interface Testimonial {
@@ -113,7 +113,7 @@ export const TrustAndWhySection: React.FC = () => {
 
   const fetchLiveTestimonials = async () => {
     try {
-      const res = await apiFetch(`${API_URL}/testimonials?enabled=true`);
+      const res = await cachedApiFetch(`${API_URL}/testimonials?enabled=true`);
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
         const mapped: Testimonial[] = data.data.map((item: any) => ({

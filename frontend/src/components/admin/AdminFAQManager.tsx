@@ -6,7 +6,7 @@ import {
   Copy, Search, Filter, ArrowUp, ArrowDown, ChevronDown, ChevronUp,
   Tag, Layers, Sparkles, AlertCircle, AlertTriangle
 } from 'lucide-react';
-import { openAdminAIAssistant } from './AdminLayout';
+import { openAdminAIAssistant } from '../../utils/adminEvents';
 
 import { API_URL, apiFetch } from '../../config/api.config';
 

@@ -16,7 +16,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { apiFetch } from '../../config/api.config';
-import { openAdminAIAssistant } from './AdminLayout';
+import { openAdminAIAssistant } from '../../utils/adminEvents';
 
 export interface StatCardItem {
   id: string;

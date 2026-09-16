@@ -25,7 +25,7 @@ import {
 
 import { useNavigation } from '../../utils/NavigationContext';
 
-import { API_URL, apiFetch } from '../../config/api.config';
+import { API_URL, apiFetch, cachedApiFetch } from '../../config/api.config';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 
@@ -149,7 +149,7 @@ export const MiddleGridSection: React.FC = React.memo(() => {
   useEffect(() => {
     const fetchDemos = async () => {
       try {
-        const res = await apiFetch(`${API_URL}/demos?active=true`);
+        const res = await cachedApiFetch(`${API_URL}/demos?active=true`);
         const data = await res.json();
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
           setDemos(data.data);
@@ -161,10 +161,10 @@ export const MiddleGridSection: React.FC = React.memo(() => {
 
     fetchDemos();
 
-    // Fetch dynamic product catalog count from PostgreSQL database
+    // Fetch dynamic product catalog count from PostgreSQL database with caching
     const fetchProductCount = async () => {
       try {
-        const res = await apiFetch('/products');
+        const res = await cachedApiFetch('/products');
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {
           setTotalAppsCount(data.data.length);

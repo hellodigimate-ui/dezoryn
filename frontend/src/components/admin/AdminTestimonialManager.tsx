@@ -6,7 +6,7 @@ import {
   User, Building2, Briefcase, GripVertical, Sparkles, Image, Link as LinkIcon,
   AlertTriangle, Quote, FolderPlus
 } from 'lucide-react';
-import { openAdminAIAssistant } from './AdminLayout';
+import { openAdminAIAssistant } from '../../utils/adminEvents';
 import { MediaPickerModal } from './MediaPickerModal';
 
 import { API_URL, apiFetch } from '../../config/api.config';

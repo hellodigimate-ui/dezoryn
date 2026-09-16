@@ -17,7 +17,7 @@ import {
   Star,
   RefreshCw
 } from 'lucide-react';
-import { openAdminAIAssistant } from './AdminLayout';
+import { openAdminAIAssistant } from '../../utils/adminEvents';
 import { API_URL, apiFetch } from '../../config/api.config';
 
 interface AdminOverviewProps {

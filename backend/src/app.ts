@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import path from 'path';
 import { env } from './config/env.config';
 import routes from './routes';
@@ -15,6 +16,23 @@ const app: Application = express();
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
+
+// Gzip Compression for fast responses and minimal bandwidth
+app.use(compression());
+
+// Smart HTTP Cache-Control for fast page loads and CDN edge caching
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.headers.authorization) {
+    if (req.query._t) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
+    }
+  } else {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  }
+  next();
+});
 
 // CORS Configuration
 const allowedOrigins = [

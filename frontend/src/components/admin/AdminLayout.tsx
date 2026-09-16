@@ -26,17 +26,8 @@ import type { AIGenerateType } from './AdminAIAssistantModal';
 import { useNavigation } from '../../utils/NavigationContext';
 import { applyGlobalTheme } from '../../utils/themeUtils';
 
-export interface openAIModalDetail {
-  type?: AIGenerateType;
-  topic?: string;
-  onInsert?: (fieldType: string, value: any) => void;
-}
-
-export const openAdminAIAssistant = (detail?: openAIModalDetail) => {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('open-admin-ai-assistant', { detail }));
-  }
-};
+import { openAdminAIAssistant, type openAIModalDetail } from '../../utils/adminEvents';
+export { openAdminAIAssistant, type openAIModalDetail };
 
 interface AdminLayoutProps {
   initialRole?: string;

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { useNavigation, type AppRoute } from '../../utils/NavigationContext';
 import { useSiteSettings } from '../../hooks/useSiteSettings';
-import { apiFetch } from '../../config/api.config';
+import { cachedApiFetch } from '../../config/api.config';
 
 
 interface NavItemData {
@@ -46,9 +46,9 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
     setLogoError(false);
   }, [siteSettings.logoUrl]);
 
-  // Fetch navigation items from backend CMS API
+  // Fetch navigation items from backend CMS API with caching
   useEffect(() => {
-    apiFetch('/nav')
+    cachedApiFetch('/nav')
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {

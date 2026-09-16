@@ -7,7 +7,7 @@ import {
   Zap, Bot, TrendingUp, ShieldCheck, Globe, Layers,
   BarChart3, Lock, Database, Cpu, Wifi, Cloud, Sparkles, AlertTriangle, Upload
 } from 'lucide-react';
-import { openAdminAIAssistant } from './AdminLayout';
+import { openAdminAIAssistant } from '../../utils/adminEvents';
 
 import { API_URL, apiFetch } from '../../config/api.config';
 

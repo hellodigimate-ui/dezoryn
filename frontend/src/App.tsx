@@ -8,38 +8,46 @@ import { cachedApiFetch } from './config/api.config';
 
 import { AnnouncementBar } from './components/common/AnnouncementBar';
 import { MaintenancePage } from './components/common/MaintenancePage';
-import {
-  Navbar,
-  BackgroundParticles,
-  HeroSection,
-  MarketplacePage,
-  ProductDetailPage,
-  ProductsPage,
-  BookDemoPage,
-  ContactSalesPage,
-  AboutUsPage,
-  PricingPage,
-  ServicesPage,
-  ServicesSection,
-  CareersPage,
-  StatsBanner,
-  AboutSection,
-  MarketplaceSection,
-  MiddleGridSection,
-  TrustAndWhySection,
-  BottomFeatureStrip,
-  FinalCTABanner,
-  FAQSection,
-  Footer,
-  DezoAIWidget,
-  AdminLogin,
-  AdminLayout,
-  SupportPage,
-  TestimonialsSection
-} from './components';
+import { Navbar } from './components/navbar';
+import { BackgroundParticles } from './components/background';
+import { HeroSection } from './components/hero';
+import { ServicesSection } from './components/services/ServicesSection';
+import { StatsBanner } from './components/stats';
+import { AboutSection } from './components/about/AboutSection';
+import { MarketplaceSection } from './components/marketplace/MarketplaceSection';
+import { MiddleGridSection } from './components/middle/MiddleGridSection';
+import { TrustAndWhySection } from './components/trust/TrustAndWhySection';
+import { BottomFeatureStrip } from './components/bottom/BottomFeatureStrip';
+import { FinalCTABanner } from './components/cta/FinalCTABanner';
+import { FAQSection } from './components/faq/FAQSection';
+import { Footer } from './components/footer';
+import { DezoAIWidget } from './components/ai/DezoAIWidget';
+import { TestimonialsSection } from './components/testimonials/TestimonialsSection';
 import { PlaceholderPage } from './components/common/PlaceholderPage';
 import { NotFoundPage } from './components/common/NotFoundPage';
 import { applyGlobalTheme, resolveEffectiveMode, type ThemeSettingsData } from './utils/themeUtils';
+
+// Loading fallback for lazy loaded route chunks
+const RouteLoadingFallback: React.FC = () => (
+  <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3 py-16">
+    <div className="w-8 h-8 rounded-full border-2 border-cyan-500/20 border-t-cyan-500 animate-spin" />
+    <span className="text-xs font-bold text-slate-400">Loading module...</span>
+  </div>
+);
+
+// Code-split heavy secondary pages and admin panels for instant page reloads
+const AdminLayout = React.lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const AdminLogin = React.lazy(() => import('./components/admin/AdminLogin').then(m => ({ default: m.AdminLogin })));
+const MarketplacePage = React.lazy(() => import('./components/marketplace/MarketplacePage').then(m => ({ default: m.MarketplacePage })));
+const ProductDetailPage = React.lazy(() => import('./components/marketplace/ProductDetailPage').then(m => ({ default: m.ProductDetailPage })));
+const ProductsPage = React.lazy(() => import('./components/products/ProductsPage').then(m => ({ default: m.ProductsPage })));
+const PricingPage = React.lazy(() => import('./components/pricing/PricingPage').then(m => ({ default: m.PricingPage })));
+const ContactSalesPage = React.lazy(() => import('./components/contact/ContactSalesPage').then(m => ({ default: m.ContactSalesPage })));
+const BookDemoPage = React.lazy(() => import('./components/booking/BookDemoPage').then(m => ({ default: m.BookDemoPage })));
+const ServicesPage = React.lazy(() => import('./components/services/ServicesPage').then(m => ({ default: m.ServicesPage })));
+const SupportPage = React.lazy(() => import('./components/support/SupportPage').then(m => ({ default: m.SupportPage })));
+const CareersPage = React.lazy(() => import('./components/careers/CareersSection').then(m => ({ default: m.CareersPage })));
+const AboutUsPage = React.lazy(() => import('./components/about/AboutUsPage').then(m => ({ default: m.AboutUsPage })));
 
 
 export const App: React.FC = () => {
@@ -166,10 +174,8 @@ export const App: React.FC = () => {
     };
 
     window.addEventListener('dezo-theme-updated', handleThemeUpdated);
-    window.addEventListener('focus', fetchThemeConfig);
     return () => {
       window.removeEventListener('dezo-theme-updated', handleThemeUpdated);
-      window.removeEventListener('focus', fetchThemeConfig);
     };
   }, []);
 
@@ -186,21 +192,25 @@ export const App: React.FC = () => {
     if (token && currentRoute === '/admin') {
       return (
         <NavigationContext.Provider value={{ currentRoute, activeSection, navigateTo }}>
-          <AdminLayout
-            initialRole={adminUserRole}
-            onLogout={() => navigateTo('/admin/login')}
-          />
+          <React.Suspense fallback={<RouteLoadingFallback />}>
+            <AdminLayout
+              initialRole={adminUserRole}
+              onLogout={() => navigateTo('/admin/login')}
+            />
+          </React.Suspense>
         </NavigationContext.Provider>
       );
     }
     return (
       <NavigationContext.Provider value={{ currentRoute, activeSection, navigateTo }}>
-        <AdminLogin
-          onLoginSuccess={(role) => {
-            if (role) setAdminUserRole(role);
-            navigateTo('/admin/dashboard');
-          }}
-        />
+        <React.Suspense fallback={<RouteLoadingFallback />}>
+          <AdminLogin
+            onLoginSuccess={(role) => {
+              if (role) setAdminUserRole(role);
+              navigateTo('/admin/dashboard');
+            }}
+          />
+        </React.Suspense>
       </NavigationContext.Provider>
     );
   }
@@ -209,11 +219,13 @@ export const App: React.FC = () => {
     const targetTab = currentRoute === '/admin/services' ? 'services' : 'overview';
     return (
       <NavigationContext.Provider value={{ currentRoute, activeSection, navigateTo }}>
-        <AdminLayout
-          initialRole={adminUserRole}
-          initialTab={targetTab}
-          onLogout={() => navigateTo('/admin/login')}
-        />
+        <React.Suspense fallback={<RouteLoadingFallback />}>
+          <AdminLayout
+            initialRole={adminUserRole}
+            initialTab={targetTab}
+            onLogout={() => navigateTo('/admin/login')}
+          />
+        </React.Suspense>
       </NavigationContext.Provider>
     );
   }
@@ -257,7 +269,9 @@ export const App: React.FC = () => {
               exit="exit"
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <MarketplacePage />
+              <React.Suspense fallback={<RouteLoadingFallback />}>
+                <MarketplacePage />
+              </React.Suspense>
             </motion.main>
           )}
 
@@ -270,7 +284,9 @@ export const App: React.FC = () => {
               exit="exit"
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <ProductDetailPage productId={new URLSearchParams(window.location.search).get('id') || undefined} />
+              <React.Suspense fallback={<RouteLoadingFallback />}>
+                <ProductDetailPage productId={new URLSearchParams(window.location.search).get('id') || undefined} />
+              </React.Suspense>
             </motion.main>
           )}
 
@@ -283,7 +299,9 @@ export const App: React.FC = () => {
               exit="exit"
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <ProductsPage />
+              <React.Suspense fallback={<RouteLoadingFallback />}>
+                <ProductsPage />
+              </React.Suspense>
             </motion.main>
           )}
 
@@ -296,7 +314,9 @@ export const App: React.FC = () => {
               exit="exit"
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <BookDemoPage />
+              <React.Suspense fallback={<RouteLoadingFallback />}>
+                <BookDemoPage />
+              </React.Suspense>
             </motion.main>
           )}
 
@@ -309,7 +329,9 @@ export const App: React.FC = () => {
               exit="exit"
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <ContactSalesPage />
+              <React.Suspense fallback={<RouteLoadingFallback />}>
+                <ContactSalesPage />
+              </React.Suspense>
             </motion.main>
           )}
 
@@ -322,7 +344,9 @@ export const App: React.FC = () => {
               exit="exit"
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <AboutUsPage />
+              <React.Suspense fallback={<RouteLoadingFallback />}>
+                <AboutUsPage />
+              </React.Suspense>
             </motion.main>
           )}
 
@@ -335,7 +359,9 @@ export const App: React.FC = () => {
               exit="exit"
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <PricingPage />
+              <React.Suspense fallback={<RouteLoadingFallback />}>
+                <PricingPage />
+              </React.Suspense>
             </motion.main>
           )}
 
@@ -348,7 +374,9 @@ export const App: React.FC = () => {
               exit="exit"
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <ServicesPage />
+              <React.Suspense fallback={<RouteLoadingFallback />}>
+                <ServicesPage />
+              </React.Suspense>
             </motion.main>
           )}
 
@@ -361,7 +389,9 @@ export const App: React.FC = () => {
               exit="exit"
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <CareersPage />
+              <React.Suspense fallback={<RouteLoadingFallback />}>
+                <CareersPage />
+              </React.Suspense>
             </motion.main>
           )}
 
@@ -374,7 +404,9 @@ export const App: React.FC = () => {
               exit="exit"
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <SupportPage />
+              <React.Suspense fallback={<RouteLoadingFallback />}>
+                <SupportPage />
+              </React.Suspense>
             </motion.main>
           )}
 

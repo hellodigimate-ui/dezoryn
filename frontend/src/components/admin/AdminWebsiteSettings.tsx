@@ -8,7 +8,7 @@ import {
   Server, SendHorizonal, SquareCheck, AlertCircle
 } from 'lucide-react';
 import { MediaPickerModal } from './MediaPickerModal';
-import { openAdminAIAssistant } from './AdminLayout';
+import { openAdminAIAssistant } from '../../utils/adminEvents';
 
 import { API_URL, apiFetch } from '../../config/api.config';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
