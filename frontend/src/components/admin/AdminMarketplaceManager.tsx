@@ -791,7 +791,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                 category: 'erp',
                 categoryLabel: 'ERP & Operations',
                 industry: 'Education & Academics',
-                badge: 'NEW RELEASE',
+                badge: '',
                 shortDesc: 'Enterprise-ready cloud software suite.',
                 description: 'Full comprehensive enterprise platform with AI copilot integration and analytics dashboard.',
                 price: 'From ₹49/mo',

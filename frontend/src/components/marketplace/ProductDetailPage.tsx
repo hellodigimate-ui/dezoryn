@@ -39,6 +39,8 @@ export interface ProductDetailData {
   priceValue: number;
   aiPowered: boolean;
   cloudNative: boolean;
+  coverPhoto?: string;
+  thumbnail?: string;
   shortDesc: string;
   overviewText: string;
   demoUrl?: string;
@@ -92,18 +94,37 @@ export function buildProductDetailFromDb(apiProd: any): ProductDetailData {
   const shortDesc = apiProd.shortDesc || apiProd.description || '';
   const overviewText = apiProd.description || apiProd.shortDesc || '';
 
-  // Gallery screenshots from real database records only
-  let rawGallery = Array.isArray(apiProd.gallery) ? apiProd.gallery.filter((g: any) => typeof g === 'string' && g.trim().length > 0) : [];
-  if (rawGallery.length === 0) {
-    const primaryImg = apiProd.thumbnail || apiProd.image || apiProd.coverPhoto;
-    if (primaryImg && typeof primaryImg === 'string' && primaryImg.trim().length > 0) {
-      rawGallery = [primaryImg.trim()];
-    }
+  // Candidate images from real database records (coverPhoto, gallery, thumbnail, image)
+  const allCandidates: string[] = [];
+  if (apiProd.coverPhoto && typeof apiProd.coverPhoto === 'string' && apiProd.coverPhoto.trim()) {
+    allCandidates.push(apiProd.coverPhoto.trim());
   }
-  const galleryScreenshots = rawGallery.map((imgUrl: string, idx: number) => ({
+  if (Array.isArray(apiProd.gallery)) {
+    apiProd.gallery.forEach((g: any) => {
+      if (typeof g === 'string' && g.trim()) allCandidates.push(g.trim());
+    });
+  }
+  if (apiProd.thumbnail && typeof apiProd.thumbnail === 'string' && apiProd.thumbnail.trim()) {
+    allCandidates.push(apiProd.thumbnail.trim());
+  }
+  if (apiProd.image && typeof apiProd.image === 'string' && apiProd.image.trim()) {
+    allCandidates.push(apiProd.image.trim());
+  }
+
+  // Deduplicate and prioritize cloud/S3 URLs (http/https) first
+  const uniqueCandidates = Array.from(new Set(allCandidates)).filter(Boolean);
+  uniqueCandidates.sort((a, b) => {
+    const aIsHttp = a.startsWith('http://') || a.startsWith('https://');
+    const bIsHttp = b.startsWith('http://') || b.startsWith('https://');
+    if (aIsHttp && !bIsHttp) return -1;
+    if (!aIsHttp && bIsHttp) return 1;
+    return 0;
+  });
+
+  const galleryScreenshots = uniqueCandidates.map((imgUrl: string, idx: number) => ({
     id: String(idx + 1),
-    title: `${title} - Screenshot ${idx + 1}`,
-    subtitle: `Module and interface view for ${title}.`,
+    title: `${title} - Interface View ${idx + 1}`,
+    subtitle: `Module and dashboard preview for ${title}.`,
     tag: `VIEW ${idx + 1}`,
     url: imgUrl
   }));
@@ -198,6 +219,8 @@ export function buildProductDetailFromDb(apiProd: any): ProductDetailData {
     priceValue,
     aiPowered,
     cloudNative,
+    coverPhoto: apiProd.coverPhoto ? String(apiProd.coverPhoto).trim() : undefined,
+    thumbnail: apiProd.thumbnail ? String(apiProd.thumbnail).trim() : undefined,
     shortDesc,
     overviewText,
     demoUrl: apiProd.demoUrl ? String(apiProd.demoUrl).trim() : '',
@@ -316,7 +339,7 @@ const VideoPlayerContainer: React.FC<{
 
 // ── SKELETON LOADER FOR PRODUCT DETAIL PAGE ──
 const ProductDetailSkeleton: React.FC = () => (
-  <div className="max-w-[1440px] mx-auto px-6 sm:px-8 lg:px-12 py-8 animate-pulse space-y-8">
+  <div className="max-w-[1440px] mx-auto px-6 sm:px-8 lg:px-12 py-4 sm:py-6 animate-pulse space-y-8">
     <div className="w-48 h-5 bg-slate-200 dark:bg-slate-800 rounded-lg" />
     <div className="space-y-4 max-w-3xl">
       <div className="flex gap-3">
@@ -408,7 +431,7 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
   }, [activeId]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-['Plus_Jakarta_Sans',sans-serif] relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pt-28 sm:pt-32 lg:pt-36 pb-20 font-['Plus_Jakarta_Sans',sans-serif] relative overflow-hidden transition-colors duration-300">
       
       {/* Background Radial Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[600px] bg-gradient-to-b from-blue-600/15 via-cyan-500/10 to-transparent blur-[140px] pointer-events-none -z-10" />
@@ -419,7 +442,7 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
 
       {/* ── 2. PRODUCT NOT FOUND (EMPTY/DELETED) STATE ── */}
       {!isLoading && (isNotFound || !product) && (
-        <main className="max-w-[1440px] mx-auto px-6 sm:px-8 lg:px-12 py-20">
+        <main className="max-w-[1440px] mx-auto px-6 sm:px-8 lg:px-12 py-12">
           <div className="max-w-xl mx-auto text-center p-8 sm:p-12 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-2xl backdrop-blur-xl">
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-6 text-amber-500">
               <Store className="w-8 h-8" />
@@ -457,10 +480,10 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
 
       {/* ── 3. PRODUCT FOUND & RENDERED FROM DATABASE ── */}
       {!isLoading && product && !isNotFound && (
-        <main className="max-w-[1440px] mx-auto px-6 sm:px-8 lg:px-12 py-8">
+        <main className="max-w-[1440px] mx-auto px-6 sm:px-8 lg:px-12 py-4 sm:py-6">
           
           {/* ── BREADCRUMBS & BACK BUTTON ── */}
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200/80 dark:border-slate-800/80 text-xs font-extrabold">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-5 border-b border-slate-200/80 dark:border-slate-800/80">
             <button
               type="button"
               onClick={() => {
@@ -470,19 +493,26 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                   navigateTo('/marketplace');
                 }
               }}
-              className="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 dark:hover:text-cyan-400 transition cursor-pointer"
+              className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/90 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 dark:hover:border-cyan-500/50 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-cyan-400 font-extrabold text-xs shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group"
+              aria-label="Back to Marketplace"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to Marketplace Catalog</span>
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1 text-blue-600 dark:text-cyan-400" />
+              <span>Back to Marketplace</span>
             </button>
 
-            <div className="flex items-center gap-2 text-slate-400">
-              <span onClick={() => navigateTo('/marketplace')} className="hover:underline cursor-pointer">Marketplace</span>
+            <nav aria-label="Breadcrumbs" className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-400 dark:text-slate-500">
+              <button
+                type="button"
+                onClick={() => navigateTo('/marketplace')}
+                className="hover:text-blue-600 dark:hover:text-cyan-400 transition-colors cursor-pointer"
+              >
+                Marketplace
+              </button>
               <span>/</span>
-              <span className="text-slate-600 dark:text-slate-300">{product.categoryLabel}</span>
+              <span className="text-slate-600 dark:text-slate-400">{product.categoryLabel}</span>
               <span>/</span>
-              <span className="text-blue-600 dark:text-cyan-400 font-black">{product.title}</span>
-            </div>
+              <span className="text-blue-600 dark:text-cyan-400 font-bold max-w-[220px] truncate">{product.title}</span>
+            </nav>
           </div>
 
           {/* ── SECTION 1: HERO SECTION ── */}
@@ -561,10 +591,23 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
                   {/* Main Screenshot Stage */}
                   <div className="relative w-full h-[360px] sm:h-[440px] rounded-2xl bg-slate-950 border border-slate-800 overflow-hidden mb-4 group">
                     {(() => {
-                      const currentShotUrl = product.galleryScreenshots[activeScreenshotIdx]?.url || product.videoTour?.thumbnail;
-                      const isBroken = currentShotUrl ? failedImages[currentShotUrl] : true;
+                      const activeItem = product.galleryScreenshots[activeScreenshotIdx];
+                      let currentShotUrl = activeItem?.url && !failedImages[activeItem.url] ? activeItem.url : undefined;
 
-                      if (currentShotUrl && !isBroken) {
+                      if (!currentShotUrl) {
+                        const fallbackItem = product.galleryScreenshots.find(s => s.url && !failedImages[s.url]);
+                        if (fallbackItem?.url) {
+                          currentShotUrl = fallbackItem.url;
+                        } else if (product.coverPhoto && !failedImages[product.coverPhoto]) {
+                          currentShotUrl = product.coverPhoto;
+                        } else if (product.thumbnail && !failedImages[product.thumbnail]) {
+                          currentShotUrl = product.thumbnail;
+                        } else if (product.videoTour?.thumbnail && !failedImages[product.videoTour.thumbnail]) {
+                          currentShotUrl = product.videoTour.thumbnail;
+                        }
+                      }
+
+                      if (currentShotUrl && !failedImages[currentShotUrl]) {
                         return (
                           <div className="relative w-full h-full">
                             <img
@@ -1115,6 +1158,33 @@ export const ProductDetailPage: React.FC<{ productId?: string }> = ({ productId 
               </div>
             </div>
 
+          </div>
+
+          {/* ── BOTTOM NAVIGATION / BACK TO MARKETPLACE ── */}
+          <div className="mt-16 pt-8 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigateTo('/marketplace');
+                }
+              }}
+              className="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 dark:hover:border-cyan-500/50 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-cyan-400 font-extrabold text-xs shadow-xs hover:shadow-md transition cursor-pointer group"
+            >
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1 text-blue-600 dark:text-cyan-400" />
+              <span>Back to Marketplace Catalog</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigateTo('/marketplace')}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-md shadow-blue-500/20 transition cursor-pointer"
+            >
+              <Store className="w-4 h-4" />
+              <span>Explore All Software Modules</span>
+            </button>
           </div>
 
         </main>

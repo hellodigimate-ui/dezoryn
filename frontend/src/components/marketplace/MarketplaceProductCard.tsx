@@ -19,7 +19,8 @@ import {
   Truck,
   MessageSquareText,
   BarChart3,
-  ShoppingBag
+  ShoppingBag,
+  Sparkles
 } from 'lucide-react';
 import type { MarketplaceProduct } from './MarketplacePage';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
@@ -106,7 +107,7 @@ const ProductScreenshotPreview: React.FC<{ product: MarketplaceProduct }> = ({ p
             decoding="async"
             onLoad={() => setIsLoaded(true)}
             onError={handleError}
-            className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ease-out ${
+            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out will-change-transform ${
               isLoaded ? 'opacity-100' : 'opacity-0'
             }`}
           />
@@ -183,27 +184,6 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = Rea
   isCompared = false
 }) => {
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false);
-  const [rotateX, setRotateX] = useState<number>(0);
-  const [rotateY, setRotateY] = useState<number>(0);
-
-  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const rotX = (centerY - y) / 22;
-    const rotY = (x - centerX) / 22;
-    setRotateX(rotX);
-    setRotateY(rotY);
-  };
-
-  const handleCardMouseLeave = () => {
-    setRotateX(0);
-    setRotateY(0);
-  };
 
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -215,32 +195,28 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = Rea
   };
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      onMouseMove={handleCardMouseMove}
-      onMouseLeave={handleCardMouseLeave}
-      style={{
-        transformStyle: 'preserve-3d',
-        transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`
-      }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className="group bg-white dark:bg-slate-900/90 rounded-3xl border border-slate-200/90 dark:border-slate-800/90 hover:border-blue-500/60 dark:hover:border-cyan-400/60 shadow-md hover:shadow-2xl hover:shadow-cyan-500/10 backdrop-blur-xl transition-shadow duration-300 flex flex-col justify-between overflow-hidden relative text-left"
+    <div
+      className="group bg-white dark:bg-slate-900/90 rounded-3xl border border-slate-200/90 dark:border-slate-800/90 hover:border-blue-500/60 dark:hover:border-cyan-400/60 shadow-sm hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1.5 transition-all duration-300 ease-out flex flex-col justify-between overflow-hidden relative text-left will-change-transform"
     >
       {/* Glow highlight overlay on hover */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-cyan-400/5 to-indigo-500/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-3xl" />
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-cyan-400/5 to-indigo-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-3xl" />
 
       {/* ── 1. SCREENSHOT HEADER ── */}
       <div className="relative">
         <ProductScreenshotPreview product={product} />
 
         {/* Floating Verified / Database Product Badge */}
-        <div className="absolute top-3.5 left-3.5 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-cyan-300 font-extrabold text-[10px] shadow-md tracking-wider uppercase">
-          <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-          <span>{product.badge || product.categoryLabel || 'VERIFIED'}</span>
-        </div>
+        {((product.badge || '').toUpperCase() === 'NEW RELEASE') ? (
+          <div className="absolute top-3.5 left-3.5 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/90 backdrop-blur-md border border-cyan-400/60 text-cyan-300 font-black text-[10px] shadow-lg shadow-cyan-500/20 tracking-wider uppercase">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-300 animate-pulse" />
+            <span>NEW RELEASE</span>
+          </div>
+        ) : (
+          <div className="absolute top-3.5 left-3.5 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/85 backdrop-blur-md border border-slate-700/80 text-cyan-300 font-extrabold text-[10px] shadow-md tracking-wider uppercase">
+            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{product.badge && product.badge.toUpperCase() !== 'NEW RELEASE' ? product.badge : 'VERIFIED'}</span>
+          </div>
+        )}
 
         {/* Floating Top Right Action Buttons: Compare & Wishlist */}
         <div className="absolute top-3.5 right-3.5 z-10 flex items-center gap-2">
@@ -356,7 +332,7 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = Rea
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 });
 

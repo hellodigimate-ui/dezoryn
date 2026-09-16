@@ -201,6 +201,39 @@ export class ProductService {
         });
       }
 
+      // Catalog Layout: New Release at top (index 0), all remaining products sorted alphabetically A-Z.
+      // Normalize badges so only the single top new release has 'NEW RELEASE', and all others have normal badge.
+      const newReleaseMatches = products.filter((p: any) => (p.badge || '').toUpperCase() === 'NEW RELEASE');
+      let newReleaseProduct: any = null;
+
+      if (newReleaseMatches.length > 0) {
+        // Take the newest release by createdAt
+        newReleaseMatches.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        newReleaseProduct = newReleaseMatches[0];
+      } else if (products.length > 0) {
+        // Default to the most recently created product
+        const byDate = [...products].sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        newReleaseProduct = byDate[0];
+      }
+
+      if (newReleaseProduct) {
+        const others = products.filter((p: any) => p.id !== newReleaseProduct.id);
+        // Sort remaining products strictly alphabetically by title (A-Z)
+        others.sort((a: any, b: any) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }));
+
+        const normalizedNewRelease = {
+          ...newReleaseProduct,
+          badge: 'NEW RELEASE'
+        };
+
+        const normalizedOthers = others.map((p: any) => ({
+          ...p,
+          badge: (p.badge || '').toUpperCase() === 'NEW RELEASE' ? '' : p.badge
+        }));
+
+        products = [normalizedNewRelease, ...normalizedOthers];
+      }
+
       return products;
     } catch (error) {
       console.error('GET PRODUCTS ERROR:', error);

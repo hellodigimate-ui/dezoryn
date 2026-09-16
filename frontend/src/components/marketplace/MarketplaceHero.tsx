@@ -92,15 +92,7 @@ export const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Mouse Parallax coordinates
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left - rect.width / 2) / 35;
-    const y = (e.clientY - rect.top - rect.height / 2) / 35;
-    setMousePos({ x, y });
-  };
 
   // Read hero CMS config directly from PostgreSQL database via /marketplace-hero
   const loadHeroConfig = async () => {
@@ -200,32 +192,12 @@ export const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
 
   return (
     <section
-      onMouseMove={handleMouseMove}
       className="relative py-12 lg:py-20 overflow-hidden select-none"
     >
-      {/* ── 1. ANIMATED GRADIENT & PARALLAX GLOW ── */}
+      {/* ── 1. HARDWARE-ACCELERATED AMBIENT GLOW ── */}
       <div className="absolute inset-0 pointer-events-none -z-10 overflow-hidden">
-        <motion.div
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.35, 0.6, 0.35],
-            x: mousePos.x * -1.5,
-            y: mousePos.y * -1.5
-          }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-gradient-to-tr from-blue-600/20 via-cyan-500/20 to-indigo-600/10 dark:from-blue-600/30 dark:via-cyan-400/20 rounded-full blur-[140px]"
-        />
-
-        <motion.div
-          animate={{
-            scale: [1.1, 1, 1.1],
-            opacity: [0.25, 0.5, 0.25],
-            x: mousePos.x * 1.5,
-            y: mousePos.y * 1.5
-          }}
-          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-          className="absolute bottom-10 right-1/4 w-[550px] h-[550px] bg-gradient-to-br from-indigo-500/15 via-purple-500/15 to-cyan-500/10 dark:from-indigo-600/25 dark:via-purple-500/20 rounded-full blur-[130px]"
-        />
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-blue-600/15 via-cyan-500/15 to-indigo-600/10 dark:from-blue-600/25 dark:via-cyan-400/15 rounded-full blur-[90px] pointer-events-none transform-gpu animate-pulse" />
+        <div className="absolute bottom-10 right-1/4 w-[500px] h-[500px] bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-cyan-500/10 dark:from-indigo-600/20 dark:via-purple-500/15 rounded-full blur-[80px] pointer-events-none transform-gpu" />
 
         {/* Floating background glowing particles */}
         <motion.div
@@ -485,15 +457,12 @@ export const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
           {/* ── RIGHT COLUMN: MOUSE PARALLAX LAPTOP & FLOATING BADGES ── */}
           <div className="lg:col-span-5 relative flex items-center justify-center">
 
-            {/* Laptop / Browser Container with Parallax Translation */}
+            {/* Laptop / Browser Container */}
             <motion.div
-              style={{
-                transform: `translate3d(${mousePos.x * 0.6}px, ${mousePos.y * 0.6}px, 0)`
-              }}
               initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-full max-w-[540px] rounded-3xl bg-slate-950 border border-slate-800 shadow-[0_25px_60px_-15px_rgba(15,23,42,0.6)] overflow-hidden"
+              className="relative w-full max-w-[540px] rounded-3xl bg-slate-950 border border-slate-800 shadow-[0_25px_60px_-15px_rgba(15,23,42,0.6)] overflow-hidden transform-gpu will-change-transform"
             >
               {/* Laptop Top Browser Window Bar */}
               <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
@@ -567,14 +536,11 @@ export const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
               </div>
             </motion.div>
 
-            {/* FLOATING BADGE 1 (Top Left) with Parallax */}
+            {/* FLOATING BADGE 1 (Top Left) */}
             <motion.div
-              style={{
-                transform: `translate3d(${mousePos.x * -1.2}px, ${mousePos.y * -1.2}px, 0)`
-              }}
               animate={{ y: [0, -8, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute -top-6 -left-4 sm:-left-8 bg-slate-900/90 border border-slate-700/80 p-3 rounded-2xl shadow-xl backdrop-blur-md z-20 flex items-center gap-3 text-left"
+              className="absolute -top-6 -left-4 sm:-left-8 bg-slate-900/90 border border-slate-700/80 p-3 rounded-2xl shadow-xl backdrop-blur-md z-20 flex items-center gap-3 text-left transform-gpu will-change-transform"
             >
               <div className="w-8 h-8 rounded-xl bg-blue-600/30 border border-blue-500/40 text-blue-400 flex items-center justify-center">
                 <GraduationCap className="w-4 h-4" />
@@ -588,14 +554,11 @@ export const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
               </div>
             </motion.div>
 
-            {/* FLOATING BADGE 2 (Top Right) with Parallax */}
+            {/* FLOATING BADGE 2 (Top Right) */}
             <motion.div
-              style={{
-                transform: `translate3d(${mousePos.x * 1.4}px, ${mousePos.y * 1.4}px, 0)`
-              }}
               animate={{ y: [0, 8, 0] }}
               transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.7 }}
-              className="absolute top-16 -right-4 sm:-right-8 bg-slate-900/90 border border-slate-700/80 p-3 rounded-2xl shadow-xl backdrop-blur-md z-20 flex items-center gap-3 text-left"
+              className="absolute top-16 -right-4 sm:-right-8 bg-slate-900/90 border border-slate-700/80 p-3 rounded-2xl shadow-xl backdrop-blur-md z-20 flex items-center gap-3 text-left transform-gpu will-change-transform"
             >
               <div className="w-8 h-8 rounded-xl bg-emerald-600/30 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
                 <Cross className="w-4 h-4" />
@@ -606,14 +569,11 @@ export const MarketplaceHero: React.FC<MarketplaceHeroProps> = ({
               </div>
             </motion.div>
 
-            {/* FLOATING BADGE 3 (Bottom Right) with Parallax */}
+            {/* FLOATING BADGE 3 (Bottom Right) */}
             <motion.div
-              style={{
-                transform: `translate3d(${mousePos.x * -0.9}px, ${mousePos.y * -0.9}px, 0)`
-              }}
               animate={{ y: [0, -6, 0] }}
               transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 1.2 }}
-              className="absolute -bottom-6 right-4 bg-slate-900/90 border border-cyan-500/40 p-3 rounded-2xl shadow-xl backdrop-blur-md z-20 flex items-center gap-3 text-left"
+              className="absolute -bottom-6 right-4 bg-slate-900/90 border border-cyan-500/40 p-3 rounded-2xl shadow-xl backdrop-blur-md z-20 flex items-center gap-3 text-left transform-gpu will-change-transform"
             >
               <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 flex items-center justify-center">
                 <Zap className="w-4 h-4" />

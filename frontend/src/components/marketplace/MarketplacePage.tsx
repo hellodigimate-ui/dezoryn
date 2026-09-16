@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Store,
@@ -96,6 +96,7 @@ export const MarketplacePage: React.FC = () => {
   // Backend integration states
   const [products, setProducts] = useState<MarketplaceProduct[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const hasLoadedOnce = useRef<boolean>(false);
 
   // Comparison engine state
   const [compareProductIds, setCompareProductIds] = useState<string[]>([]);
@@ -190,7 +191,9 @@ export const MarketplacePage: React.FC = () => {
 
   // ── REAL BACKEND DATA FETCHING WITH QUERY FILTRATION ──
   const fetchProductsFromBackend = useCallback(async () => {
-    setIsLoading(true);
+    if (!hasLoadedOnce.current) {
+      setIsLoading(true);
+    }
     try {
       const params = new URLSearchParams();
       if (activeCategory !== 'all') params.append('category', activeCategory);
@@ -221,6 +224,7 @@ export const MarketplacePage: React.FC = () => {
       // Handled gracefully
     } finally {
       setIsLoading(false);
+      hasLoadedOnce.current = true;
     }
   }, [activeCategory, searchQuery, sidebarFilters]);
 
