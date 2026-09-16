@@ -168,11 +168,25 @@ export const AdminTestimonialManager: React.FC = () => {
     showMsg('success', 'Photo selected from Media Library!');
   };
 
-  const handleRemovePhoto = () => {
+  const handleRemovePhoto = async () => {
+    const photoToRemove = form.photo;
     setPhotoFile(null);
     setPhotoPreview(null);
     setForm(f => ({ ...f, photo: null }));
     if (fileRef.current) fileRef.current.value = '';
+
+    if (photoToRemove && (photoToRemove.includes('.amazonaws.com/') || photoToRemove.startsWith('testimonials/'))) {
+      try {
+        await apiFetch(`${API_URL}/uploads/file`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: photoToRemove }),
+        });
+        showMsg('info', 'Photo removed and deleted from AWS S3.');
+      } catch (err) {
+        console.warn('Failed to delete photo from S3:', err);
+      }
+    }
   };
 
   const handleSave = async () => {

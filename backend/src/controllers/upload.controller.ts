@@ -122,4 +122,36 @@ export class UploadController {
       next(error);
     }
   }
+
+  public static async deleteFileByUrl(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const url = req.body?.url || req.query?.url;
+      if (!url || typeof url !== 'string') {
+        res.status(400).json({ success: false, message: 'URL or key is required' });
+        return;
+      }
+
+      const s3Key = S3Service.extractObjectKey(url);
+      if (s3Key) {
+        await S3Service.deleteFile(s3Key);
+      }
+
+      // Also clean up from Media table if recorded there
+      try {
+        await prisma.media.deleteMany({
+          where: {
+            OR: [
+              { url: url },
+              { path: s3Key || url },
+              { cloudinaryId: s3Key || url },
+            ],
+          },
+        });
+      } catch {}
+
+      res.status(200).json({ success: true, message: 'File deleted successfully from S3' });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

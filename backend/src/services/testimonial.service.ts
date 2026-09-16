@@ -114,13 +114,23 @@ export class TestimonialService {
     rating: number; photo: string | null; order: number; isEnabled: boolean;
   }>) {
     try {
-      if (data.photo !== undefined && data.photo !== null) {
+      if (data.photo !== undefined) {
         const existing = await prisma.testimonial.findUnique({ where: { id } });
         if (existing?.photo && existing.photo !== data.photo) {
-          const s3Key = extractS3Key(existing.photo);
-          if (s3Key) {
-            try { await S3Service.deleteFile(s3Key); } catch {}
-          } else if (existing.photo.startsWith('/uploads/')) {
+          await S3Service.deleteFile(existing.photo);
+          const s3Key = S3Service.extractObjectKey(existing.photo);
+          try {
+            await prisma.media.deleteMany({
+              where: {
+                OR: [
+                  { url: existing.photo },
+                  { path: s3Key || existing.photo },
+                  { cloudinaryId: s3Key || existing.photo },
+                ],
+              },
+            });
+          } catch {}
+          if (existing.photo.startsWith('/uploads/')) {
             const oldPath = path.join(process.cwd(), 'public', existing.photo);
             if (fs.existsSync(oldPath)) {
               try { fs.unlinkSync(oldPath); } catch {}
@@ -156,10 +166,20 @@ export class TestimonialService {
     try {
       const item = await prisma.testimonial.findUnique({ where: { id } });
       if (item?.photo) {
-        const s3Key = extractS3Key(item.photo);
-        if (s3Key) {
-          try { await S3Service.deleteFile(s3Key); } catch {}
-        } else if (item.photo.startsWith('/uploads/')) {
+        await S3Service.deleteFile(item.photo);
+        const s3Key = S3Service.extractObjectKey(item.photo);
+        try {
+          await prisma.media.deleteMany({
+            where: {
+              OR: [
+                { url: item.photo },
+                { path: s3Key || item.photo },
+                { cloudinaryId: s3Key || item.photo },
+              ],
+            },
+          });
+        } catch {}
+        if (item.photo.startsWith('/uploads/')) {
           const filePath = path.join(process.cwd(), 'public', item.photo);
           if (fs.existsSync(filePath)) {
             try { fs.unlinkSync(filePath); } catch {}

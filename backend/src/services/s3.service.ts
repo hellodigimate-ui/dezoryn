@@ -104,9 +104,37 @@ export class S3Service {
   }
 
   /**
-   * Deletes an object from AWS S3 by its object key.
+   * Robustly extracts and normalizes the S3 object key from any S3 URL, path, or key.
+   * Handles full AWS URLs, query params, leading slashes, and URL encodings.
+   * e.g. "https://dezo-software.s3.ap-south-1.amazonaws.com/testimonials/1789-file.png?v=1" -> "testimonials/1789-file.png"
+   * e.g. "/testimonials/1789-file.png" -> "testimonials/1789-file.png"
    */
-  public static async deleteFile(key: string): Promise<boolean> {
+  public static extractObjectKey(input: string): string | null {
+    if (!input || typeof input !== 'string') return null;
+    let clean = input.trim();
+    if (clean.includes('.amazonaws.com/')) {
+      clean = clean.split('.amazonaws.com/')[1] || '';
+    } else if (clean.startsWith('http://') || clean.startsWith('https://')) {
+      try {
+        const urlObj = new URL(clean);
+        clean = urlObj.pathname;
+      } catch {}
+    }
+    clean = clean.split('?')[0].split('#')[0];
+    clean = clean.replace(/^\/+/, '');
+    try {
+      clean = decodeURIComponent(clean);
+    } catch {}
+    return clean || null;
+  }
+
+  /**
+   * Deletes an object from AWS S3 by its object key or full S3 URL.
+   */
+  public static async deleteFile(keyOrUrl: string): Promise<boolean> {
+    if (!keyOrUrl) return false;
+
+    const key = this.extractObjectKey(keyOrUrl);
     if (!key) return false;
 
     try {

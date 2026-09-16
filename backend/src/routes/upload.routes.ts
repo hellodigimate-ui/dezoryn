@@ -16,4 +16,8 @@ router.post('/media', upload.single('file'), MediaController.upload);
 router.put('/media/:id', upload.single('file'), MediaController.replace);
 router.delete('/media/:id', MediaController.delete);
 
+// Delete file from S3 by URL or key
+router.delete('/file', UploadController.deleteFileByUrl);
+router.post('/delete', UploadController.deleteFileByUrl);
+
 export default router;
