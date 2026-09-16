@@ -1,6 +1,19 @@
 import { prisma } from '../config/prisma.config';
+import { S3Service } from './s3.service';
 import path from 'path';
 import fs from 'fs';
+
+function extractS3Key(url: string): string | null {
+  if (!url) return null;
+  if (url.includes('.amazonaws.com/')) {
+    const parts = url.split('.amazonaws.com/');
+    return parts[1] ? decodeURIComponent(parts[1]) : null;
+  }
+  if (url.startsWith('testimonials/')) {
+    return url;
+  }
+  return null;
+}
 
 const DEFAULTS = [
   {
@@ -103,10 +116,15 @@ export class TestimonialService {
     try {
       if (data.photo !== undefined && data.photo !== null) {
         const existing = await prisma.testimonial.findUnique({ where: { id } });
-        if (existing?.photo && existing.photo !== data.photo && existing.photo.startsWith('/uploads/')) {
-          const oldPath = path.join(process.cwd(), 'public', existing.photo);
-          if (fs.existsSync(oldPath)) {
-            try { fs.unlinkSync(oldPath); } catch {}
+        if (existing?.photo && existing.photo !== data.photo) {
+          const s3Key = extractS3Key(existing.photo);
+          if (s3Key) {
+            try { await S3Service.deleteFile(s3Key); } catch {}
+          } else if (existing.photo.startsWith('/uploads/')) {
+            const oldPath = path.join(process.cwd(), 'public', existing.photo);
+            if (fs.existsSync(oldPath)) {
+              try { fs.unlinkSync(oldPath); } catch {}
+            }
           }
         }
       }
@@ -137,10 +155,15 @@ export class TestimonialService {
   static async delete(id: string) {
     try {
       const item = await prisma.testimonial.findUnique({ where: { id } });
-      if (item?.photo && item.photo.startsWith('/uploads/')) {
-        const filePath = path.join(process.cwd(), 'public', item.photo);
-        if (fs.existsSync(filePath)) {
-          try { fs.unlinkSync(filePath); } catch {}
+      if (item?.photo) {
+        const s3Key = extractS3Key(item.photo);
+        if (s3Key) {
+          try { await S3Service.deleteFile(s3Key); } catch {}
+        } else if (item.photo.startsWith('/uploads/')) {
+          const filePath = path.join(process.cwd(), 'public', item.photo);
+          if (fs.existsSync(filePath)) {
+            try { fs.unlinkSync(filePath); } catch {}
+          }
         }
       }
       await prisma.testimonial.delete({ where: { id } });

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { env } from '../config/env.config';
 import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
 import uploadRoutes from './upload.routes';
@@ -30,11 +31,28 @@ const router = Router();
 
 // Health Check Endpoint
 router.get('/health', (_req, res) => {
+  const hasAccessKey = !!(env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID);
+  const hasSecretKey = !!(env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY);
+  const s3Bucket = env.AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || 'dezo-software';
+  const s3Region = env.AWS_REGION || process.env.AWS_REGION || 'ap-south-1';
+
   res.status(200).json({
     status: 'online',
     timestamp: new Date().toISOString(),
     service: 'Dezoryn CMS Backend API Foundation',
     version: '1.0.0',
+    storage: {
+      provider: 'AWS S3',
+      bucket: s3Bucket,
+      region: s3Region,
+      s3Configured: hasAccessKey && hasSecretKey,
+      diagnostics: {
+        AWS_S3_BUCKET_configured: !!s3Bucket,
+        AWS_REGION_configured: !!s3Region,
+        AWS_ACCESS_KEY_ID_configured: hasAccessKey,
+        AWS_SECRET_ACCESS_KEY_configured: hasSecretKey,
+      },
+    },
   });
 });
 

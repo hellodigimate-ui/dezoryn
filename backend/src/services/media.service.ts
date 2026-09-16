@@ -76,50 +76,41 @@ export class MediaService {
     const { file, folder = 'General', uploadedById } = params;
     const resourceType = MediaService.determineResourceType(file.mimetype);
 
+    const buffer = getFileBuffer(file);
+    if (!buffer || buffer.length === 0) {
+      if (file.path && fs.existsSync(file.path)) {
+        try { fs.unlinkSync(file.path); } catch {}
+      }
+      throw new Error('File buffer is empty or could not be read.');
+    }
+
     let finalUrl = '';
-    let storagePath = `/uploads/${file.filename || file.originalname}`;
-    let objectKey = `dezoryn_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    let storagePath = '';
+    let objectKey = '';
 
     try {
-      const buffer = getFileBuffer(file);
-      if (buffer.length > 0) {
-        const s3Result = await S3Service.uploadFile({
-          buffer,
-          originalname: file.originalname || file.filename,
-          mimetype: file.mimetype,
-          folder,
-        });
-        finalUrl = s3Result.url;
-        storagePath = s3Result.key;
-        objectKey = s3Result.key;
-      }
+      const s3Result = await S3Service.uploadFile({
+        buffer,
+        originalname: file.originalname || file.filename,
+        mimetype: file.mimetype,
+        folder,
+      });
+      finalUrl = s3Result.url;
+      storagePath = s3Result.key;
+      objectKey = s3Result.key;
     } catch (s3Err: any) {
-      console.warn('[MediaService] S3 upload failed, checking fallback:', s3Err?.message || s3Err);
-      try {
-        const result = await uploadToCloudinary(getFileBuffer(file), {
-          folder,
-          resource_type: resourceType,
-        });
-        if (result && result.secure_url) {
-          finalUrl = result.secure_url;
-          objectKey = result.public_id || objectKey;
-        }
-      } catch {
-        // ignore cloud fallback error
+      console.error('[MediaService] S3 upload failed:', s3Err?.message || s3Err);
+      if (file.path && fs.existsSync(file.path)) {
+        try { fs.unlinkSync(file.path); } catch {}
       }
+      throw new Error(`Image upload failed: ${s3Err?.message || 'Unable to store asset in S3'}`);
     }
 
-    if (!finalUrl) {
-      finalUrl = `/uploads/${file.filename || file.originalname}`;
-    }
-
-    // Clean up temporary local upload file on disk ONLY when successfully uploaded to cloud S3
-    if (file.path && fs.existsSync(file.path) && finalUrl.startsWith('http') && !finalUrl.includes('/uploads/')) {
+    // Clean up temporary local upload file on disk after successful upload to S3
+    if (file.path && fs.existsSync(file.path)) {
       try {
         fs.unlinkSync(file.path);
-      } catch {
-        // ignore unlink error
-      }
+      } catch {}
     }
 
     const mediaData = {
@@ -164,39 +155,34 @@ export class MediaService {
     const resourceType = MediaService.determineResourceType(file.mimetype);
     const folder = existing.folder || 'General';
 
-    let finalUrl = '';
-    let storagePath = `/uploads/${file.filename || file.originalname}`;
-    let objectKey = `dezoryn_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-
-    try {
-      const buffer = getFileBuffer(file);
-      if (buffer.length > 0) {
-        const s3Result = await S3Service.uploadFile({
-          buffer,
-          originalname: file.originalname || file.filename,
-          mimetype: file.mimetype,
-          folder,
-        });
-        finalUrl = s3Result.url;
-        storagePath = s3Result.key;
-        objectKey = s3Result.key;
+    const buffer = getFileBuffer(file);
+    if (!buffer || buffer.length === 0) {
+      if (file.path && fs.existsSync(file.path)) {
+        try { fs.unlinkSync(file.path); } catch {}
       }
-    } catch (s3Err: any) {
-      console.warn('[MediaService] S3 replace failed, checking fallback:', s3Err?.message || s3Err);
-      try {
-        const result = await uploadToCloudinary(getFileBuffer(file), {
-          folder,
-          resource_type: resourceType,
-        });
-        if (result && result.secure_url) {
-          finalUrl = result.secure_url;
-          objectKey = result.public_id || objectKey;
-        }
-      } catch {}
+      throw new Error('Replacement file buffer is empty or could not be read.');
     }
 
-    if (!finalUrl) {
-      finalUrl = `/uploads/${file.filename || file.originalname}`;
+    let finalUrl = '';
+    let storagePath = '';
+    let objectKey = '';
+
+    try {
+      const s3Result = await S3Service.uploadFile({
+        buffer,
+        originalname: file.originalname || file.filename,
+        mimetype: file.mimetype,
+        folder,
+      });
+      finalUrl = s3Result.url;
+      storagePath = s3Result.key;
+      objectKey = s3Result.key;
+    } catch (s3Err: any) {
+      console.error('[MediaService] S3 replace failed:', s3Err?.message || s3Err);
+      if (file.path && fs.existsSync(file.path)) {
+        try { fs.unlinkSync(file.path); } catch {}
+      }
+      throw new Error(`Media replacement failed: ${s3Err?.message || 'Unable to store asset in S3'}`);
     }
 
     // Clean up temporary local upload file on disk

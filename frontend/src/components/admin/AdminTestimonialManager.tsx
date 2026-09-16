@@ -4,9 +4,10 @@ import {
   MessageSquareQuote, Plus, Trash2, Edit3, Eye, EyeOff,
   Save, X, RefreshCw, CheckCircle2, Star, Upload,
   User, Building2, Briefcase, GripVertical, Sparkles, Image, Link as LinkIcon,
-  AlertTriangle, Quote
+  AlertTriangle, Quote, FolderPlus
 } from 'lucide-react';
 import { openAdminAIAssistant } from './AdminLayout';
+import { MediaPickerModal } from './MediaPickerModal';
 
 import { API_URL, apiFetch } from '../../config/api.config';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
@@ -51,6 +52,8 @@ export const AdminTestimonialManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; item?: TestimonialData } | null>(null);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<{ id: string; name: string } | null>(null);
@@ -108,7 +111,7 @@ export const AdminTestimonialManager: React.FC = () => {
     });
     setPhotoFile(null);
     setPhotoPreview(item.photo ? resolveMediaUrl(item.photo) : null);
-    setPhotoInputMode(item.photo && !item.photo.startsWith('/uploads/') ? 'url' : 'upload');
+    setPhotoInputMode(item.photo && !item.photo.startsWith('/uploads/') && !item.photo.includes('.amazonaws.com/') ? 'url' : 'upload');
     setModal({ mode: 'edit', item });
   };
 
@@ -118,7 +121,7 @@ export const AdminTestimonialManager: React.FC = () => {
     setPhotoPreview(null);
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -127,8 +130,42 @@ export const AdminTestimonialManager: React.FC = () => {
       return;
     }
 
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'testimonials');
+
+      const res = await apiFetch(`${API_URL}/uploads/media`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      const s3Url = data.url || data.data?.url;
+
+      if (res.ok && data.success && s3Url) {
+        // Functional state update: safely preserve ALL other form fields
+        setForm(prev => ({ ...prev, photo: s3Url }));
+        setPhotoPreview(s3Url);
+        setPhotoFile(null);
+        showMsg('success', 'Customer photo uploaded to AWS S3!');
+      } else {
+        showMsg('error', data.message || 'Image upload failed. Please try again.');
+      }
+    } catch (err: any) {
+      showMsg('error', err?.message || 'Image upload failed. Please try again.');
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const handleMediaPickerSelect = (url: string) => {
+    setForm(prev => ({ ...prev, photo: url }));
+    setPhotoPreview(url);
+    setPhotoFile(null);
+    setMediaPickerOpen(false);
+    showMsg('success', 'Photo selected from Media Library!');
   };
 
   const handleRemovePhoto = () => {
@@ -533,11 +570,17 @@ export const AdminTestimonialManager: React.FC = () => {
                           {form.name ? getInitials(form.name) : <User className="w-6 h-6" />}
                         </div>
                       )}
+                      {isUploadingPhoto && (
+                        <div className="absolute inset-0 bg-slate-950/70 rounded-2xl flex items-center justify-center z-10">
+                          <RefreshCw className="w-5 h-5 animate-spin text-emerald-400" />
+                        </div>
+                      )}
                       <button
                         type="button"
+                        disabled={isUploadingPhoto}
                         onClick={() => fileRef.current?.click()}
-                        className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-md cursor-pointer transition border-2 border-white dark:border-slate-900"
-                        title="Upload new image"
+                        className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-md cursor-pointer transition border-2 border-white dark:border-slate-900 disabled:opacity-50"
+                        title="Upload new image to AWS S3"
                       >
                         <Upload className="w-3 h-3" />
                       </button>
@@ -547,19 +590,35 @@ export const AdminTestimonialManager: React.FC = () => {
                       {photoInputMode === 'upload' ? (
                         <div className="space-y-2">
                           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                            {photoFile ? `Selected: ${photoFile.name}` : 'JPG, PNG, WebP · Max 10MB'}
+                            {isUploadingPhoto
+                              ? 'Uploading to AWS S3 storage...'
+                              : form.photo && form.photo.includes('.amazonaws.com/')
+                              ? 'Saved to AWS S3 bucket (dezo-software)'
+                              : 'Direct AWS S3 Upload · JPG, PNG, WebP · Max 10MB'}
                           </p>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <button
                               type="button"
+                              disabled={isUploadingPhoto}
                               onClick={() => fileRef.current?.click()}
-                              className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                              className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition disabled:opacity-50 flex items-center gap-1.5"
                             >
-                              Browse Image
+                              {isUploadingPhoto ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-500" /> : <Upload className="w-3.5 h-3.5 text-emerald-500" />}
+                              <span>{isUploadingPhoto ? 'Uploading...' : 'Browse Image'}</span>
                             </button>
-                            {(photoPreview || photoFile) && (
+                            <button
+                              type="button"
+                              disabled={isUploadingPhoto}
+                              onClick={() => setMediaPickerOpen(true)}
+                              className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-1.5"
+                            >
+                              <FolderPlus className="w-3.5 h-3.5 text-cyan-500" />
+                              <span>Media Library</span>
+                            </button>
+                            {(photoPreview || form.photo) && (
                               <button
                                 type="button"
+                                disabled={isUploadingPhoto}
                                 onClick={handleRemovePhoto}
                                 className="px-2.5 py-1.5 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold cursor-pointer transition"
                               >
@@ -567,7 +626,7 @@ export const AdminTestimonialManager: React.FC = () => {
                               </button>
                             )}
                           </div>
-                          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                          <input ref={fileRef} type="file" accept="image/*" className="hidden" disabled={isUploadingPhoto} onChange={handlePhotoChange} />
                         </div>
                       ) : (
                         <div className="space-y-1.5">
@@ -782,6 +841,17 @@ export const AdminTestimonialManager: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── MEDIA LIBRARY PICKER MODAL ── */}
+      {mediaPickerOpen && (
+        <MediaPickerModal
+          isOpen={mediaPickerOpen}
+          onClose={() => setMediaPickerOpen(false)}
+          onSelect={handleMediaPickerSelect}
+          allowedTypes={['image']}
+          title="Select Testimonial Photo from Media Library"
+        />
+      )}
     </div>
   );
 };

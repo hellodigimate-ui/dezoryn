@@ -1,24 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { TestimonialService } from '../services/testimonial.service';
+import { S3Service } from '../services/s3.service';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 
-// ── Multer config for testimonial photos ──
-const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'testimonials');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.jpg';
-    const cleanName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
-    cb(null, `testimonial-${Date.now()}-${cleanName}${ext}`);
-  },
-});
-
+// ── Multer config for testimonial photos (In-Memory -> AWS S3 directly) ──
 export const uploadPhoto = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (_req, file, cb) => {
     const allowedExts = /jpeg|jpg|png|gif|webp|svg|bmp|avif/i;
@@ -58,7 +46,17 @@ export class TestimonialController {
 
       let photo: string | null = null;
       if (req.file) {
-        photo = `/uploads/testimonials/${req.file.filename}`;
+        if (!req.file.buffer || req.file.buffer.length === 0) {
+          res.status(400).json({ success: false, message: 'Uploaded photo file is empty.' });
+          return;
+        }
+        const s3Result = await S3Service.uploadFile({
+          buffer: req.file.buffer,
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          folder: 'testimonials',
+        });
+        photo = s3Result.url;
       } else if (req.body.photo && typeof req.body.photo === 'string' && req.body.photo.trim()) {
         photo = req.body.photo.trim();
       }
@@ -107,7 +105,17 @@ export class TestimonialController {
       }
 
       if (req.file) {
-        updateData.photo = `/uploads/testimonials/${req.file.filename}`;
+        if (!req.file.buffer || req.file.buffer.length === 0) {
+          res.status(400).json({ success: false, message: 'Uploaded photo file is empty.' });
+          return;
+        }
+        const s3Result = await S3Service.uploadFile({
+          buffer: req.file.buffer,
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          folder: 'testimonials',
+        });
+        updateData.photo = s3Result.url;
       } else if (req.body.photo !== undefined) {
         updateData.photo = req.body.photo && String(req.body.photo).trim() ? String(req.body.photo).trim() : null;
       }

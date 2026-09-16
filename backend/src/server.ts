@@ -51,6 +51,17 @@ async function bootstrap() {
     await prisma.$connect();
     logger.info('🐘 Connected successfully to PostgreSQL database via Prisma');
 
+    const hasAccessKey = !!(env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID);
+    const hasSecretKey = !!(env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY);
+    const s3Bucket = env.AWS_S3_BUCKET || process.env.AWS_S3_BUCKET || 'dezo-software';
+    const s3Region = env.AWS_REGION || process.env.AWS_REGION || 'ap-south-1';
+
+    logger.info(`☁️ AWS S3 Storage Diagnostics:
+      AWS_S3_BUCKET configured: ${!!s3Bucket} (${s3Bucket})
+      AWS_REGION configured: ${!!s3Region} (${s3Region})
+      AWS_ACCESS_KEY_ID configured: ${hasAccessKey}
+      AWS_SECRET_ACCESS_KEY configured: ${hasSecretKey}`);
+
     await ensureDefaultAdmin();
 
     const server = app.listen(PORT, () => {

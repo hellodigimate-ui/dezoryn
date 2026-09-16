@@ -22,28 +22,37 @@ export class UploadController {
         } catch {}
       }
 
-      let finalUrl = `/uploads/${file.filename}`;
-      let storagePath = file.path || `/uploads/${file.filename}`;
-      let s3Key = file.filename;
+      if (!fileBuffer || fileBuffer.length === 0) {
+        if (file.path && fs.existsSync(file.path)) {
+          try { fs.unlinkSync(file.path); } catch {}
+        }
+        throw new BadRequestError('File buffer is empty or could not be read');
+      }
+
+      let finalUrl = '';
+      let storagePath = '';
+      let s3Key = '';
 
       try {
-        if (fileBuffer && fileBuffer.length > 0) {
-          const s3Result = await S3Service.uploadFile({
-            buffer: fileBuffer,
-            originalname: file.originalname || file.filename,
-            mimetype: file.mimetype,
-            folder,
-          });
-          finalUrl = s3Result.url;
-          storagePath = s3Result.key;
-          s3Key = s3Result.key;
-        }
+        const s3Result = await S3Service.uploadFile({
+          buffer: fileBuffer,
+          originalname: file.originalname || file.filename,
+          mimetype: file.mimetype,
+          folder,
+        });
+        finalUrl = s3Result.url;
+        storagePath = s3Result.key;
+        s3Key = s3Result.key;
       } catch (s3Err: any) {
-        console.warn('[UploadController] S3 upload error, falling back to local path:', s3Err?.message || s3Err);
+        console.error('[UploadController] S3 upload failed:', s3Err?.message || s3Err);
+        if (file.path && fs.existsSync(file.path)) {
+          try { fs.unlinkSync(file.path); } catch {}
+        }
+        throw new Error(`Upload failed: ${s3Err?.message || 'Unable to store file in S3'}`);
       }
 
       // Clean up local temp file on disk if created by Multer
-      if (file.path && fs.existsSync(file.path) && finalUrl.startsWith('http')) {
+      if (file.path && fs.existsSync(file.path)) {
         try {
           fs.unlinkSync(file.path);
         } catch {}
