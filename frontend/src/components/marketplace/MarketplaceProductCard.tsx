@@ -58,37 +58,29 @@ const renderCategoryIcon = (iconName: string | React.ReactNode) => {
 
 // Clean preview graphic for product card with Lazy Loading
 const ProductScreenshotPreview: React.FC<{ product: MarketplaceProduct }> = ({ product }) => {
+  const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
+
   const candidateUrls = React.useMemo(() => {
-    const rawList = [product.coverPhoto, product.thumbnail, product.image].filter(Boolean) as string[];
-    // Prioritize cloud/CDN URLs (http/https) first
-    const sorted = [...rawList].sort((a, b) => {
-      const aIsHttp = a.startsWith('http://') || a.startsWith('https://');
-      const bIsHttp = b.startsWith('http://') || b.startsWith('https://');
-      if (aIsHttp && !bIsHttp) return -1;
-      if (!aIsHttp && bIsHttp) return 1;
-      return 0;
-    });
-    return Array.from(new Set(sorted.map(url => resolveMediaUrl(url))));
+    const primary = (product.coverPhoto && product.coverPhoto.trim())
+      || (product.thumbnail && product.thumbnail.trim())
+      || (product.image && product.image.trim())
+      || '';
+    const rawList = [primary, product.thumbnail, product.image, product.coverPhoto].filter(Boolean) as string[];
+    const unique = Array.from(new Set(rawList));
+    return unique.map(url => resolveMediaUrl(url)).filter(Boolean);
   }, [product.thumbnail, product.image, product.coverPhoto]);
 
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Reset index if product changes
+  // Reset failed tracking if product changes
   React.useEffect(() => {
-    setActiveIdx(0);
-    setIsLoaded(false);
-  }, [product.id, product.thumbnail, product.image, product.coverPhoto]);
+    setFailedUrls({});
+  }, [product.id, product.coverPhoto, product.thumbnail, product.image]);
 
-  const currentUrl = candidateUrls[activeIdx] || '';
-  const hasValidCandidate = Boolean(currentUrl) && activeIdx < candidateUrls.length;
+  const currentUrl = candidateUrls.find(url => !failedUrls[url]) || '';
+  const hasValidCandidate = Boolean(currentUrl);
 
   const handleError = () => {
-    if (activeIdx < candidateUrls.length - 1) {
-      setActiveIdx(prev => prev + 1);
-      setIsLoaded(false);
-    } else {
-      setActiveIdx(candidateUrls.length);
+    if (currentUrl) {
+      setFailedUrls(prev => ({ ...prev, [currentUrl]: true }));
     }
   };
 
@@ -96,20 +88,12 @@ const ProductScreenshotPreview: React.FC<{ product: MarketplaceProduct }> = ({ p
     <div className="relative w-full h-44 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 overflow-hidden rounded-t-3xl border-b border-slate-800/80 group">
       {hasValidCandidate ? (
         <div className="relative w-full h-full overflow-hidden bg-slate-950">
-          {!isLoaded && (
-            <div className="absolute inset-0 bg-slate-800 animate-pulse" />
-          )}
           <img
             key={currentUrl}
             src={currentUrl}
             alt={product.title}
-            loading="lazy"
-            decoding="async"
-            onLoad={() => setIsLoaded(true)}
             onError={handleError}
-            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out will-change-transform ${
-              isLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out will-change-transform"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent pointer-events-none" />
         </div>

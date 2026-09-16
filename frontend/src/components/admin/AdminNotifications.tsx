@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell,
@@ -60,6 +60,18 @@ export const AdminNotifications: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+
+  useEffect(() => {
+    const handleNewNotification = (e: CustomEvent<NotificationItem>) => {
+      if (e.detail) {
+        setNotifications((prev) => [e.detail, ...prev]);
+      }
+    };
+    window.addEventListener('admin-new-notification' as any, handleNewNotification as any);
+    return () => {
+      window.removeEventListener('admin-new-notification' as any, handleNewNotification as any);
+    };
+  }, []);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const filteredNotifications = notifications.filter((n) => (filter === 'unread' ? !n.isRead : true));

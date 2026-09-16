@@ -61,17 +61,32 @@ function sanitizeProductPayload(data: any, isUpdate = false): Record<string, any
     result.pricingTiers = Array.isArray(data.pricingTiers) ? data.pricingTiers : [];
   }
 
-  const image = data.image !== undefined ? data.image : data.thumbnail;
-  if (image !== undefined) {
-    result.image = image ? String(image) : null;
-    result.thumbnail = image ? String(image) : '';
-  }
-  if (data.thumbnail !== undefined && result.thumbnail === undefined) {
-    result.thumbnail = String(data.thumbnail);
-    if (result.image === undefined) result.image = data.thumbnail ? String(data.thumbnail) : null;
+  // Keep coverPhoto, thumbnail, and image strictly synchronized as the primary product cover
+  const primaryThumbCandidate = data.thumbnail !== undefined ? data.thumbnail : data.image;
+  if (primaryThumbCandidate !== undefined) {
+    const thumbStr = primaryThumbCandidate ? String(primaryThumbCandidate).trim() : '';
+    result.thumbnail = thumbStr;
+    result.image = thumbStr || null;
+    if (data.coverPhoto === undefined || !String(data.coverPhoto).trim()) {
+      result.coverPhoto = thumbStr;
+    }
   }
 
-  if (data.coverPhoto !== undefined) result.coverPhoto = String(data.coverPhoto);
+  if (data.coverPhoto !== undefined) {
+    const coverStr = data.coverPhoto ? String(data.coverPhoto).trim() : '';
+    result.coverPhoto = coverStr;
+    if (primaryThumbCandidate === undefined) {
+      result.thumbnail = coverStr;
+      result.image = coverStr || null;
+    }
+  }
+
+  if (!isUpdate) {
+    const fallbackCover = result.coverPhoto || result.thumbnail || result.image || '';
+    result.coverPhoto = fallbackCover;
+    result.thumbnail = fallbackCover;
+    result.image = fallbackCover || null;
+  }
   if (data.gallery !== undefined) result.gallery = Array.isArray(data.gallery) ? data.gallery : [];
   if (data.videoUrl !== undefined) result.videoUrl = String(data.videoUrl);
   else if (data.video !== undefined) result.videoUrl = String(data.video);

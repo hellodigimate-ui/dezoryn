@@ -94,47 +94,49 @@ export function buildProductDetailFromDb(apiProd: any): ProductDetailData {
   const shortDesc = apiProd.shortDesc || apiProd.description || '';
   const overviewText = apiProd.description || apiProd.shortDesc || '';
 
-  // Candidate images from real database records (coverPhoto, gallery, thumbnail, image)
-  const allCandidates: string[] = [];
-  if (apiProd.coverPhoto && typeof apiProd.coverPhoto === 'string' && apiProd.coverPhoto.trim()) {
-    allCandidates.push(apiProd.coverPhoto.trim());
-  }
+  // Primary cover image (consistently synced across coverPhoto, thumbnail, and image)
+  const primaryCover = (apiProd.coverPhoto && typeof apiProd.coverPhoto === 'string' && apiProd.coverPhoto.trim())
+    || (apiProd.thumbnail && typeof apiProd.thumbnail === 'string' && apiProd.thumbnail.trim())
+    || (apiProd.image && typeof apiProd.image === 'string' && apiProd.image.trim())
+    || '';
+
+  // Collect genuine gallery screenshot images
+  const rawGallery: string[] = [];
   if (Array.isArray(apiProd.gallery)) {
     apiProd.gallery.forEach((g: any) => {
-      if (typeof g === 'string' && g.trim()) allCandidates.push(g.trim());
+      if (typeof g === 'string' && g.trim()) {
+        rawGallery.push(g.trim());
+      }
     });
   }
-  if (apiProd.thumbnail && typeof apiProd.thumbnail === 'string' && apiProd.thumbnail.trim()) {
-    allCandidates.push(apiProd.thumbnail.trim());
-  }
-  if (apiProd.image && typeof apiProd.image === 'string' && apiProd.image.trim()) {
-    allCandidates.push(apiProd.image.trim());
-  }
 
-  // Deduplicate and prioritize cloud/S3 URLs (http/https) first
-  const uniqueCandidates = Array.from(new Set(allCandidates)).filter(Boolean);
-  uniqueCandidates.sort((a, b) => {
-    const aIsHttp = a.startsWith('http://') || a.startsWith('https://');
-    const bIsHttp = b.startsWith('http://') || b.startsWith('https://');
-    if (aIsHttp && !bIsHttp) return -1;
-    if (!aIsHttp && bIsHttp) return 1;
-    return 0;
+  // Construct unique ordered candidate list:
+  // Primary cover image is always first (View 1 / Overview)
+  const uniqueUrls: string[] = [];
+  if (primaryCover) {
+    uniqueUrls.push(primaryCover);
+  }
+  // Append distinct screenshots uploaded to gallery
+  rawGallery.forEach((url) => {
+    if (!uniqueUrls.includes(url)) {
+      uniqueUrls.push(url);
+    }
   });
 
-  const galleryScreenshots = uniqueCandidates.map((imgUrl: string, idx: number) => ({
+  const galleryScreenshots = uniqueUrls.map((imgUrl: string, idx: number) => ({
     id: String(idx + 1),
-    title: `${title} - Interface View ${idx + 1}`,
+    title: uniqueUrls.length === 1 ? `${title} - Primary Overview` : `${title} - Interface View ${idx + 1}`,
     subtitle: `Module and dashboard preview for ${title}.`,
-    tag: `VIEW ${idx + 1}`,
+    tag: uniqueUrls.length === 1 ? 'OVERVIEW' : `VIEW ${idx + 1}`,
     url: imgUrl
   }));
 
   // Video Tour from real database records only
-  const videoTour = (apiProd.videoUrl || apiProd.coverPhoto)
+  const videoTour = (apiProd.videoUrl || primaryCover)
     ? {
         title: `Watch ${title} Guided Product Overview`,
         duration: 'Product Tour',
-        thumbnail: apiProd.coverPhoto || apiProd.thumbnail || apiProd.image,
+        thumbnail: primaryCover,
         videoUrl: apiProd.videoUrl
       }
     : undefined;
@@ -219,8 +221,8 @@ export function buildProductDetailFromDb(apiProd: any): ProductDetailData {
     priceValue,
     aiPowered,
     cloudNative,
-    coverPhoto: apiProd.coverPhoto ? String(apiProd.coverPhoto).trim() : undefined,
-    thumbnail: apiProd.thumbnail ? String(apiProd.thumbnail).trim() : undefined,
+    coverPhoto: primaryCover || undefined,
+    thumbnail: primaryCover || undefined,
     shortDesc,
     overviewText,
     demoUrl: apiProd.demoUrl ? String(apiProd.demoUrl).trim() : '',

@@ -124,6 +124,8 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
   const [activeModule, setActiveModule] = useState<string>('products');
   const [products, setProducts] = useState<MarketplaceProductAdmin[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [syncCount, setSyncCount] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info' | 'delete'; text: string } | null>(null);
   const [isSavingProduct, setIsSavingProduct] = useState<boolean>(false);
@@ -388,6 +390,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
           ...prev,
           thumbnail: url,
           image: url,
+          coverPhoto: url,
         } : null);
         showMsg('success', `Thumbnail "${file.name}" uploaded successfully!`);
       } else {
@@ -445,8 +448,8 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
   const handleMediaPickerSelect = useCallback((url: string) => {
     const target = mediaPickerTargetRef.current || mediaPickerTarget;
     if (target === 'thumbnail') {
-      setEditModalProduct((prev) => prev ? { ...prev, thumbnail: url, image: url } : null);
-      showMsg('success', 'Selected asset as thumbnail!');
+      setEditModalProduct((prev) => prev ? { ...prev, thumbnail: url, image: url, coverPhoto: url } : null);
+      showMsg('success', 'Selected asset as thumbnail and cover image!');
     } else if (target === 'gallery') {
       setEditModalProduct((prev) => prev ? { ...prev, gallery: [...(prev.gallery || []), url] } : null);
       showMsg('success', 'Asset added to gallery!');
@@ -543,6 +546,53 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
     }
   }, []);
 
+  const handleSyncDb = useCallback(async () => {
+    setSyncState('syncing');
+    setIsLoading(true);
+    try {
+      // Use cache buster query parameter to guarantee fresh fetch from PostgreSQL RDS
+      const res = await apiFetch(`${API_BASE}?_t=${Date.now()}`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setProducts(data.data);
+        const count = data.data.length;
+        setSyncCount(count);
+        setSyncState('success');
+        showMsg('success', `Live Database Synced! ${count} SaaS products loaded from PostgreSQL.`);
+
+        // Dispatch real-time notification to top-bar AdminNotifications bell
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('admin-new-notification', {
+              detail: {
+                id: `sync-${Date.now()}`,
+                type: 'system',
+                title: 'Live Database Synchronized',
+                message: `Successfully synchronized ${count} SaaS products from live PostgreSQL RDS.`,
+                time: 'Just now',
+                isRead: false,
+              },
+            })
+          );
+        }
+
+        setTimeout(() => {
+          setSyncState('idle');
+        }, 4500);
+      } else {
+        setSyncState('error');
+        showMsg('error', 'Failed to synchronize with PostgreSQL database.');
+        setTimeout(() => setSyncState('idle'), 4500);
+      }
+    } catch (_err) {
+      setSyncState('error');
+      showMsg('error', 'Network error: Unable to sync with PostgreSQL database.');
+      setTimeout(() => setSyncState('idle'), 4500);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showMsg]);
+
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
@@ -560,11 +610,17 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
         method = 'PUT';
       }
 
+      const primaryCover = (productToSave.thumbnail && productToSave.thumbnail.trim())
+        || (productToSave.coverPhoto && productToSave.coverPhoto.trim())
+        || (productToSave.image && productToSave.image.trim())
+        || '';
+
       const payload = {
         ...productToSave,
         title: (productToSave.name || productToSave.title || '').trim(),
-        image: productToSave.thumbnail || productToSave.image || null,
-        thumbnail: productToSave.thumbnail || productToSave.image || '',
+        image: primaryCover || null,
+        thumbnail: primaryCover,
+        coverPhoto: primaryCover,
         slug: productToSave.slug || (productToSave.name || productToSave.title || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
       };
 
@@ -712,18 +768,18 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
       <AnimatePresence>
         {message && (
           <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.95 }}
+            initial={{ opacity: 0, y: -24, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.95 }}
+            exit={{ opacity: 0, y: -24, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className={`fixed bottom-8 right-8 z-50 px-4 py-3.5 rounded-2xl border text-xs font-bold shadow-2xl backdrop-blur-2xl flex items-center gap-3 max-w-md ${
+            className={`fixed top-20 right-6 sm:right-8 z-[99999] px-5 py-4 rounded-2xl border text-xs font-bold shadow-2xl backdrop-blur-2xl flex items-center gap-3 max-w-md ${
               message.type === 'delete'
-                ? 'bg-slate-900/95 text-white border-rose-500/40 shadow-rose-500/10'
+                ? 'bg-slate-900/95 text-white border-rose-500/50 shadow-rose-500/20 ring-1 ring-rose-500/30'
                 : message.type === 'success'
-                ? 'bg-slate-900/95 text-white border-emerald-500/40 shadow-emerald-500/10'
+                ? 'bg-slate-900/95 text-white border-emerald-500/50 shadow-emerald-500/20 ring-1 ring-emerald-500/30'
                 : message.type === 'error'
-                ? 'bg-slate-900/95 text-white border-rose-500/40 shadow-rose-500/10'
-                : 'bg-slate-900/95 text-white border-cyan-500/40 shadow-cyan-500/10'
+                ? 'bg-slate-900/95 text-white border-rose-500/50 shadow-rose-500/20 ring-1 ring-rose-500/30'
+                : 'bg-slate-900/95 text-white border-cyan-500/50 shadow-cyan-500/20 ring-1 ring-cyan-500/30'
             }`}
           >
             {/* Status Badge */}
@@ -768,14 +824,59 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 sm:gap-3 self-stretch sm:self-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 self-stretch sm:self-auto">
+          {/* Live Sync Completion Status Pill */}
+          <AnimatePresence>
+            {syncState === 'success' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, x: 10 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.9, x: 10 }}
+                transition={{ duration: 0.2 }}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 text-xs font-black shadow-xs"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>✓ {syncCount} Live Products Synced</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <button
             type="button"
-            onClick={fetchProducts}
-            className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-2xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-xs transition-colors cursor-pointer flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-800 shadow-xs"
+            onClick={handleSyncDb}
+            disabled={isLoading || syncState === 'syncing'}
+            title="Synchronize product catalog with PostgreSQL RDS database"
+            className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 border shadow-xs ${
+              syncState === 'syncing'
+                ? 'bg-cyan-500/15 dark:bg-cyan-500/25 text-cyan-600 dark:text-cyan-300 border-cyan-500/50 ring-2 ring-cyan-500/30'
+                : syncState === 'success'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.35)] ring-2 ring-emerald-500/30'
+                : syncState === 'error'
+                ? 'bg-rose-600 text-white border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.35)]'
+                : 'bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+            }`}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Sync Live DB</span>
+            {syncState === 'syncing' ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-500 dark:text-cyan-400" />
+                <span>Syncing Live DB...</span>
+              </>
+            ) : syncState === 'success' ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-white animate-bounce" />
+                <span>✓ Synced {syncCount} Products!</span>
+              </>
+            ) : syncState === 'error' ? (
+              <>
+                <AlertTriangle className="w-4 h-4 text-white" />
+                <span>Sync Failed (Retry)</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Sync Live DB</span>
+              </>
+            )}
           </button>
 
           <button
@@ -801,6 +902,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                 reviewsCount: 1,
                 thumbnail: '',
                 image: '',
+                coverPhoto: '',
                 gallery: [],
                 videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
                 demoUrl: 'https://demo.dezoryn.com',
@@ -1081,7 +1183,18 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80">
-                  {filteredProducts.length === 0 ? (
+                  {isLoading && products.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-12 text-center text-slate-500 dark:text-slate-400">
+                        <div className="flex flex-col items-center justify-center gap-3 py-6">
+                          <Loader2 className="w-8 h-8 text-cyan-500 animate-spin" />
+                          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                            Loading SaaS products from PostgreSQL database...
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredProducts.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-12 text-center text-slate-500 dark:text-slate-400">
                         <div className="max-w-md mx-auto space-y-3">
@@ -1120,6 +1233,7 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                                   reviewsCount: 0,
                                   thumbnail: '',
                                   image: '',
+                                  coverPhoto: '',
                                   gallery: [],
                                   videoUrl: '',
                                   demoUrl: '',
@@ -1166,10 +1280,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                         >
                           <td className="p-4">
                             <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center shrink-0">
-                              {prod.image || prod.thumbnail ? (
+                              {prod.coverPhoto || prod.image || prod.thumbnail ? (
                                 <img
-                                  src={resolveMediaUrl(prod.image || prod.thumbnail || '')}
-                                  alt={prod.title}
+                                  src={resolveMediaUrl(prod.coverPhoto || prod.thumbnail || prod.image || '')}
+                                  alt={prod.title || prod.name}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
                                     e.currentTarget.style.display = 'none';
@@ -1718,20 +1832,20 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                     <input
                       type="text"
                       placeholder="Paste Cloudinary URL (https://res.cloudinary.com/...)"
-                      defaultValue={p.image || p.thumbnail || ''}
+                      defaultValue={p.coverPhoto || p.image || p.thumbnail || ''}
                       onBlur={async (e) => {
                         const url = e.target.value.trim();
-                        if (url !== p.image) {
+                        if (url !== (p.coverPhoto || p.image || p.thumbnail)) {
                           try {
                             await apiFetch(`${API_BASE}/${p.id}`, {
                               method: 'PUT',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ image: url, thumbnail: url })
+                              body: JSON.stringify({ image: url, thumbnail: url, coverPhoto: url })
                             });
                             setProducts((prev) =>
-                              prev.map((item) => (item.id === p.id ? { ...item, image: url, thumbnail: url } : item))
+                              prev.map((item) => (item.id === p.id ? { ...item, image: url, thumbnail: url, coverPhoto: url } : item))
                             );
-                            showMsg('success', `Cloudinary cover photo updated for ${p.title}!`);
+                            showMsg('success', `Cover photo updated for ${p.title}!`);
                           } catch (_err) {
                             showMsg('error', 'Failed to update cover photo URL');
                           }
@@ -2778,21 +2892,21 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                           <span className="text-xs font-bold text-slate-900 dark:text-white">Uploading thumbnail image...</span>
                           <span className="text-[10px] text-slate-500">Processing file from your device</span>
                         </div>
-                      ) : editModalProduct.thumbnail || editModalProduct.image ? (
+                      ) : editModalProduct.thumbnail || editModalProduct.image || editModalProduct.coverPhoto ? (
                         <div className="w-full space-y-3" onClick={(e) => e.stopPropagation()}>
                           <div className="relative w-full max-w-md mx-auto h-44 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md group/img">
-                            {((editModalProduct.thumbnail || editModalProduct.image || '').toLowerCase().includes('.pdf') ||
-                              (editModalProduct.thumbnail || editModalProduct.image || '').toLowerCase().includes('application/pdf')) ? (
+                            {((editModalProduct.thumbnail || editModalProduct.image || editModalProduct.coverPhoto || '').toLowerCase().includes('.pdf') ||
+                              (editModalProduct.thumbnail || editModalProduct.image || editModalProduct.coverPhoto || '').toLowerCase().includes('application/pdf')) ? (
                               <div className="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-cyan-400 p-4">
                                 <FileText className="w-12 h-12 mb-2" />
                                 <span className="text-xs font-bold text-white">PDF Document Attached</span>
                                 <span className="text-[10px] text-slate-400 truncate max-w-full">
-                                  {editModalProduct.thumbnail || editModalProduct.image}
+                                  {editModalProduct.thumbnail || editModalProduct.image || editModalProduct.coverPhoto}
                                 </span>
                               </div>
                             ) : (
                               <img
-                                src={resolveMediaUrl(editModalProduct.thumbnail || editModalProduct.image || '')}
+                                src={resolveMediaUrl(editModalProduct.thumbnail || editModalProduct.image || editModalProduct.coverPhoto || '')}
                                 alt="Thumbnail Preview"
                                 className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300"
                               />
@@ -2809,8 +2923,8 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setEditModalProduct((prev) => prev ? ({ ...prev, thumbnail: '', image: '' }) : null);
-                                  showMsg('info', 'Thumbnail cleared.');
+                                  setEditModalProduct((prev) => prev ? ({ ...prev, thumbnail: '', image: '', coverPhoto: '' }) : null);
+                                  showMsg('info', 'Thumbnail and cover cleared.');
                                 }}
                                 className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg cursor-pointer flex items-center gap-1.5 transition"
                               >
@@ -2880,10 +2994,10 @@ export const AdminMarketplaceManager: React.FC = React.memo(() => {
                       <input
                         type="text"
                         placeholder="Or paste Cloudinary / Web CDN URL (https://res.cloudinary.com/...)"
-                        value={editModalProduct.thumbnail || editModalProduct.image || ''}
+                        value={editModalProduct.thumbnail || editModalProduct.image || editModalProduct.coverPhoto || ''}
                         onChange={(e) => {
                           const val = e.target.value;
-                          setEditModalProduct((prev) => prev ? ({ ...prev, thumbnail: val, image: val }) : null);
+                          setEditModalProduct((prev) => prev ? ({ ...prev, thumbnail: val, image: val, coverPhoto: val }) : null);
                         }}
                         className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-cyan-500"
                       />

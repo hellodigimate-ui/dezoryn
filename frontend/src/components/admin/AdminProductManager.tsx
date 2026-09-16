@@ -128,6 +128,8 @@ export const AdminProductManager: React.FC = () => {
     try {
       const payload = {
         ...form,
+        thumbnail: form.image || '',
+        coverPhoto: form.image || '',
         features: form.features.filter(f => f.trim() !== ''),
       };
       const url = modal?.mode === 'create' ? API : `${API}/${modal?.product?.id}`;
